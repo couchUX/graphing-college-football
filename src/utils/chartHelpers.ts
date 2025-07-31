@@ -1,0 +1,302 @@
+import { PlayData } from '../types';
+import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from './chartConfig';
+
+// Helper function to get point colors based on success/explosiveness
+export const getPointColors = (playsArray: PlayData[], teamColors: any) => {
+  return playsArray.map(play => {
+    if (play.explosiveness) return teamColors.explosive;
+    if (play.success) return teamColors.success;
+    return 'rgba(255,255,255,0.9)';
+  });
+};
+
+// Helper function to group plays by category and calculate SR/XR
+export const groupByCategory = (playsArray: PlayData[], category: 'quarter' | 'down' | 'playType' | 'redZone' | 'distance') => {
+  const groups: { [key: string]: PlayData[] } = {};
+  
+  playsArray.forEach(play => {
+    let key: string;
+    if (category === 'quarter') {
+      key = `Q${play.quarter}`;
+    } else if (category === 'down') {
+      key = `${play.down}${play.down === 1 ? 'st' : play.down === 2 ? 'nd' : play.down === 3 ? 'rd' : 'th'} Down`;
+    } else if (category === 'playType') {
+      key = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run') ? 'Rush' : 'Pass';
+    } else if (category === 'redZone') {
+      key = play.yardsToGoal <= 20 ? 'Red Zone' : 'Other';
+    } else if (category === 'distance') {
+      if (play.distance <= 3) key = 'Short (1-3)';
+      else if (play.distance <= 7) key = 'Medium (4-7)';
+      else key = 'Long (8+)';
+    } else {
+      key = 'Other';
+    }
+    
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(play);
+  });
+
+  return Object.entries(groups).map(([label, groupPlays]) => ({
+    label,
+    count: groupPlays.length,
+    sr: groupPlays.length > 0 ? groupPlays.filter(p => p.success).length / groupPlays.length : 0,
+    xr: groupPlays.length > 0 ? groupPlays.filter(p => p.explosiveness).length / groupPlays.length : 0
+  }));
+};
+
+// Helper function to create quarter gridlines
+export const createQuarterGridlines = (playsData: PlayData[], maxX: number, yMin: number = 0, yMax: number = 1) => {
+  const quarters = Array.from(new Set(playsData.map(p => p.quarter))).sort((a, b) => a - b);
+  const quarterLines: any[] = [];
+  
+  quarters.forEach(quarter => {
+    const firstPlayOfQuarter = playsData.find(p => p.quarter === quarter);
+    if (firstPlayOfQuarter) {
+      quarterLines.push(
+        { x: firstPlayOfQuarter.playNumber, y: yMin },
+        { x: firstPlayOfQuarter.playNumber, y: yMax },
+        { x: maxX, y: yMax },
+        { x: maxX, y: yMin }
+      );
+    }
+  });
+
+  return {
+    label: 'Quarters',
+    data: quarterLines,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderWidth: 1,
+    tension: 0,
+    fill: false,
+    pointRadius: 0,
+    showLine: true,
+    datalabels: {
+      display: false
+    }
+  };
+};
+
+// Helper function to create quarter gridlines for team play numbers
+export const createTeamQuarterGridlines = (teamPlaysData: PlayData[], maxX: number, yMin: number = 0, yMax: number = 1) => {
+  const quarters = Array.from(new Set(teamPlaysData.map(p => p.quarter))).sort((a, b) => a - b);
+  const quarterLines: any[] = [];
+  
+  quarters.forEach(quarter => {
+    const firstPlayOfQuarter = teamPlaysData.find(p => p.quarter === quarter);
+    if (firstPlayOfQuarter) {
+      quarterLines.push(
+        { x: firstPlayOfQuarter.teamPlayNumber, y: yMin },
+        { x: firstPlayOfQuarter.teamPlayNumber, y: yMax },
+        { x: maxX, y: yMax },
+        { x: maxX, y: yMin }
+      );
+    }
+  });
+
+  return {
+    label: 'Quarters',
+    data: quarterLines,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderWidth: 1,
+    tension: 0,
+    fill: false,
+    pointRadius: 0,
+    showLine: true,
+    datalabels: {
+      display: false
+    }
+  };
+};
+
+// Helper function to create filled area below reference line
+export const createReferenceArea = (maxX: number, referenceY: number, label: string) => ({
+  label,
+  data: [
+    { x: 1, y: 0 },
+    { x: 1, y: referenceY },
+    { x: maxX, y: referenceY },
+    { x: maxX, y: 0 }
+  ],
+  backgroundColor: 'rgba(0,0,0,0.03)',
+  borderColor: 'transparent',
+  pointRadius: 0,
+  fill: true,
+  tension: 0,
+  showLine: true,
+  datalabels: {
+    display: false
+  }
+});
+
+// Helper function to create filled area below zero for play maps
+export const createBelowZeroArea = (maxX: number, minY: number = -50) => ({
+  label: '< 0',
+  data: [
+    { x: 1, y: 0 },
+    { x: 1, y: minY },
+    { x: maxX, y: minY },
+    { x: maxX, y: 0 }
+  ],
+  backgroundColor: 'rgba(0,0,0,0.03)',
+  borderColor: 'transparent',
+  pointRadius: 0,
+  fill: true,
+  tension: 0,
+  showLine: true,
+  datalabels: {
+    display: false
+  }
+});
+
+// Helper function to create team vs opponent bar chart data
+export const createTeamVsOpponentBarData = (
+  category: 'quarter' | 'down' | 'playType' | 'redZone' | 'distance',
+  teamPlays: PlayData[],
+  opponentPlays: PlayData[],
+  team: string,
+  opponentTeam: string,
+  teamColors: any,
+  opponentColors: any
+) => {
+  const teamData = groupByCategory(teamPlays, category);
+  const opponentData = groupByCategory(opponentPlays, category);
+  
+  // Get all unique labels from both teams
+  const allLabels = Array.from(new Set([
+    ...teamData.map(d => d.label),
+    ...opponentData.map(d => d.label)
+  ])).sort();
+
+  // Create data arrays ensuring all labels are represented
+  const teamSR = allLabels.map(label => {
+    const found = teamData.find(d => d.label === label);
+    return found ? found.sr : 0;
+  });
+  
+  const teamXR = allLabels.map(label => {
+    const found = teamData.find(d => d.label === label);
+    return found ? found.xr : 0;
+  });
+  
+  const oppSR = allLabels.map(label => {
+    const found = opponentData.find(d => d.label === label);
+    return found ? found.sr : 0;
+  });
+  
+  const oppXR = allLabels.map(label => {
+    const found = opponentData.find(d => d.label === label);
+    return found ? found.xr : 0;
+  });
+
+  // Create count arrays for data labels
+  const teamCounts = allLabels.map(label => {
+    const found = teamData.find(d => d.label === label);
+    return found ? found.count : 0;
+  });
+  
+  const oppCounts = allLabels.map(label => {
+    const found = opponentData.find(d => d.label === label);
+    return found ? found.count : 0;
+  });
+
+  return {
+    labels: allLabels,
+    datasets: [
+      {
+        data: teamXR,
+        stack: 'Team',
+        label: `${team} XR`,
+        backgroundColor: teamColors.explosive,
+        datalabels: {
+          display: false
+        }
+      },
+      {
+        data: teamSR,
+        stack: 'Team',
+        label: `${team} SR`,
+        backgroundColor: teamColors.success,
+        datalabels: {
+          display: true,
+          formatter: (value: number, context: any) => {
+            return teamCounts[context.dataIndex];
+          }
+        }
+      },
+      {
+        data: oppXR,
+        stack: 'Opponent',
+        label: `${opponentTeam} XR`,
+        backgroundColor: opponentColors.explosive,
+        datalabels: {
+          display: false
+        }
+      },
+      {
+        data: oppSR,
+        stack: 'Opponent',
+        label: `${opponentTeam} SR`,
+        backgroundColor: opponentColors.success,
+        datalabels: {
+          display: true,
+          formatter: (value: number, context: any) => {
+            return oppCounts[context.dataIndex];
+          }
+        }
+      },
+      // NCAA Average reference line
+      {
+        type: 'line' as const,
+        data: Array(allLabels.length).fill(NCAA_AVERAGE_SR),
+        label: "NCAA Avg SR",
+        borderColor: '#757575',
+        borderWidth: 2,
+        borderDash: [3, 3],
+        pointRadius: 0,
+        datalabels: {
+          display: false
+        }
+      }
+    ]
+  };
+};
+
+// Create player data for charts
+export const createPlayerData = (players: any[]) => ({
+  labels: players.map(p => p.name),
+  datasets: [
+    {
+      label: 'Explosive',
+      data: players.map(p => p.explosive),
+      backgroundColor: players.map(p => p.teamColors.explosive),
+      borderColor: players.map(p => p.teamColors.colorDark),
+      borderWidth: 1,
+      stack: 1,
+      datalabels: {
+        display: (context: any) => context.dataset.data[context.dataIndex] > 0
+      }
+    },
+    {
+      label: 'Successful',
+      data: players.map(p => p.successful),
+      backgroundColor: players.map(p => p.teamColors.success),
+      borderColor: players.map(p => p.teamColors.colorDark),
+      borderWidth: 1,
+      stack: 1,
+      datalabels: {
+        display: (context: any) => context.dataset.data[context.dataIndex] > 0
+      }
+    },
+    {
+      label: 'Unsuccessful',
+      data: players.map(p => p.unsuccessful),
+      backgroundColor: 'rgba(0,0,0,0.03)', // Light gray matching reference areas
+      borderColor: players.map(p => p.teamColors.colorDark),
+      borderWidth: 1,
+      stack: 1,
+      datalabels: {
+        display: (context: any) => context.dataset.data[context.dataIndex] > 0
+      }
+    },
+  ],
+});

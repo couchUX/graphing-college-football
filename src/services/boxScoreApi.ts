@@ -1,5 +1,5 @@
 const API_BASE_URL = 'https://api.collegefootballdata.com';
-const API_TOKEN = 'V3y3fLyvrUtg7Kt98Rn1tv2W05bbv3Hl7PgJ5DPDdFWLOMerDBOVpB0hXKtlBxyW';
+const API_TOKEN = 'hLbzCRUDZnzyUKQfCCV56wmx8+weMvUqr4O7YJ4EhU1oCAvuNuop7+N1hABCVTup';
 
 const headers = {
   'Authorization': `Bearer ${API_TOKEN}`,
