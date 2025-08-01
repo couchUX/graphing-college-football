@@ -84,15 +84,35 @@ export const tooltipWithPlayText = {
   }
 };
 
-// Enhanced datalabels configuration from Bolt improvements
+// Enhanced datalabels configuration for player charts (bar charts only)
 export const enhancedDatalabelsConfig = {
   display: true,
   color: 'white',
   font: {
-    weight: 'bold' as const,
-    size: 11,
+    weight: 'normal' as const,
+    size: 12,
   },
-  formatter: (value: number) => value > 0 ? value : '',
+  formatter: (value: number) => {
+    // Hide data labels for zero or negative values
+    return value > 0 ? value : null;
+  },
   anchor: 'center' as const,
   align: 'center' as const,
+  backgroundColor: function(context: any) {
+    // Only show background when there's a value to display
+    const value = context.dataset.data[context.dataIndex];
+    return value > 0 ? '#26262660' : 'transparent';
+  },
+  borderColor: function(context: any) {
+    // Only show border when there's a value to display  
+    const value = context.dataset.data[context.dataIndex];
+    return value > 0 ? 'rgba(255, 255, 255, 0.2)' : 'transparent';
+  },
+  padding: 4,
+  borderRadius: 4,
+};
+
+// Disabled datalabels configuration for line charts
+export const disabledDatalabelsConfig = {
+  display: false,
 };

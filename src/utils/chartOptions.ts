@@ -1,5 +1,5 @@
 import { ChartOptions } from 'chart.js';
-import { percentCallback, legendFilter, baseTooltipCallback, tooltipWithPlayText, enhancedDatalabelsConfig } from './chartConfig';
+import { percentCallback, legendFilter, baseTooltipCallback, tooltipWithPlayText, enhancedDatalabelsConfig, disabledDatalabelsConfig } from './chartConfig';
 
 // Enhanced base options with improved datalabels from Bolt
 export const createBaseOptions = (): ChartOptions<any> => ({
@@ -59,6 +59,7 @@ export const createLineOptionsPlayNumberSRXR = (): ChartOptions<'line'> => ({
   },
   plugins: {
     ...createBaseOptions().plugins,
+    datalabels: disabledDatalabelsConfig,
     legend: {
       ...createBaseOptions().plugins?.legend,
       labels: {
@@ -104,6 +105,7 @@ export const createLineOptionsPlayNumber = (): ChartOptions<'line'> => ({
   },
   plugins: {
     ...createBaseOptions().plugins,
+    datalabels: disabledDatalabelsConfig,
     tooltip: tooltipWithPlayText,
     legend: {
       ...createBaseOptions().plugins?.legend,
@@ -171,6 +173,7 @@ export const createLineOptionsTeamPlay = (): ChartOptions<'line'> => ({
   },
   plugins: {
     ...createBaseOptions().plugins,
+    datalabels: disabledDatalabelsConfig,
     tooltip: tooltipWithPlayText,
     legend: {
       ...createBaseOptions().plugins?.legend,
@@ -258,6 +261,7 @@ export const createPlayMapOptions = (minY: number, maxY: number): ChartOptions<'
   },
   plugins: {
     ...createBaseOptions().plugins,
+    datalabels: disabledDatalabelsConfig,
     tooltip: {
       filter: function(tooltipItem: any) {
         return !tooltipItem.dataset.label.includes('< 0') &&
