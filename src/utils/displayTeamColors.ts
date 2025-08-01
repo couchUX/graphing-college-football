@@ -1,6 +1,6 @@
 import { getTeamColors } from './teamColors';
 
-export interface TeamColors {
+interface TeamColors {
   success: string;
   explosive: string;
   light: string;

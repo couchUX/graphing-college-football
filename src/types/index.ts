@@ -1,4 +1,4 @@
-export interface GameData {
+interface GameData {
   id: number;
   season: number;
   week: number;
@@ -57,7 +57,7 @@ export interface ProcessedMetrics {
   avgYardsPerPlay: number;
 }
 
-export interface TeamMetrics {
+interface TeamMetrics {
   [teamName: string]: ProcessedMetrics;
 }
 

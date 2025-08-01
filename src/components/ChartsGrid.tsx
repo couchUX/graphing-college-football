@@ -3,7 +3,6 @@ import { Copy } from 'lucide-react';
 import { Line, Bar } from 'react-chartjs-2';
 import { PlayData } from '../types';
 import { useChartData } from '../hooks/useChartData';
-import { createPlayerData } from '../utils/chartHelpers';
 import {
   createLineOptionsPlayNumberSRXR,
   createLineOptionsTeamPlay,
@@ -52,7 +51,8 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team }) => {
     allRushers,
     allPassers,
     allReceivers,
-    createTeamVsOpponentBarData
+    createTeamVsOpponentBarData,
+    createPlayerData
   } = chartData;
 
   // Create chart options
@@ -64,34 +64,15 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team }) => {
   const driveOptions = createDriveOptions(teamDriveData, opponentDriveData);
   const playerOptions = createPlayerOptions();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   const teamCharts = [
     {
       id: 'overall-team-performance',
-      title: 'SR and XR by Team',
+      title: 'Overall Team Performance',
       component: <Bar data={overallTeamData as any} options={barOptions} />
     },
     {
-      id: 'team-sr-xr-lines',
-      title: 'SR and XR over time (cumulative)',
+      id: 'team-lines',
+      title: 'SR and XR by Team',
       component: <Line data={teamLinesData} options={lineOptionsPlayNumberSRXR} />
     },
     {
@@ -165,17 +146,17 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team }) => {
     {
       id: 'top-rushers',
       title: 'Top rushers',
-      component: <Bar data={createPlayerData(allRushers) as any} options={playerOptions} />
+      component: <Bar data={createPlayerData(allRushers, 'rush') as any} options={playerOptions} />
     },
     {
       id: 'top-passers',
       title: 'Top passers',
-      component: <Bar data={createPlayerData(allPassers) as any} options={playerOptions} />
+      component: <Bar data={createPlayerData(allPassers, 'pass') as any} options={playerOptions} />
     },
     {
       id: 'top-receivers',
       title: 'Top receivers',
-      component: <Bar data={createPlayerData(allReceivers) as any} options={playerOptions} />
+      component: <Bar data={createPlayerData(allReceivers, 'receive') as any} options={playerOptions} />
     }
   ];
 

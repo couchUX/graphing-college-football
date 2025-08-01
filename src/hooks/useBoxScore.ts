@@ -8,7 +8,7 @@ export interface BoxScoreStat {
   team2Value: string;
 }
 
-export interface ProcessedBoxScore {
+interface ProcessedBoxScore {
   team1Name: string;
   team2Name: string;
   firstTableStats: BoxScoreStat[];

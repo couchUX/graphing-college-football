@@ -1,6 +1,6 @@
 import { ApiPlayData, PlayData, ProcessedMetrics, DriveMetrics, PlayerStats } from '../types';
 
-export const calculateSuccess = (down: number, distance: number, yardsGained: number): boolean => {
+const calculateSuccess = (down: number, distance: number, yardsGained: number): boolean => {
   if (!down || !distance || yardsGained === undefined || yardsGained === null) {
     return false;
   }
@@ -18,7 +18,7 @@ export const calculateSuccess = (down: number, distance: number, yardsGained: nu
   }
 };
 
-export const calculateExplosiveness = (yardsGained: number): boolean => {
+const calculateExplosiveness = (yardsGained: number): boolean => {
   return yardsGained >= 15;
 };
 
@@ -92,11 +92,8 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
         receiver = incompleteMatch[1].trim();
       }
     } else if (playText.includes('intercepted')) {
-      // Interception: "intercepted [receiver] return" - FIXED REGEX TO CAPTURE ALL NAMES
-      const interceptMatch = playText.match(/intercepted (.*?)(?:\s+return|$)/i);
-      if (interceptMatch) {
-        receiver = interceptMatch[1].trim();
-      }
+      // Interception: Don't extract receiver - the person who intercepted is a defensive back, not an offensive receiver
+      // Leave receiver blank for interceptions
     }
     // If just "incomplete" with no "to", leave receiver blank
     
@@ -255,7 +252,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   return processedPlays;
 };
 
-export const calculateTeamMetrics = (plays: PlayData[], teamName: string): ProcessedMetrics => {
+const calculateTeamMetrics = (plays: PlayData[], teamName: string): ProcessedMetrics => {
   const teamPlays = plays.filter(play => play.offense === teamName);
   
   if (teamPlays.length === 0) {
@@ -279,7 +276,7 @@ export const calculateTeamMetrics = (plays: PlayData[], teamName: string): Proce
   };
 };
 
-export const calculateDriveMetrics = (plays: PlayData[], teamName: string): DriveMetrics[] => {
+const calculateDriveMetrics = (plays: PlayData[], teamName: string): DriveMetrics[] => {
   const teamPlays = plays.filter(play => play.offense === teamName);
   const driveGroups = teamPlays.reduce((acc, play) => {
     if (!acc[play.driveNumber]) {
@@ -364,25 +361,39 @@ export const calculatePlayerStats = (plays: PlayData[], playType: 'rush' | 'pass
         // For rushers: unsuccessful = all non-successful plays
         unsuccessful = playerPlays.filter(play => !play.success).length;
       } else if (playType === 'pass') {
-        // For passers: unsuccessful = incompletes (not successful, not interceptions)
+        // For passers: 
+        // unsuccessful = incomplete passes and sacks (not successful, not interceptions, not completions)
+        // uns_catches = completed passes that weren't successful or explosive  
         // int = interceptions
         playerPlays.forEach(play => {
           const playText = play.playText.toLowerCase();
           if (playText.includes('interception') || playText.includes('intercepted')) {
             int++;
-          } else if (!play.success) {
-            unsuccessful++; // Incompletes
+          } else {
+            // More precise completion detection
+            const isCompletion = (playText.includes('complete') && !playText.includes('incomplete')) || 
+                                playText.includes('reception') || 
+                                playText.includes('pass from');
+            
+            const isIncomplete = playText.includes('incomplete');
+            const isSack = playText.includes('sack');
+            
+            if (isCompletion && !play.success && !play.explosiveness) {
+              uns_catches++; // Completed passes that weren't successful or explosive
+            } else if ((isIncomplete || isSack) && !play.success) {
+              unsuccessful++; // Incomplete passes
+            }
           }
         });
       } else { // receive
-        // For receivers: uns_catches = catches that weren't successful
-        // unsuccessful stays 0 for receivers (we don't track incompletions for receivers)
+        // For receivers: 
+        // uns_catches = catches that weren't successful or explosive
+        // unsuccessful = 0 (we don't track incompletions for receivers since they're not targeted on incomplete passes in our data)
         playerPlays.forEach(play => {
           const playText = play.playText.toLowerCase();
-          const isCompletion = playText.includes('complete') || 
+          const isCompletion = (playText.includes('complete') && !playText.includes('incomplete')) || 
                               playText.includes('reception') || 
-                              playText.includes('pass from') ||
-                              (!playText.includes('incomplete') && !playText.includes('interception'));
+                              playText.includes('pass from');
           
           if (isCompletion && !play.success && !play.explosiveness) {
             uns_catches++; // Other catches (completed but not successful)

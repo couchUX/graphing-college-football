@@ -1,11 +1,12 @@
 import { ChartOptions } from 'chart.js';
-import { percentCallback, legendFilter, baseTooltipCallback, tooltipWithPlayText, NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from './chartConfig';
+import { percentCallback, legendFilter, baseTooltipCallback, tooltipWithPlayText, enhancedDatalabelsConfig } from './chartConfig';
 
-// Base options used by all charts
+// Enhanced base options with improved datalabels from Bolt
 export const createBaseOptions = (): ChartOptions<any> => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
+    datalabels: enhancedDatalabelsConfig,
     legend: {
       position: 'top' as const,
       align: 'start' as const,
@@ -23,13 +24,6 @@ export const createBaseOptions = (): ChartOptions<any> => ({
         label: baseTooltipCallback
       }
     },
-    datalabels: {
-      color: 'white',
-      backgroundColor: '#26262660',
-      padding: 4,
-      borderRadius: 4,
-      display: false, // Default to false, enable per dataset as needed
-    }
   },
 });
 
@@ -347,13 +341,17 @@ export const createDriveOptions = (teamDriveData: any[], opponentDriveData: any[
   }
 });
 
-// Player options
+// Enhanced player options with stacked configuration
 export const createPlayerOptions = (): ChartOptions<'bar'> => ({
   ...createBaseOptions(),
   indexAxis: 'y' as const,
   scales: {
-    y: { stacked: true },
-    x: { stacked: true }
+    x: {
+      stacked: true,
+    },
+    y: {
+      stacked: true,
+    }
   },
   plugins: {
     ...createBaseOptions().plugins,

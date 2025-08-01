@@ -6,6 +6,7 @@ import {
   LineElement,
   BarElement,
   Title,
+  ChartOptions,
   Tooltip,
   Legend,
   Filler
@@ -81,4 +82,17 @@ export const tooltipWithPlayText = {
       return text ? [label, text] : label;
     }
   }
+};
+
+// Enhanced datalabels configuration from Bolt improvements
+export const enhancedDatalabelsConfig = {
+  display: true,
+  color: 'white',
+  font: {
+    weight: 'bold' as const,
+    size: 11,
+  },
+  formatter: (value: number) => value > 0 ? value : '',
+  anchor: 'center' as const,
+  align: 'center' as const,
 };

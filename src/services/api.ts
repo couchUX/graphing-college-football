@@ -6,7 +6,7 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
-export interface ApiPlayData {
+interface ApiPlayData {
   id: string; // Changed from number to string to handle large IDs properly
   drive_id: number;
   game_id: number;

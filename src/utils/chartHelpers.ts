@@ -261,42 +261,100 @@ export const createTeamVsOpponentBarData = (
   };
 };
 
-// Create player data for charts
-export const createPlayerData = (players: any[]) => ({
-  labels: players.map(p => p.name),
-  datasets: [
-    {
-      label: 'Explosive',
-      data: players.map(p => p.explosive),
-      backgroundColor: players.map(p => p.teamColors.explosive),
-      borderColor: players.map(p => p.teamColors.colorDark),
-      borderWidth: 1,
-      stack: 1,
-      datalabels: {
-        display: (context: any) => context.dataset.data[context.dataIndex] > 0
+// Enhanced player data creation with improved categorization from Bolt
+export const createPlayerData = (players: any[], playType: string) => {
+  let datasets = [];
+  
+  if (playType === 'rush') {
+    datasets = [
+      {
+        label: 'Explosive rushes',
+        data: players.map(p => p.explosive),
+        backgroundColor: players.map(p => p.teamColors.explosive),
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+      {
+        label: 'Successful rushes',
+        data: players.map(p => p.successful),
+        backgroundColor: players.map(p => p.teamColors.success),
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+      {
+        label: 'Unsuccessful rushes',
+        data: players.map(p => p.unsuccessful),
+        backgroundColor: '#FFFFFF',
+        borderColor: '#374151',
+        borderWidth: 1,
       }
-    },
-    {
-      label: 'Successful',
-      data: players.map(p => p.successful),
-      backgroundColor: players.map(p => p.teamColors.success),
-      borderColor: players.map(p => p.teamColors.colorDark),
-      borderWidth: 1,
-      stack: 1,
-      datalabels: {
-        display: (context: any) => context.dataset.data[context.dataIndex] > 0
-      }
-    },
-    {
-      label: 'Unsuccessful',
-      data: players.map(p => p.unsuccessful),
-      backgroundColor: 'rgba(0,0,0,0.03)', // Light gray matching reference areas
-      borderColor: players.map(p => p.teamColors.colorDark),
-      borderWidth: 1,
-      stack: 1,
-      datalabels: {
-        display: (context: any) => context.dataset.data[context.dataIndex] > 0
-      }
-    },
-  ],
-});
+    ];
+  } else if (playType === 'pass') {
+    datasets = [
+      {
+        label: 'Explosive',
+        data: players.map(p => p.explosive),
+        backgroundColor: players.map(p => p.teamColors.explosive),
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+      {
+        label: 'Successful',
+        data: players.map(p => p.successful),
+        backgroundColor: players.map(p => p.teamColors.success),
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+      {
+        label: 'Other catches',
+        data: players.map(p => p.uns_catches || 0),
+        backgroundColor: players.map(p => p.teamColors.light),
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+      {
+        label: 'Incompletes',
+        data: players.map(p => p.unsuccessful),
+        backgroundColor: '#FFFFFF',
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+      {
+        label: 'Interceptions',
+        data: players.map(p => p.int || 0),
+        backgroundColor: '#4B5563',
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+    ];
+  } else { // receive
+    datasets = [
+      {
+        label: 'Explosive catches',
+        data: players.map(p => p.explosive),
+        backgroundColor: players.map(p => p.teamColors.explosive),
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+      {
+        label: 'Successful catches',
+        data: players.map(p => p.successful),
+        backgroundColor: players.map(p => p.teamColors.success),
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+      {
+        label: 'Other catches',
+        data: players.map(p => p.uns_catches || 0),
+        backgroundColor: players.map(p => p.teamColors.light),
+        borderColor: '#374151',
+        borderWidth: 1,
+      },
+    ];
+  }
+
+  return {
+    labels: players.map(p => p.name),
+    datasets: datasets
+  };
+};

@@ -513,7 +513,7 @@ export const useChartData = (plays: PlayData[], team: string) => {
       ],
     };
 
-    // Player stats
+    // Enhanced Player stats with improved categorization
     const teamRushers = calculatePlayerStats(teamPlays, 'rush');
     const teamPassers = calculatePlayerStats(teamPlays, 'pass');
     const teamReceivers = calculatePlayerStats(teamPlays, 'receive');
@@ -580,14 +580,17 @@ export const useChartData = (plays: PlayData[], team: string) => {
       teamDriveData,
       opponentDriveData,
       
-      // Player data
+      // Enhanced player data
       allRushers,
       allPassers,
       allReceivers,
       
       // Helper function for bar charts
       createTeamVsOpponentBarData: (category: 'quarter' | 'down' | 'playType' | 'redZone' | 'distance') =>
-        createTeamVsOpponentBarData(category, teamPlays, opponentPlays, team, opponentTeam, teamColors, opponentColors)
+        createTeamVsOpponentBarData(category, teamPlays, opponentPlays, team, opponentTeam, teamColors, opponentColors),
+      
+      // Enhanced player data creator
+      createPlayerData
     };
   }, [plays, team]);
 };
