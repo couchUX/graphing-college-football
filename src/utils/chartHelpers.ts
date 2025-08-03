@@ -298,7 +298,6 @@ export const createDriveLines = (plays: PlayData[], teamColors: any) => {
   return Object.keys(driveGroups).map((drive) => {
     const drivePlays = driveGroups[parseInt(drive)].sort((a, b) => a.playNumber - b.playNumber);
     const lineColor = adjustOpacity(teamColors.success, 0.5);
-    console.log(`Drive ${drive} - Original color: ${teamColors.success}, Adjusted: ${lineColor}`); // Debug logging
     return {
       label: `Drive ${drive}`,
       data: drivePlays.map(play => ({ x: play.playNumber, y: play.yardsGained })),

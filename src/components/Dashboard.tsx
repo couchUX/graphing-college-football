@@ -15,6 +15,7 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showAllPlays, setShowAllPlays] = useState<boolean>(false);
+  const [showRawPlays, setShowRawPlays] = useState<boolean>(false);
   const [overrideTeam1ToGray, setOverrideTeam1ToGray] = useState<boolean>(false);
   const [overrideTeam2ToGray, setOverrideTeam2ToGray] = useState<boolean>(false);
   const [currentParams, setCurrentParams] = useState<{
@@ -132,7 +133,7 @@ const Dashboard: React.FC = () => {
               {currentParams.year} • Week {currentParams.week} • {currentParams.seasonType === 'regular' ? 'Regular Season' : 'Postseason'}
             </p>
 
-            {/* All Plays Data Section - Moved here */}
+            {/* All Plays Data Section - Reorganized */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
               <button
                 onClick={() => setShowAllPlays(!showAllPlays)}
@@ -149,92 +150,109 @@ const Dashboard: React.FC = () => {
               
               {showAllPlays && (
                 <div className="mt-6 space-y-6">
-                  {/* Raw API Data Sample */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">
-                      Raw API Data Sample (First play to check field names):
-                    </h3>
-                    <div className="bg-slate-50 rounded-lg p-4 overflow-auto max-h-48">
-                      <pre className="text-sm text-slate-700">
-                        {JSON.stringify(rawApiData[0] || {}, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
+                  {/* Raw API Plays in Sub-Accordion */}
+                  <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                    <button
+                      onClick={() => setShowRawPlays(!showRawPlays)}
+                      className="flex items-center justify-between w-full text-left"
+                    >
+                      <h3 className="text-lg font-medium text-slate-900">
+                        Raw API Plays ({rawApiData.length} total)
+                      </h3>
+                      <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform ${showRawPlays ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {showRawPlays && (
+                      <div className="mt-4 space-y-4">
+                        {/* Raw API Data Sample */}
+                        <div>
+                          <h4 className="text-md font-medium text-slate-800 mb-2">
+                            Sample (First play to check field names):
+                          </h4>
+                          <div className="bg-white rounded-lg p-3 overflow-auto max-h-48 border border-slate-200">
+                            <pre className="text-sm text-slate-700">
+                              {JSON.stringify(rawApiData[0] || {}, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
 
-                  {/* All Plays Table - Using Raw API Data */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">
-                      All Plays from Raw API ({rawApiData.length} total):
-                    </h3>
-                    <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                      <div className="overflow-x-auto max-h-96">
-                        <table className="min-w-full divide-y divide-slate-200">
-                          <thead className="bg-slate-100 sticky top-0">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drive #</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play in Drive</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Quarter</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Down</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Distance</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Offense</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Defense</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play Type</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Yards</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play Text</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-slate-200">
-                            {sortedRawApiData.map((play, index) => (
-                              <tr key={play.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.id || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.drive_number || play.driveNumber || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.play_number || play.playNumber || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.quarter || play.period || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.down || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.distance || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.offense || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.defense || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.play_type || play.playType || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 'N/A')}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-slate-900 max-w-xs truncate" title={play.play_text || play.playText || ''}>
-                                  {play.play_text || play.playText || 'N/A'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        {/* All Plays Table - Using Raw API Data */}
+                        <div>
+                          <h4 className="text-md font-medium text-slate-800 mb-2">
+                            Complete Table:
+                          </h4>
+                          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                            <div className="overflow-x-auto max-h-96">
+                              <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-100 sticky top-0">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drive #</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play in Drive</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Quarter</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Down</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Distance</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Offense</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Defense</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play Type</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Yards</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play Text</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-slate-200">
+                                  {sortedRawApiData.map((play, index) => (
+                                    <tr key={play.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.id || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.drive_number || play.driveNumber || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.play_number || play.playNumber || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.quarter || play.period || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.down || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.distance || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.offense || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.defense || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.play_type || play.playType || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 'N/A')}
+                                      </td>
+                                      <td className="px-3 py-2 text-sm text-slate-900 max-w-xs truncate" title={play.play_text || play.playText || ''}>
+                                        {play.play_text || play.playText || 'N/A'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Processed Plays Table - Rush and Pass Only WITH CUMULATIVE COLUMNS AND PLAYER NAMES */}
+                  {/* Processed Plays Table - Always Open */}
                   <div>
                     <h3 className="text-lg font-medium text-slate-900 mb-3">
                       Processed Plays - Rush and Pass Only with Player Names ({filteredPlays.length} total):
                     </h3>
                     <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                      <div className="overflow-x-auto max-h-96">
+                      <div className="overflow-x-auto max-h-[456px]">
                         <table className="min-w-full divide-y divide-slate-200">
                           <thead className="bg-slate-100 sticky top-0">
                             <tr>
@@ -327,107 +345,6 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Play Types Breakdown */}
-                  {plays.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium text-slate-900 mb-3">
-                        Play Types Found:
-                      </h3>
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                          {Array.from(new Set(plays.map(p => p.playType).filter(Boolean))).map(playType => (
-                            <div key={playType} className="flex justify-between py-1">
-                              <span className="text-slate-700 font-medium">{playType}</span>
-                              <span className="text-slate-500">
-                                {plays.filter(p => p.playType === playType).length} plays
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Teams Found */}
-                  {plays.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium text-slate-900 mb-3">
-                        Teams Found:
-                      </h3>
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Offense Teams:</p>
-                            {Array.from(new Set(plays.map(p => p.offense))).map(team => (
-                              <div key={team} className="text-slate-600 py-1">
-                                <span className="font-medium">{team}</span> 
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.offense === team).length} plays)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Defense Teams:</p>
-                            {Array.from(new Set(plays.map(p => p.defense))).map(team => (
-                              <div key={team} className="text-slate-600 py-1">
-                                <span className="font-medium">{team}</span>
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.defense === team).length} plays)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Player Names Found */}
-                  {plays.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium text-slate-900 mb-3">
-                        Player Names Extracted:
-                      </h3>
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Rushers:</p>
-                            {Array.from(new Set(plays.filter(p => p.rusher).map(p => p.rusher!))).slice(0, 10).map(rusher => (
-                              <div key={rusher} className="text-slate-600 py-1">
-                                <span className="font-medium">{rusher}</span>
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.rusher === rusher).length} rushes)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Passers:</p>
-                            {Array.from(new Set(plays.filter(p => p.passer).map(p => p.passer!))).slice(0, 10).map(passer => (
-                              <div key={passer} className="text-slate-600 py-1">
-                                <span className="font-medium">{passer}</span>
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.passer === passer).length} passes)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Receivers:</p>
-                            {Array.from(new Set(plays.filter(p => p.receiver).map(p => p.receiver!))).slice(0, 10).map(receiver => (
-                              <div key={receiver} className="text-slate-600 py-1">
-                                <span className="font-medium">{receiver}</span>
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.receiver === receiver).length} targets)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
