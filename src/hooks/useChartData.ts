@@ -9,7 +9,8 @@ import {
   createReferenceArea, 
   createBelowZeroArea,
   createTeamVsOpponentBarData,
-  createPlayerData
+  createPlayerData,
+  createDriveLines
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
 
@@ -347,6 +348,7 @@ export const useChartData = (plays: PlayData[], team: string) => {
     const teamPlayMapData = {
       datasets: [
         createBelowZeroArea(maxPlayNumber, teamMinY),
+        ...createDriveLines(teamPlays, teamColors),
         {
           label: `${team} Rush Yards`,
           data: teamRushPlays.map((play) => ({
@@ -360,6 +362,7 @@ export const useChartData = (plays: PlayData[], team: string) => {
           pointBorderWidth: 1,
           pointBorderColor: teamColors.explosive,
           showLine: false,
+          order: 2, // Ensure points are drawn above lines
         },
         {
           label: `${team} Pass Yards`,
@@ -374,6 +377,7 @@ export const useChartData = (plays: PlayData[], team: string) => {
           pointBorderWidth: 1,
           pointBorderColor: teamColors.explosive,
           showLine: false,
+          order: 2, // Ensure points are drawn above lines
         },
         createQuarterGridlines(plays, maxPlayNumber, teamMinY, teamMaxY)
       ],
@@ -382,6 +386,7 @@ export const useChartData = (plays: PlayData[], team: string) => {
     const opponentPlayMapData = {
       datasets: [
         createBelowZeroArea(maxPlayNumber, oppMinY),
+        ...createDriveLines(opponentPlays, opponentColors),
         {
           label: `${opponentTeam} Rush Yards`,
           data: oppRushPlays.map((play) => ({
@@ -395,6 +400,7 @@ export const useChartData = (plays: PlayData[], team: string) => {
           pointBorderWidth: 1,
           pointBorderColor: opponentColors.explosive,
           showLine: false,
+          order: 2, // Ensure points are drawn above lines
         },
         {
           label: `${opponentTeam} Pass Yards`,
@@ -409,6 +415,7 @@ export const useChartData = (plays: PlayData[], team: string) => {
           pointBorderWidth: 1,
           pointBorderColor: opponentColors.explosive,
           showLine: false,
+          order: 2, // Ensure points are drawn above lines
         },
         createQuarterGridlines(plays, maxPlayNumber, oppMinY, oppMaxY)
       ],

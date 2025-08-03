@@ -261,6 +261,61 @@ export const createTeamVsOpponentBarData = (
   };
 };
 
+// Helper function to create drive connection lines for play maps - following reference implementation exactly
+export const createDriveLines = (plays: PlayData[], teamColors: any) => {
+  // Group plays by drive number (matching reference: driveGroups[play.drive])
+  const driveGroups: { [key: number]: PlayData[] } = {};
+  plays.forEach(play => {
+    if (!driveGroups[play.driveNumber]) {
+      driveGroups[play.driveNumber] = [];
+    }
+    driveGroups[play.driveNumber].push(play);
+  });
+
+  // Function to adjust opacity - handle both hex and rgba colors
+  const adjustOpacity = (color: string, opacity: number) => {
+    // If already rgba, extract RGB values and apply new opacity
+    if (color.startsWith('rgba')) {
+      const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/);
+      if (match) {
+        const [, r, g, b] = match;
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      }
+    }
+    
+    // If hex color, convert to RGBA
+    let hex = color.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex.split('').map(char => char + char).join('');
+    }
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
+  // Create datasets for drive lines 
+  return Object.keys(driveGroups).map((drive) => {
+    const drivePlays = driveGroups[parseInt(drive)].sort((a, b) => a.playNumber - b.playNumber);
+    const lineColor = adjustOpacity(teamColors.success, 0.5);
+    console.log(`Drive ${drive} - Original color: ${teamColors.success}, Adjusted: ${lineColor}`); // Debug logging
+    return {
+      label: `Drive ${drive}`,
+      data: drivePlays.map(play => ({ x: play.playNumber, y: play.yardsGained })),
+      borderColor: lineColor,
+      borderWidth: 2,
+      fill: false,
+      pointRadius: 0,
+      showLine: true,
+      tension: 0.25, // Add tension directly to dataset
+      order: 1, // Ensure lines are drawn below points
+      datalabels: {
+        display: false
+      }
+    };
+  });
+};
+
 // Enhanced player data creation with improved categorization from Bolt
 export const createPlayerData = (players: any[], playType: string) => {
   let datasets = [];

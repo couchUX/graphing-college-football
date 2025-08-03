@@ -265,7 +265,8 @@ export const createPlayMapOptions = (minY: number, maxY: number): ChartOptions<'
     tooltip: {
       filter: function(tooltipItem: any) {
         return !tooltipItem.dataset.label.includes('< 0') &&
-               !tooltipItem.dataset.label.includes('Quarters');
+               !tooltipItem.dataset.label.includes('Quarters') &&
+               !tooltipItem.dataset.label.includes('Drive');
       },
       callbacks: {
         label: (context: any) => {
@@ -306,7 +307,8 @@ export const createPlayMapOptions = (minY: number, maxY: number): ChartOptions<'
         padding: 12,
         filter: function(item: any) {
           return !item.text.includes('< 0') &&
-                 !item.text.includes('Quarters');
+                 !item.text.includes('Quarters') &&
+                 !item.text.includes('Drive');
         }
       }
     }
