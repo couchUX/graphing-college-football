@@ -26,12 +26,36 @@ const calculateExplosiveness = (yardsGained: number): boolean => {
 const cleanPlayerName = (name: string): string => {
   if (!name) return '';
   
-  // Remove numbers, "yd"/"Yd", and trim spaces
-  return name
+  // Additional safeguards for malformed names
+  let cleaned = name
     .replace(/\d+/g, '') // Remove all numbers
     .replace(/\s*yd\s*/gi, '') // Remove "yd" or "Yd" with surrounding spaces
+    .replace(/\s*yards?\s*/gi, '') // Remove "yard" or "yards"
+    .replace(/\s*for\s*$/gi, '') // Remove trailing "for"
+    .replace(/\s*to\s*$/gi, '') // Remove trailing "to"
+    .replace(/\s*complete\s*/gi, '') // Remove "complete"
+    .replace(/\s*incomplete\s*/gi, '') // Remove "incomplete"
+    .replace(/\s*pass\s*/gi, '') // Remove "pass"
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
     .trim();
+  
+  // Final safeguard: if the cleaned name is still too long or contains suspicious patterns, 
+  // try to extract just the first and last name
+  if (cleaned.length > 25 || cleaned.includes('down') || cleaned.includes('penalty')) {
+    const nameMatch = cleaned.match(/^([A-Za-z]+(?:\s+[A-Za-z]+){0,2})/i);
+    if (nameMatch) {
+      cleaned = nameMatch[1].trim();
+    } else {
+      // Last resort: take first 20 characters and find the last space
+      cleaned = cleaned.substring(0, 20);
+      const lastSpace = cleaned.lastIndexOf(' ');
+      if (lastSpace > 5) {
+        cleaned = cleaned.substring(0, lastSpace);
+      }
+    }
+  }
+  
+  return cleaned;
 };
 
 // Extract player names from play text
@@ -51,18 +75,39 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
       return result; // Return empty for sacks
     }
 
-    // Extract Passer
+    // Extract Passer - improved logic to handle complex play texts
     let passer = '';
     
     // Check for scoring format first: "pass from [passer]"
-    const passFromMatch = playText.match(/pass from ([^(]+)/i);
+    const passFromMatch = playText.match(/pass from ([^(,]+)/i);
     if (passFromMatch) {
       passer = passFromMatch[1].trim();
     } else {
-      // Standard format: "[passer] pass"
-      const standardPassMatch = playText.match(/^([^,]+(?:,\s*[^,]+)?)\s+pass/i);
+      // Standard format: "[passer] pass" - be more restrictive to avoid long matches
+      // Look for a name pattern followed by "pass" - limit to reasonable name length
+      const standardPassMatch = playText.match(/^([A-Za-z\s.',-]{2,40}?)\s+pass(?:\s+(?:complete|incomplete))/i);
       if (standardPassMatch) {
-        passer = standardPassMatch[1];
+        passer = standardPassMatch[1].trim();
+      } else {
+        // Fallback: try to find just "[name] pass" at the start, but limit length
+        const simplePassMatch = playText.match(/^([A-Za-z\s.',-]{2,40}?)\s+pass/i);
+        if (simplePassMatch) {
+          passer = simplePassMatch[1].trim();
+          // Additional safeguard: if the extracted name seems too long, truncate at first reasonable break
+          if (passer.length > 30) {
+            const truncateMatch = passer.match(/^([A-Za-z\s.',-]{2,30}?)(?:\s+(?:pass|complete|incomplete|for|to|yds?|yards?))/i);
+            if (truncateMatch) {
+              passer = truncateMatch[1].trim();
+            } else {
+              // If we can't find a good break point, take first 25 characters and find last space
+              passer = passer.substring(0, 25);
+              const lastSpace = passer.lastIndexOf(' ');
+              if (lastSpace > 10) {
+                passer = passer.substring(0, lastSpace);
+              }
+            }
+          }
+        }
       }
     }
     
