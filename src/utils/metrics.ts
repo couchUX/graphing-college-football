@@ -106,11 +106,29 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
 };
 
 export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
-  // Sort plays by their ID in ASCENDING order using string comparison for large numbers
-  // This ensures proper chronological order (smaller IDs = earlier in game)
-  const sortedPlays = [...apiPlays].sort((a, b) => a.id.localeCompare(b.id));
+  // Sort plays by drive number, play in drive, then ID as fallback
+  // This ensures proper chronological order based on game flow
+  const sortedPlays = [...apiPlays].sort((a, b) => {
+    const aDriveNumber = a.drive_number || a.driveNumber || 0;
+    const bDriveNumber = b.drive_number || b.driveNumber || 0;
+    const aPlayInDrive = a.play_number || a.playNumber || 0;
+    const bPlayInDrive = b.play_number || b.playNumber || 0;
+    
+    // First sort by drive number
+    if (aDriveNumber !== bDriveNumber) {
+      return aDriveNumber - bDriveNumber;
+    }
+    
+    // Then sort by play within drive
+    if (aPlayInDrive !== bPlayInDrive) {
+      return aPlayInDrive - bPlayInDrive;
+    }
+    
+    // Finally sort by ID as fallback
+    return a.id.localeCompare(b.id);
+  });
 
-  console.log('ID sorting verification - first 10 plays (should be ascending):');
+  console.log('Play sorting verification - first 10 plays (sorted by drive, play-in-drive, then ID):');
   sortedPlays.slice(0, 10).forEach((play, index) => {
     console.log(`${index + 1}: ID ${play.id} - Q${play.quarter || play.period} D${play.drive_number || play.driveNumber} P${play.play_number || play.playNumber}`);
   });

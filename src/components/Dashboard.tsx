@@ -49,8 +49,15 @@ const Dashboard: React.FC = () => {
       setPlays(processedPlays);
       console.log('Raw API data:', apiPlays);
       console.log('Processed plays:', processedPlays);
+      
+      // If no plays were returned, ensure we clear any lingering error state
+      if (!apiPlays || apiPlays.length === 0) {
+        console.log('No play data returned for these parameters');
+      }
     } catch (err) {
       setError('Failed to load play data. Please check your parameters and try again.');
+      setPlays([]); // Clear existing plays data on error
+      setRawApiData([]); // Clear existing raw API data on error
       console.error('Error loading play data:', err);
     } finally {
       setIsLoading(false);
@@ -120,6 +127,12 @@ const Dashboard: React.FC = () => {
           <GameSelector
             onFetchData={handleFetchData}
             isLoading={isLoading}
+            overrideTeam1ToGray={overrideTeam1ToGray}
+            setOverrideTeam1ToGray={setOverrideTeam1ToGray}
+            overrideTeam2ToGray={overrideTeam2ToGray}
+            setOverrideTeam2ToGray={setOverrideTeam2ToGray}
+            currentParams={currentParams}
+            opponentTeam={opponentTeam}
           />
         </div>
 
@@ -513,7 +526,12 @@ const Dashboard: React.FC = () => {
         {plays.length > 0 && currentParams && (
           <div className="space-y-8">
             {/* Charts Grid */}
-            <ChartsGrid plays={filteredPlays} team={currentParams.team} />
+            <ChartsGrid 
+              plays={filteredPlays} 
+              team={currentParams.team} 
+              overrideTeam1ToGray={overrideTeam1ToGray}
+              overrideTeam2ToGray={overrideTeam2ToGray}
+            />
           </div>
         )}
 

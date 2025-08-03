@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { PlayData } from '../types';
-import { getTeamColors } from '../utils/teamColors';
+import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { calculatePlayerStats } from '../utils/metrics';
 import { 
   getPointColors, 
@@ -14,7 +14,7 @@ import {
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
 
-export const useChartData = (plays: PlayData[], team: string) => {
+export const useChartData = (plays: PlayData[], team: string, overrideTeam1ToGray: boolean = false, overrideTeam2ToGray: boolean = false) => {
   return useMemo(() => {
     // Get opponent team
     const opponentTeam = plays.find(p => p.offense !== team && p.defense !== team)?.offense || 
@@ -24,9 +24,9 @@ export const useChartData = (plays: PlayData[], team: string) => {
     const teamPlays = plays.filter(p => p.offense === team);
     const opponentPlays = plays.filter(p => p.offense === opponentTeam);
 
-    // Get team colors
-    const teamColors = getTeamColors(team);
-    const opponentColors = getTeamColors(opponentTeam);
+    // Get team colors with override support
+    const teamColors = getDisplayTeamColors(team, overrideTeam1ToGray);
+    const opponentColors = getDisplayTeamColors(opponentTeam, overrideTeam2ToGray);
 
     // Calculate basic stats
     const teamSuccessfulPlays = teamPlays.filter(p => p.success).length;
@@ -330,7 +330,7 @@ export const useChartData = (plays: PlayData[], team: string) => {
       ],
     };
 
-    // 7 & 8. Play Maps
+    // 7 & 8. Play Maps - plays are already sorted properly from data processing
     const teamRushPlays = teamPlays.filter(p => p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run'));
     const teamPassPlays = teamPlays.filter(p => p.playType?.toLowerCase().includes('pass'));
     const oppRushPlays = opponentPlays.filter(p => p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run'));
@@ -599,5 +599,5 @@ export const useChartData = (plays: PlayData[], team: string) => {
       // Enhanced player data creator
       createPlayerData
     };
-  }, [plays, team]);
+  }, [plays, team, overrideTeam1ToGray, overrideTeam2ToGray]);
 };

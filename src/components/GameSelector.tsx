@@ -10,9 +10,29 @@ interface GameSelectorProps {
     team: string;
   }) => void;
   isLoading: boolean;
+  overrideTeam1ToGray: boolean;
+  setOverrideTeam1ToGray: (value: boolean) => void;
+  overrideTeam2ToGray: boolean;
+  setOverrideTeam2ToGray: (value: boolean) => void;
+  currentParams: {
+    year: number;
+    week: number;
+    seasonType: string;
+    team: string;
+  } | null;
+  opponentTeam: string;
 }
 
-const GameSelector: React.FC<GameSelectorProps> = ({ onFetchData, isLoading }) => {
+const GameSelector: React.FC<GameSelectorProps> = ({ 
+  onFetchData, 
+  isLoading, 
+  overrideTeam1ToGray, 
+  setOverrideTeam1ToGray, 
+  overrideTeam2ToGray, 
+  setOverrideTeam2ToGray, 
+  currentParams, 
+  opponentTeam 
+}) => {
   const [year, setYear] = useState<number>(2024);
   const [week, setWeek] = useState<number>(1);
   const [seasonType, setSeasonType] = useState<string>('postseason');
@@ -175,6 +195,35 @@ const GameSelector: React.FC<GameSelectorProps> = ({ onFetchData, isLoading }) =
           className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 shadow-sm hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
         />
       </div>
+
+      {/* Team Color Override Checkboxes */}
+      {currentParams && opponentTeam !== 'Opponent' && (
+        <div className="flex-shrink-0 space-y-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Team Colors
+          </label>
+          <div className="space-y-2">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={overrideTeam1ToGray}
+                onChange={(e) => setOverrideTeam1ToGray(e.target.checked)}
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span className="text-sm text-slate-700">Override {currentParams.team} to Gray</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={overrideTeam2ToGray}
+                onChange={(e) => setOverrideTeam2ToGray(e.target.checked)}
+                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span className="text-sm text-slate-700">Override {opponentTeam} to Gray</span>
+            </label>
+          </div>
+        </div>
+      )}
 
       {/* Fetch Button */}
       <div className="flex-shrink-0">

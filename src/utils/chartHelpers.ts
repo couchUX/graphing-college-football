@@ -296,7 +296,8 @@ export const createDriveLines = (plays: PlayData[], teamColors: any) => {
 
   // Create datasets for drive lines 
   return Object.keys(driveGroups).map((drive) => {
-    const drivePlays = driveGroups[parseInt(drive)].sort((a, b) => a.playNumber - b.playNumber);
+    // Plays are already sorted properly from data processing, just maintain order
+    const drivePlays = driveGroups[parseInt(drive)];
     const lineColor = adjustOpacity(teamColors.success, 0.5);
     return {
       label: `Drive ${drive}`,

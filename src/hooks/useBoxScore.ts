@@ -28,6 +28,15 @@ export const useBoxScore = (params: {
   useEffect(() => {
     if (!params) {
       setBoxScoreData(null);
+      setError(null);
+      return;
+    }
+    
+    // If plays array is provided but empty, clear box score data
+    if (plays && plays.length === 0) {
+      console.log('No plays data available, clearing box score');
+      setBoxScoreData(null);
+      setError(null);
       return;
     }
 
@@ -52,6 +61,7 @@ export const useBoxScore = (params: {
         setBoxScoreData(processedData);
       } catch (err) {
         setError('Failed to load box score data');
+        setBoxScoreData(null); // Clear existing box score data on error
         console.error('Error in useBoxScore:', err);
       } finally {
         setLoading(false);

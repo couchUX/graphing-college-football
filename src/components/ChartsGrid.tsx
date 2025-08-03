@@ -19,16 +19,18 @@ initializeChartDefaults();
 interface ChartsGridProps {
   plays: PlayData[];
   team: string;
+  overrideTeam1ToGray?: boolean;
+  overrideTeam2ToGray?: boolean;
 }
 
-const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team }) => {
+const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGray = false, overrideTeam2ToGray = false }) => {
   const handleCopyEmbed = (chartId: string, title: string) => {
     const embedCode = `<iframe src="https://your-domain.com/embed/chart/${chartId}" width="600" height="400" frameborder="0"></iframe>`;
     navigator.clipboard.writeText(embedCode);
     console.log(`Embed code copied for: ${title}`);
   };
 
-  const chartData = useChartData(plays, team);
+  const chartData = useChartData(plays, team, overrideTeam1ToGray, overrideTeam2ToGray);
   const {
     team: selectedTeam,
     opponentTeam,
