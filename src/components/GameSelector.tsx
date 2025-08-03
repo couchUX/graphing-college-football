@@ -42,6 +42,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
   const [selectedGame, setSelectedGame] = useState<TeamGame | null>(null);
   const [games, setGames] = useState<TeamGame[]>([]);
   const [loadingGames, setLoadingGames] = useState<boolean>(false);
+  const [isLoadingFromURL, setIsLoadingFromURL] = useState<boolean>(true); // Start as true to prevent initial URL updates
 
   const handleFetchData = () => {
     if (selectedGame && selectedTeam) {
@@ -54,7 +55,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
     }
   };
 
-  // Load teams on mount
+  // Load teams on mount and handle URL parameters
   useEffect(() => {
     const loadTeams = async () => {
       setLoadingTeams(true);
@@ -62,8 +63,52 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         const teamsData = await fetchTeams();
         const sortedTeams = teamsData.sort((a, b) => a.school.localeCompare(b.school));
         setTeams(sortedTeams);
+        
+        // After teams load, check for URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlYear = urlParams.get('year');
+        const urlTeam = urlParams.get('team');
+        const urlGameId = urlParams.get('gameId');
+        const urlGrayTeam = urlParams.get('grayTeam') === 'true';
+        const urlGrayOpponent = urlParams.get('grayOpponent') === 'true';
+        
+        // Check if we have URL parameters to load
+        const hasURLParams = urlYear && urlTeam;
+        
+        // Set color overrides from URL
+        if (urlParams.has('grayTeam')) {
+          setOverrideTeam1ToGray(urlGrayTeam);
+        }
+        if (urlParams.has('grayOpponent')) {
+          setOverrideTeam2ToGray(urlGrayOpponent);
+        }
+        
+        if (hasURLParams) {
+          const yearNum = parseInt(urlYear);
+          const team = sortedTeams.find(t => t.school === urlTeam);
+          
+          if (team && yearNum) {
+            setYear(yearNum);
+            setSelectedTeam(team);
+            
+            // If we have a gameId, we'll handle it after games load
+            if (urlGameId) {
+              sessionStorage.setItem('pendingGameId', urlGameId);
+            } else {
+              // No gameId, loading complete
+              setIsLoadingFromURL(false);
+            }
+          } else {
+            // If team not found, allow URL updates
+            setIsLoadingFromURL(false);
+          }
+        } else {
+          // No URL parameters to load
+          setIsLoadingFromURL(false);
+        }
       } catch (error) {
         console.error('Error loading teams:', error);
+        setIsLoadingFromURL(false);
       } finally {
         setLoadingTeams(false);
       }
@@ -95,7 +140,46 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         // Combine them with regular season first
         const allGames = [...regularGames, ...postseasonGames];
         setGames(allGames);
-        setSelectedGame(null); // Reset selected game when games list changes
+        
+        // Check for pending gameId from URL
+        const pendingGameId = sessionStorage.getItem('pendingGameId');
+        
+        if (pendingGameId) {
+          const game = allGames.find(g => g.id.toString() === pendingGameId);
+          
+          if (game) {
+            setSelectedGame(game);
+            sessionStorage.removeItem('pendingGameId');
+            
+            // Auto-fetch data if we have all parameters from URL  
+            setTimeout(() => {
+              if (game && selectedTeam) {
+                onFetchData({ 
+                  year: game.season, 
+                  week: game.week, 
+                  seasonType: game.seasonType, 
+                  team: selectedTeam.school
+                });
+                // Allow URL updates after loading is complete
+                setTimeout(() => {
+                  setIsLoadingFromURL(false);
+                }, 100);
+              }
+            }, 500);
+          } else {
+            sessionStorage.removeItem('pendingGameId');
+            setIsLoadingFromURL(false);
+          }
+        } else {
+          // Only reset selected game if we're not loading from URL and there's a different games list
+          if (!isLoadingFromURL) {
+            setSelectedGame(null); // Reset selected game when games list changes
+          }
+          // If not loading from URL and no pending game, allow URL updates
+          if (!isLoadingFromURL) {
+            setIsLoadingFromURL(false);
+          }
+        }
       } catch (error) {
         console.error('Error loading games:', error);
         setGames([]);
@@ -112,9 +196,46 @@ const GameSelector: React.FC<GameSelectorProps> = ({
     
     const opponent = game.homeTeam === selectedTeam.school ? game.awayTeam : game.homeTeam;
     const isHome = game.homeTeam === selectedTeam.school;
-    const weekLabel = game.seasonType === 'regular' ? `Week ${game.week}` : `Postseason Week ${game.week}`;
+    const weekLabel = game.seasonType === 'regular' ? `Week ${game.week}` : `Postseason ${game.week}`;
     return `${weekLabel}: ${isHome ? 'vs' : '@'} ${opponent}`;
   };
+
+  // Update URL with current selections
+  const updateURL = (newYear?: number, newTeam?: Team | null, newGame?: TeamGame | null) => {
+    const params = new URLSearchParams();
+    
+    const currentYear = newYear || year;
+    const currentTeam = newTeam !== undefined ? newTeam : selectedTeam;
+    const currentGame = newGame !== undefined ? newGame : selectedGame;
+    
+    if (currentYear) {
+      params.set('year', currentYear.toString());
+    }
+    if (currentTeam) {
+      params.set('team', currentTeam.school);
+    }
+    if (currentGame) {
+      params.set('gameId', currentGame.id.toString());
+    }
+    
+    // Add color override parameters
+    if (overrideTeam1ToGray) {
+      params.set('grayTeam', 'true');
+    }
+    if (overrideTeam2ToGray) {
+      params.set('grayOpponent', 'true');
+    }
+    
+    const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({}, '', newURL);
+  };
+
+  // Update URL when selections change (but not during initial URL loading)
+  useEffect(() => {
+    if (!isLoadingFromURL) {
+      updateURL();
+    }
+  }, [year, selectedTeam, selectedGame, overrideTeam1ToGray, overrideTeam2ToGray, isLoadingFromURL]);
 
   // Filter teams based on query
   const filteredTeams = teamQuery === '' 
