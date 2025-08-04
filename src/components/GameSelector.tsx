@@ -175,8 +175,8 @@ const GameSelector: React.FC<GameSelectorProps> = ({
           if (!isLoadingFromURL) {
             setSelectedGame(null); // Reset selected game when games list changes
           }
-          // If not loading from URL and no pending game, allow URL updates
-          if (!isLoadingFromURL) {
+          // If not loading from URL, allow URL updates
+          if (!sessionStorage.getItem('pendingGameId')) {
             setIsLoadingFromURL(false);
           }
         }
@@ -405,7 +405,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 onChange={(e) => setOverrideTeam1ToGray(e.target.checked)}
                 className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-sm text-slate-700">Override team to gray</span>
+              <span className="text-sm text-slate-700">Set team to gray</span>
             </label>
             <label className="flex items-center space-x-2">
               <input
@@ -414,7 +414,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 onChange={(e) => setOverrideTeam2ToGray(e.target.checked)}
                 className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-sm text-slate-700">Override opponent to gray</span>
+              <span className="text-sm text-slate-700">Set opponent to gray</span>
             </label>
           </div>
         </div>
@@ -431,6 +431,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
           <Play className="h-5 w-5" />
         </button>
       </div>
+
     </div>
   );
 };
