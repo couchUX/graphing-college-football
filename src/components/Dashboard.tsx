@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, TrendingUp, Target, Database, ChevronDown } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAllPlays, setShowAllPlays] = useState<boolean>(false);
   const [showRawPlays, setShowRawPlays] = useState<boolean>(false);
+  const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [overrideTeam1ToGray, setOverrideTeam1ToGray] = useState<boolean>(false);
   const [overrideTeam2ToGray, setOverrideTeam2ToGray] = useState<boolean>(false);
   const [currentParams, setCurrentParams] = useState<{
@@ -145,6 +146,119 @@ const Dashboard: React.FC = () => {
             <p className="text-slate-600 mb-6">
               {currentParams.year} • Week {currentParams.week} • {currentParams.seasonType === 'regular' ? 'Regular Season' : 'Postseason'}
             </p>
+
+            {/* Data Definitions and Notes Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-4">
+              <button
+                onClick={() => setShowDataDefinitions(!showDataDefinitions)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div className="flex items-center space-x-3">
+                  <BookOpen className="h-5 w-5 text-slate-600" />
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Data Definitions and Notes
+                  </h2>
+                </div>
+                <ChevronDown className={`h-6 w-6 text-slate-500 transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showDataDefinitions && (
+                <div className="mt-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Column - Data Definitions */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-6 pt-2">Data Definitions</h3>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Success Rate (SR):</h4>
+                            <p className="text-slate-700 mb-2">The percentage of plays that gain enough yards to be considered "successful" based on down and distance:</p>
+                            <ul className="list-disc list-inside space-y-1 text-slate-700 ml-4">
+                              <li><strong>1st down:</strong> Successful if the play gains at least 50% of the yards needed for a first down</li>
+                              <li><strong>2nd down:</strong> Successful if the play gains at least 70% of the yards needed for a first down</li>
+                              <li><strong>3rd & 4th down:</strong> Successful if the play gains 100% of the yards needed (achieves a first down or touchdown)</li>
+                            </ul>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Explosiveness Rate (XR):</h4>
+                            <p className="text-slate-700">The percentage of plays that gain more than 15 yards, regardless of down and distance. These are the "big plays" that can change the momentum of a game.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Rush Rate (RR):</h4>
+                            <p className="text-slate-700">The percentage of offensive plays that are rushing attempts versus passing attempts. A 50% rush rate indicates a perfectly balanced offense.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Cumulative Metrics:</h4>
+                            <p className="text-slate-700">Charts showing "cumulative" data display running averages that update after each play. This shows how team performance evolves throughout the game.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Red Zone:</h4>
+                            <p className="text-slate-700">The area of the field within 20 yards of the opponent's goal line. Success rates often change dramatically in this area due to the compressed field.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-slate-900 mt-5">Play Types:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-slate-700 ml-4">
+                          <li><strong>Rush:</strong> Any designed running play or quarterback scramble</li>
+                          <li><strong>Pass:</strong> Any forward pass attempt, including completions, incompletions, and <strong>sacks</strong> (Note: Unlike traditional statistics that count sacks as rushing plays, this analysis correctly categorizes them as pass attempts with negative yardage)</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-slate-900 mt-5">Excluded Plays:</h4>
+                        <p className="text-slate-700">Penalties that result in no play occurring are excluded from the analysis, as are all special teams plays (punts, kickoffs, field goals) and extra point attempts.</p>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Notes */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-6 pt-2">Notes</h3>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Data accuracy:</h4>
+                            <p className="text-slate-700">There may be occasional errors in the charts as data is pulled from play-by-play records, which vary slightly between stadiums and can be subject to human error when recorded.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">NCAA average reference line:</h4>
+                            <p className="text-slate-700">The average Success Rate for teams changes year over year, but tends to hover around 42-43%. This benchmark is marked on most charts as a dashed line for reference.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Team color conflicts:</h4>
+                            <p className="text-slate-700">Having trouble distinguishing between opponents with similar colors? Use the team color override checkboxes at the top of the screen to display one team in gray.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Explosive plays visualization:</h4>
+                            <p className="text-slate-700">Bar charts display explosive plays as a subset of successful plays for visual clarity, even though rare edge cases exist where an explosive play might not meet success criteria (e.g., gaining 17 yards on 4th and 20). This simplification affects less than 1% of plays.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Special teams and scoring plays</h4>
+                            <p className="text-slate-700">are excluded from this analysis to focus on standard offensive efficiency. Two-point conversions are also excluded.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Drive chart play counts</h4>
+                            <p className="text-slate-700">use a secondary Y-axis to show the number of plays per drive while maintaining the 0-100% scale for success and explosiveness rates.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* All Plays Data Section - Reorganized */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
