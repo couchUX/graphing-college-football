@@ -1,6 +1,6 @@
 import { ApiPlayData, PlayData, ProcessedMetrics, DriveMetrics, PlayerStats } from '../types';
 
-export const calculateSuccess = (down: number, distance: number, yardsGained: number): boolean => {
+const calculateSuccess = (down: number, distance: number, yardsGained: number): boolean => {
   if (!down || !distance || yardsGained === undefined || yardsGained === null) {
     return false;
   }
@@ -18,7 +18,7 @@ export const calculateSuccess = (down: number, distance: number, yardsGained: nu
   }
 };
 
-export const calculateExplosiveness = (yardsGained: number): boolean => {
+const calculateExplosiveness = (yardsGained: number): boolean => {
   return yardsGained >= 15;
 };
 
@@ -26,12 +26,36 @@ export const calculateExplosiveness = (yardsGained: number): boolean => {
 const cleanPlayerName = (name: string): string => {
   if (!name) return '';
   
-  // Remove numbers, "yd"/"Yd", and trim spaces
-  return name
+  // Additional safeguards for malformed names
+  let cleaned = name
     .replace(/\d+/g, '') // Remove all numbers
     .replace(/\s*yd\s*/gi, '') // Remove "yd" or "Yd" with surrounding spaces
+    .replace(/\s*yards?\s*/gi, '') // Remove "yard" or "yards"
+    .replace(/\s*for\s*$/gi, '') // Remove trailing "for"
+    .replace(/\s*to\s*$/gi, '') // Remove trailing "to"
+    .replace(/\s*complete\s*/gi, '') // Remove "complete"
+    .replace(/\s*incomplete\s*/gi, '') // Remove "incomplete"
+    .replace(/\s*pass\s*/gi, '') // Remove "pass"
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
     .trim();
+  
+  // Final safeguard: if the cleaned name is still too long or contains suspicious patterns, 
+  // try to extract just the first and last name
+  if (cleaned.length > 25 || cleaned.includes('down') || cleaned.includes('penalty')) {
+    const nameMatch = cleaned.match(/^([A-Za-z]+(?:\s+[A-Za-z]+){0,2})/i);
+    if (nameMatch) {
+      cleaned = nameMatch[1].trim();
+    } else {
+      // Last resort: take first 20 characters and find the last space
+      cleaned = cleaned.substring(0, 20);
+      const lastSpace = cleaned.lastIndexOf(' ');
+      if (lastSpace > 5) {
+        cleaned = cleaned.substring(0, lastSpace);
+      }
+    }
+  }
+  
+  return cleaned;
 };
 
 // Extract player names from play text
@@ -51,18 +75,39 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
       return result; // Return empty for sacks
     }
 
-    // Extract Passer
+    // Extract Passer - improved logic to handle complex play texts
     let passer = '';
     
     // Check for scoring format first: "pass from [passer]"
-    const passFromMatch = playText.match(/pass from ([^(]+)/i);
+    const passFromMatch = playText.match(/pass from ([^(,]+)/i);
     if (passFromMatch) {
       passer = passFromMatch[1].trim();
     } else {
-      // Standard format: "[passer] pass"
-      const standardPassMatch = playText.match(/^([^,]+(?:,\s*[^,]+)?)\s+pass/i);
+      // Standard format: "[passer] pass" - be more restrictive to avoid long matches
+      // Look for a name pattern followed by "pass" - limit to reasonable name length
+      const standardPassMatch = playText.match(/^([A-Za-z\s.',-]{2,40}?)\s+pass(?:\s+(?:complete|incomplete))/i);
       if (standardPassMatch) {
-        passer = standardPassMatch[1];
+        passer = standardPassMatch[1].trim();
+      } else {
+        // Fallback: try to find just "[name] pass" at the start, but limit length
+        const simplePassMatch = playText.match(/^([A-Za-z\s.',-]{2,40}?)\s+pass/i);
+        if (simplePassMatch) {
+          passer = simplePassMatch[1].trim();
+          // Additional safeguard: if the extracted name seems too long, truncate at first reasonable break
+          if (passer.length > 30) {
+            const truncateMatch = passer.match(/^([A-Za-z\s.',-]{2,30}?)(?:\s+(?:pass|complete|incomplete|for|to|yds?|yards?))/i);
+            if (truncateMatch) {
+              passer = truncateMatch[1].trim();
+            } else {
+              // If we can't find a good break point, take first 25 characters and find last space
+              passer = passer.substring(0, 25);
+              const lastSpace = passer.lastIndexOf(' ');
+              if (lastSpace > 10) {
+                passer = passer.substring(0, lastSpace);
+              }
+            }
+          }
+        }
       }
     }
     
@@ -92,11 +137,8 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
         receiver = incompleteMatch[1].trim();
       }
     } else if (playText.includes('intercepted')) {
-      // Interception: "intercepted [receiver] return" - FIXED REGEX TO CAPTURE ALL NAMES
-      const interceptMatch = playText.match(/intercepted (.*?)(?:\s+return|$)/i);
-      if (interceptMatch) {
-        receiver = interceptMatch[1].trim();
-      }
+      // Interception: Don't extract receiver - the person who intercepted is a defensive back, not an offensive receiver
+      // Leave receiver blank for interceptions
     }
     // If just "incomplete" with no "to", leave receiver blank
     
@@ -109,11 +151,29 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
 };
 
 export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
-  // Sort plays by their ID in ASCENDING order using string comparison for large numbers
-  // This ensures proper chronological order (smaller IDs = earlier in game)
-  const sortedPlays = [...apiPlays].sort((a, b) => a.id.localeCompare(b.id));
+  // Sort plays by drive number, play in drive, then ID as fallback
+  // This ensures proper chronological order based on game flow
+  const sortedPlays = [...apiPlays].sort((a, b) => {
+    const aDriveNumber = a.drive_number || a.driveNumber || 0;
+    const bDriveNumber = b.drive_number || b.driveNumber || 0;
+    const aPlayInDrive = a.play_number || a.playNumber || 0;
+    const bPlayInDrive = b.play_number || b.playNumber || 0;
+    
+    // First sort by drive number
+    if (aDriveNumber !== bDriveNumber) {
+      return aDriveNumber - bDriveNumber;
+    }
+    
+    // Then sort by play within drive
+    if (aPlayInDrive !== bPlayInDrive) {
+      return aPlayInDrive - bPlayInDrive;
+    }
+    
+    // Finally sort by ID as fallback
+    return a.id.localeCompare(b.id);
+  });
 
-  console.log('ID sorting verification - first 10 plays (should be ascending):');
+  console.log('Play sorting verification - first 10 plays (sorted by drive, play-in-drive, then ID):');
   sortedPlays.slice(0, 10).forEach((play, index) => {
     console.log(`${index + 1}: ID ${play.id} - Q${play.quarter || play.period} D${play.drive_number || play.driveNumber} P${play.play_number || play.playNumber}`);
   });
@@ -255,7 +315,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   return processedPlays;
 };
 
-export const calculateTeamMetrics = (plays: PlayData[], teamName: string): ProcessedMetrics => {
+const calculateTeamMetrics = (plays: PlayData[], teamName: string): ProcessedMetrics => {
   const teamPlays = plays.filter(play => play.offense === teamName);
   
   if (teamPlays.length === 0) {
@@ -279,7 +339,7 @@ export const calculateTeamMetrics = (plays: PlayData[], teamName: string): Proce
   };
 };
 
-export const calculateDriveMetrics = (plays: PlayData[], teamName: string): DriveMetrics[] => {
+const calculateDriveMetrics = (plays: PlayData[], teamName: string): DriveMetrics[] => {
   const teamPlays = plays.filter(play => play.offense === teamName);
   const driveGroups = teamPlays.reduce((acc, play) => {
     if (!acc[play.driveNumber]) {
@@ -364,25 +424,39 @@ export const calculatePlayerStats = (plays: PlayData[], playType: 'rush' | 'pass
         // For rushers: unsuccessful = all non-successful plays
         unsuccessful = playerPlays.filter(play => !play.success).length;
       } else if (playType === 'pass') {
-        // For passers: unsuccessful = incompletes (not successful, not interceptions)
+        // For passers: 
+        // unsuccessful = incomplete passes and sacks (not successful, not interceptions, not completions)
+        // uns_catches = completed passes that weren't successful or explosive  
         // int = interceptions
         playerPlays.forEach(play => {
           const playText = play.playText.toLowerCase();
           if (playText.includes('interception') || playText.includes('intercepted')) {
             int++;
-          } else if (!play.success) {
-            unsuccessful++; // Incompletes
+          } else {
+            // More precise completion detection
+            const isCompletion = (playText.includes('complete') && !playText.includes('incomplete')) || 
+                                playText.includes('reception') || 
+                                playText.includes('pass from');
+            
+            const isIncomplete = playText.includes('incomplete');
+            const isSack = playText.includes('sack');
+            
+            if (isCompletion && !play.success && !play.explosiveness) {
+              uns_catches++; // Completed passes that weren't successful or explosive
+            } else if ((isIncomplete || isSack) && !play.success) {
+              unsuccessful++; // Incomplete passes
+            }
           }
         });
       } else { // receive
-        // For receivers: uns_catches = catches that weren't successful
-        // unsuccessful stays 0 for receivers (we don't track incompletions for receivers)
+        // For receivers: 
+        // uns_catches = catches that weren't successful or explosive
+        // unsuccessful = 0 (we don't track incompletions for receivers since they're not targeted on incomplete passes in our data)
         playerPlays.forEach(play => {
           const playText = play.playText.toLowerCase();
-          const isCompletion = playText.includes('complete') || 
+          const isCompletion = (playText.includes('complete') && !playText.includes('incomplete')) || 
                               playText.includes('reception') || 
-                              playText.includes('pass from') ||
-                              (!playText.includes('incomplete') && !playText.includes('interception'));
+                              playText.includes('pass from');
           
           if (isCompletion && !play.success && !play.explosiveness) {
             uns_catches++; // Other catches (completed but not successful)

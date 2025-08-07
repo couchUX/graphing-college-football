@@ -19,8 +19,8 @@ Chart.defaults.set('plugins.datalabels', {
 
 // CHART HELPERS
 const percentCallback = (value) => `${Math.round(value * 100)}%`
-const unsColor = "#E5E7EB"; // Light gray for incompletes - #E5E7EB
-const intColor = "#374151"; // Dark gray for interceptions - #374151
+const unsColor = "rgba(255,255,255,0.9)";
+const intColor = "rgba(0,0,0,0.65)";
 tooltipPercents = (dataset, formattedValue) => ({ 
     callbacks: { label: ({dataset, formattedValue}) => `${dataset.label}: ${Math.round(formattedValue * 100)}%` }
 })
@@ -573,25 +573,8 @@ const drives = (data,thisGame,id,teamNum) => {
 // PLAYER CHARTS
 const players = (data,thisGame,id,column,max) => {
 
-    console.log('Players chart function called with:', {
-        column,
-        dataLength: data.length,
-        sampleData: data[0]
-    });
-
     let game = data.filter(({game}) => game == thisGame);
     let chart = game.filter(({chart}) => chart == column);
-    
-    // CRITICAL: Log the actual chart data being processed
-    console.log('Chart data for', column, ':', chart);
-    console.log('Sample chart entry:', chart[0]);
-    
-    console.log('Filtered chart data:', {
-        column,
-        chartLength: chart.length,
-        sampleChartData: chart[0]
-    });
-    
     let labels = [...new Set(chart.map(a => a[column]))];
     let teamOne = chart.filter(({team_num}) => team_num == 1);
     let teamTwo = chart.filter(({team_num}) => team_num == 2);
@@ -599,51 +582,18 @@ const players = (data,thisGame,id,column,max) => {
     let explosive = chart.map(a => a.explosive);
     let successful = chart.map(a => a.successful);
     let unsuccessful = chart.map(a => a.uns);   
-    let unsCatches = chart.map(a => a.uns_catches || 0); // Ensure we get 0 if undefined
-    let interceptions = chart.map(a => a.int || 0); // Ensure we get 0 if undefined
-    
-    // CRITICAL: Log the extracted data arrays
-    console.log('Extracted data arrays for', column, ':', {
-        explosive,
-        successful,
-        unsuccessful,
-        unsCatches,
-        interceptions,
-        labels
-    });
+    let unsCatches = chart.map(a => a.uns_catches);
+    let interceptions = chart.map(a => a.int);
 
-    console.log('Player chart data:', {
-        column,
-        labels,
-        explosive,
-        successful,
-        unsuccessful,
-        unsCatches,
-        interceptions,
-        sampleData: chart[0],
-        teamOneColors: teamOne.length > 0 ? colors(teamOne) : 'No team one data',
-        teamTwoColors: teamTwo.length > 0 ? colors(teamTwo) : 'No team two data'
-    });
     // PLAYER BAR COLORS
     let barColor = (data,teamOneColor,teamTwoColor) => {
         let fillColor = data.map(({team_num}) => 
         team_num == 1 ? teamOneColor :
         team_num == 2 ? teamTwoColor :
         '#000000');       
-        console.log('barColor result for', column, ':', fillColor);
         return fillColor;
     };
 
-    // PLAYER BAR COLORS FOR LIGHT/TRANSPARENT VERSIONS
-    let barColorLight = (data,teamOneLightColor,teamTwoLightColor) => {
-        let fillColor = data.map(({team_num}) => 
-        team_num == 1 ? teamOneLightColor :
-        team_num == 2 ? teamTwoLightColor :
-        '#F3F4F6');
-        console.log('barColorLight result for', column, ':', fillColor);       
-        return fillColor;
-    };
-    
     let dataset = (d,l,color) => ({
         data: d,
         stack: 1,
@@ -654,72 +604,33 @@ const players = (data,thisGame,id,column,max) => {
         datalabels: {
             display: (context) => { return context.dataset.data[context.dataIndex] > 0 }
         }
-    });
-    
-    // CRITICAL: Log team colors being used
-    if (teamOne.length > 0) {
-        console.log('Team One colors:', colors(teamOne));
-    }
-    if (teamTwo.length > 0) {
-        console.log('Team Two colors:', colors(teamTwo));
-    }
+    })
 
-    let datasets = (column) => {
-        console.log('Building datasets for column:', column);
-        
-        if (column == 'rusher') {
-            const rusherDatasets = [
-                dataset(explosive,'Explosive Rushes',barColor(chart,colors(teamOne).explosive,colors(teamTwo).explosive)),
-                dataset(successful,'Successful Rushes',barColor(chart,colors(teamOne).success,colors(teamTwo).success)),
-                dataset(unsuccessful,'Unsuccessful Rushes',unsColor),
-            ];
-            console.log('Rusher datasets:', rusherDatasets);
-            return rusherDatasets;
-        } else if (column == 'passer') {
-            const passerDatasets = [
-                dataset(explosive,'Explosive',barColor(chart,colors(teamOne).explosive,colors(teamTwo).explosive)),
-                dataset(successful,'Successful',barColor(chart,colors(teamOne).success,colors(teamTwo).success)),
-                dataset(unsCatches,'Other Catches','#FF0000'), // BRIGHT RED FOR TESTING
-                dataset(unsuccessful,'Incompletes',unsColor),
-                dataset(interceptions,'Interceptions','#0000FF') // BRIGHT BLUE FOR TESTING
-            ];
-            console.log('Passer datasets:', passerDatasets);
-            console.log('Passer unsCatches data:', unsCatches);
-            console.log('Passer interceptions data:', interceptions);
-            return passerDatasets;
-        } else if (column == 'receiver') {
-            const receiverDatasets = [
-                dataset(explosive,'Explosive Catches',barColor(chart,colors(teamOne).explosive,colors(teamTwo).explosive)),
-                dataset(successful,'Successful Catches',barColor(chart,colors(teamOne).success,colors(teamTwo).success)),
-                dataset(unsCatches,'Other Catches','#FF0000'), // BRIGHT RED FOR TESTING
-            ];
-            console.log('Receiver datasets:', receiverDatasets);
-            console.log('Receiver unsCatches data:', unsCatches);
-            return receiverDatasets;
-        } else {
-            console.log('Unknown column type:', column);
-            return [];
-        }
-    };
+    let datasets = (column) =>
+        column == 'rusher' ? [
+            dataset(explosive,'Explosive Rushes',barColor(chart,colors(teamOne).explosive,colors(teamTwo).explosive)),
+            dataset(successful,'Successful Rushes',barColor(chart,colors(teamOne).success,colors(teamTwo).success)),
+            dataset(unsuccessful,'Unsuccessful Rushes',unsColor,colors(teamOne).explosive),
+        ] :
+        column == 'receiver' ? [    
+            dataset(explosive,'Explosive Catches',barColor(chart,colors(teamOne).explosive,colors(teamTwo).explosive)),
+            dataset(successful,'Successful Catches',barColor(chart,colors(teamOne).success,colors(teamTwo).success)),
+            dataset(unsCatches,'Other Catches',barColor(chart,colors(teamOne).light,colors(teamTwo).light)),
+        ] :
+        [
+            dataset(explosive,'Explosive',barColor(chart,colors(teamOne).explosive,colors(teamTwo).explosive)),
+            dataset(successful,'Successful',barColor(chart,colors(teamOne).success,colors(teamTwo).success)),
+            dataset(unsCatches,'Other Catches',barColor(chart,colors(teamOne).light,colors(teamTwo).light)),
+            dataset(unsuccessful,'Incompletes',unsColor),
+            dataset(interceptions,'Interceptions',intColor)
+        ] 
     
-    const finalDatasets = datasets(column);
-    console.log('Final datasets for', column, ':', finalDatasets);
-    
-    // CRITICAL: Verify that uns_catches and int data is properly included
-    finalDatasets.forEach((dataset, index) => {
-        console.log(`Dataset ${index} (${dataset.label}):`, {
-            data: dataset.data,
-            backgroundColor: dataset.backgroundColor,
-            hasNonZeroValues: dataset.data.some(val => val > 0)
-        });
-    });
-
     const ctx = document.getElementById(id).getContext('2d');
     new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: finalDatasets
+            datasets: datasets(column)
         },
         plugins: [ChartDataLabels],
         options: {

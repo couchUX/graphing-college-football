@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, TrendingUp, Target, Database, ChevronDown } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -15,6 +15,8 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showAllPlays, setShowAllPlays] = useState<boolean>(false);
+  const [showRawPlays, setShowRawPlays] = useState<boolean>(false);
+  const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [overrideTeam1ToGray, setOverrideTeam1ToGray] = useState<boolean>(false);
   const [overrideTeam2ToGray, setOverrideTeam2ToGray] = useState<boolean>(false);
   const [currentParams, setCurrentParams] = useState<{
@@ -48,8 +50,15 @@ const Dashboard: React.FC = () => {
       setPlays(processedPlays);
       console.log('Raw API data:', apiPlays);
       console.log('Processed plays:', processedPlays);
+      
+      // If no plays were returned, ensure we clear any lingering error state
+      if (!apiPlays || apiPlays.length === 0) {
+        console.log('No play data returned for these parameters');
+      }
     } catch (err) {
       setError('Failed to load play data. Please check your parameters and try again.');
+      setPlays([]); // Clear existing plays data on error
+      setRawApiData([]); // Clear existing raw API data on error
       console.error('Error loading play data:', err);
     } finally {
       setIsLoading(false);
@@ -119,6 +128,12 @@ const Dashboard: React.FC = () => {
           <GameSelector
             onFetchData={handleFetchData}
             isLoading={isLoading}
+            overrideTeam1ToGray={overrideTeam1ToGray}
+            setOverrideTeam1ToGray={setOverrideTeam1ToGray}
+            overrideTeam2ToGray={overrideTeam2ToGray}
+            setOverrideTeam2ToGray={setOverrideTeam2ToGray}
+            currentParams={currentParams}
+            opponentTeam={opponentTeam}
           />
         </div>
 
@@ -132,7 +147,120 @@ const Dashboard: React.FC = () => {
               {currentParams.year} • Week {currentParams.week} • {currentParams.seasonType === 'regular' ? 'Regular Season' : 'Postseason'}
             </p>
 
-            {/* All Plays Data Section - Moved here */}
+            {/* Data Definitions and Notes Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-4">
+              <button
+                onClick={() => setShowDataDefinitions(!showDataDefinitions)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div className="flex items-center space-x-3">
+                  <BookOpen className="h-5 w-5 text-slate-600" />
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Data Definitions and Notes
+                  </h2>
+                </div>
+                <ChevronDown className={`h-6 w-6 text-slate-500 transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showDataDefinitions && (
+                <div className="mt-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Column - Data Definitions */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-6 pt-2">Data Definitions</h3>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Success Rate (SR):</h4>
+                            <p className="text-slate-700 mb-2">The percentage of plays that gain enough yards to be considered "successful" based on down and distance:</p>
+                            <ul className="list-disc list-inside space-y-1 text-slate-700 ml-4">
+                              <li><strong>1st down:</strong> Successful if the play gains at least 50% of the yards needed for a first down</li>
+                              <li><strong>2nd down:</strong> Successful if the play gains at least 70% of the yards needed for a first down</li>
+                              <li><strong>3rd & 4th down:</strong> Successful if the play gains 100% of the yards needed (achieves a first down or touchdown)</li>
+                            </ul>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Explosiveness Rate (XR):</h4>
+                            <p className="text-slate-700">The percentage of plays that gain more than 15 yards, regardless of down and distance. These are the "big plays" that can change the momentum of a game.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Rush Rate (RR):</h4>
+                            <p className="text-slate-700">The percentage of offensive plays that are rushing attempts versus passing attempts. A 50% rush rate indicates a perfectly balanced offense.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Cumulative Metrics:</h4>
+                            <p className="text-slate-700">Charts showing "cumulative" data display running averages that update after each play. This shows how team performance evolves throughout the game.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Red Zone:</h4>
+                            <p className="text-slate-700">The area of the field within 20 yards of the opponent's goal line. Success rates often change dramatically in this area due to the compressed field.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-slate-900 mt-5">Play Types:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-slate-700 ml-4">
+                          <li><strong>Rush:</strong> Any designed running play or quarterback scramble</li>
+                          <li><strong>Pass:</strong> Any forward pass attempt, including completions, incompletions, and <strong>sacks</strong> (Note: Unlike traditional statistics that count sacks as rushing plays, this analysis correctly categorizes them as pass attempts with negative yardage)</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-slate-900 mt-5">Excluded Plays:</h4>
+                        <p className="text-slate-700">Penalties that result in no play occurring are excluded from the analysis, as are all special teams plays (punts, kickoffs, field goals) and extra point attempts.</p>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Notes */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-6 pt-2">Notes</h3>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Data accuracy:</h4>
+                            <p className="text-slate-700">There may be occasional errors in the charts as data is pulled from play-by-play records, which vary slightly between stadiums and can be subject to human error when recorded.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">NCAA average reference line:</h4>
+                            <p className="text-slate-700">The average Success Rate for teams changes year over year, but tends to hover around 42-43%. This benchmark is marked on most charts as a dashed line for reference.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Team color conflicts:</h4>
+                            <p className="text-slate-700">Having trouble distinguishing between opponents with similar colors? Use the team color override checkboxes at the top of the screen to display one team in gray.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Explosive plays visualization:</h4>
+                            <p className="text-slate-700">Bar charts display explosive plays as a subset of successful plays for visual clarity, even though rare edge cases exist where an explosive play might not meet success criteria (e.g., gaining 17 yards on 4th and 20). This simplification affects less than 1% of plays.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Special teams and scoring plays</h4>
+                            <p className="text-slate-700">are excluded from this analysis to focus on standard offensive efficiency. Two-point conversions are also excluded.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Drive chart play counts</h4>
+                            <p className="text-slate-700">use a secondary Y-axis to show the number of plays per drive while maintaining the 0-100% scale for success and explosiveness rates.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* All Plays Data Section - Reorganized */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
               <button
                 onClick={() => setShowAllPlays(!showAllPlays)}
@@ -149,92 +277,109 @@ const Dashboard: React.FC = () => {
               
               {showAllPlays && (
                 <div className="mt-6 space-y-6">
-                  {/* Raw API Data Sample */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">
-                      Raw API Data Sample (First play to check field names):
-                    </h3>
-                    <div className="bg-slate-50 rounded-lg p-4 overflow-auto max-h-48">
-                      <pre className="text-sm text-slate-700">
-                        {JSON.stringify(rawApiData[0] || {}, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
+                  {/* Raw API Plays in Sub-Accordion */}
+                  <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                    <button
+                      onClick={() => setShowRawPlays(!showRawPlays)}
+                      className="flex items-center justify-between w-full text-left"
+                    >
+                      <h3 className="text-lg font-medium text-slate-900">
+                        Raw API Plays ({rawApiData.length} total)
+                      </h3>
+                      <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform ${showRawPlays ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {showRawPlays && (
+                      <div className="mt-4 space-y-4">
+                        {/* Raw API Data Sample */}
+                        <div>
+                          <h4 className="text-md font-medium text-slate-800 mb-2">
+                            Sample (First play to check field names):
+                          </h4>
+                          <div className="bg-white rounded-lg p-3 overflow-auto max-h-48 border border-slate-200">
+                            <pre className="text-sm text-slate-700">
+                              {JSON.stringify(rawApiData[0] || {}, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
 
-                  {/* All Plays Table - Using Raw API Data */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">
-                      All Plays from Raw API ({rawApiData.length} total):
-                    </h3>
-                    <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                      <div className="overflow-x-auto max-h-96">
-                        <table className="min-w-full divide-y divide-slate-200">
-                          <thead className="bg-slate-100 sticky top-0">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drive #</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play in Drive</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Quarter</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Down</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Distance</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Offense</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Defense</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play Type</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Yards</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play Text</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-slate-200">
-                            {sortedRawApiData.map((play, index) => (
-                              <tr key={play.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.id || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.drive_number || play.driveNumber || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.play_number || play.playNumber || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.quarter || play.period || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.down || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.distance || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.offense || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.defense || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.play_type || play.playType || 'N/A'}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                  {play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 'N/A')}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-slate-900 max-w-xs truncate" title={play.play_text || play.playText || ''}>
-                                  {play.play_text || play.playText || 'N/A'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        {/* All Plays Table - Using Raw API Data */}
+                        <div>
+                          <h4 className="text-md font-medium text-slate-800 mb-2">
+                            Complete Table:
+                          </h4>
+                          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                            <div className="overflow-x-auto max-h-96">
+                              <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-100 sticky top-0">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drive #</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play in Drive</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Quarter</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Down</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Distance</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Offense</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Defense</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play Type</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Yards</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Play Text</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-slate-200">
+                                  {sortedRawApiData.map((play, index) => (
+                                    <tr key={play.id || index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.id || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.drive_number || play.driveNumber || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.play_number || play.playNumber || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.quarter || play.period || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.down || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.distance || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.offense || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.defense || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.play_type || play.playType || 'N/A'}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                        {play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 'N/A')}
+                                      </td>
+                                      <td className="px-3 py-2 text-sm text-slate-900 max-w-xs truncate" title={play.play_text || play.playText || ''}>
+                                        {play.play_text || play.playText || 'N/A'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Processed Plays Table - Rush and Pass Only WITH CUMULATIVE COLUMNS AND PLAYER NAMES */}
+                  {/* Processed Plays Table - Always Open */}
                   <div>
                     <h3 className="text-lg font-medium text-slate-900 mb-3">
                       Processed Plays - Rush and Pass Only with Player Names ({filteredPlays.length} total):
                     </h3>
                     <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
-                      <div className="overflow-x-auto max-h-96">
+                      <div className="overflow-x-auto max-h-[456px]">
                         <table className="min-w-full divide-y divide-slate-200">
                           <thead className="bg-slate-100 sticky top-0">
                             <tr>
@@ -327,107 +472,6 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Play Types Breakdown */}
-                  {plays.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium text-slate-900 mb-3">
-                        Play Types Found:
-                      </h3>
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                          {Array.from(new Set(plays.map(p => p.playType).filter(Boolean))).map(playType => (
-                            <div key={playType} className="flex justify-between py-1">
-                              <span className="text-slate-700 font-medium">{playType}</span>
-                              <span className="text-slate-500">
-                                {plays.filter(p => p.playType === playType).length} plays
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Teams Found */}
-                  {plays.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium text-slate-900 mb-3">
-                        Teams Found:
-                      </h3>
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Offense Teams:</p>
-                            {Array.from(new Set(plays.map(p => p.offense))).map(team => (
-                              <div key={team} className="text-slate-600 py-1">
-                                <span className="font-medium">{team}</span> 
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.offense === team).length} plays)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Defense Teams:</p>
-                            {Array.from(new Set(plays.map(p => p.defense))).map(team => (
-                              <div key={team} className="text-slate-600 py-1">
-                                <span className="font-medium">{team}</span>
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.defense === team).length} plays)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Player Names Found */}
-                  {plays.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium text-slate-900 mb-3">
-                        Player Names Extracted:
-                      </h3>
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Rushers:</p>
-                            {Array.from(new Set(plays.filter(p => p.rusher).map(p => p.rusher!))).slice(0, 10).map(rusher => (
-                              <div key={rusher} className="text-slate-600 py-1">
-                                <span className="font-medium">{rusher}</span>
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.rusher === rusher).length} rushes)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Passers:</p>
-                            {Array.from(new Set(plays.filter(p => p.passer).map(p => p.passer!))).slice(0, 10).map(passer => (
-                              <div key={passer} className="text-slate-600 py-1">
-                                <span className="font-medium">{passer}</span>
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.passer === passer).length} passes)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-700 mb-2">Receivers:</p>
-                            {Array.from(new Set(plays.filter(p => p.receiver).map(p => p.receiver!))).slice(0, 10).map(receiver => (
-                              <div key={receiver} className="text-slate-600 py-1">
-                                <span className="font-medium">{receiver}</span>
-                                <span className="text-slate-500 ml-2">
-                                  ({plays.filter(p => p.receiver === receiver).length} targets)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -596,7 +640,12 @@ const Dashboard: React.FC = () => {
         {plays.length > 0 && currentParams && (
           <div className="space-y-8">
             {/* Charts Grid */}
-            <ChartsGrid plays={filteredPlays} team={currentParams.team} />
+            <ChartsGrid 
+              plays={filteredPlays} 
+              team={currentParams.team} 
+              overrideTeam1ToGray={overrideTeam1ToGray}
+              overrideTeam2ToGray={overrideTeam2ToGray}
+            />
           </div>
         )}
 
