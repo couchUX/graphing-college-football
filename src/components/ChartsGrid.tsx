@@ -121,6 +121,17 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
         }
         .chart-content {
             padding: 24px;
+        }
+        .chart-content.top-receivers {
+            height: 640px;
+        }
+        .chart-content.top-passers {
+            height: 200px;
+        }
+        .chart-content.top-rushers {
+            height: 372px;
+        }
+        .chart-content:not(.top-receivers):not(.top-passers):not(.top-rushers) {
             height: 372px;
         }
         .embed-credit {
@@ -137,7 +148,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
         <div class="chart-header">
             <h3 class="chart-title">${title}</h3>
         </div>
-        <div class="chart-content">
+        <div class="chart-content ${_chartId}">
             <canvas id="${uniqueId}"></canvas>
         </div>
         <div class="embed-credit">
@@ -241,6 +252,12 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                                         else if (chartData.oppCounts) {
                                             return chartData.oppCounts[context.dataIndex] || 0;
                                         }
+                                    }
+                                    
+                                    // For player charts, show value only if > 0 (matches non-embedded behavior)
+                                    if ('${_chartId}'.includes('top-rushers') || '${_chartId}'.includes('top-passers') || '${_chartId}'.includes('top-receivers')) {
+                                        // Hide data labels for zero or negative values, show actual value for positive values
+                                        return value > 0 ? value : null;
                                     }
                                     
                                     // For other charts, show values based on type
@@ -438,6 +455,13 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                                 type: 'linear',
                                 position: 'right'
                             }
+                        } : ('${_chartId}'.includes('top-rushers') || '${_chartId}'.includes('top-passers') || '${_chartId}'.includes('top-receivers')) ? {
+                            x: {
+                                stacked: true
+                            },
+                            y: {
+                                stacked: true
+                            }
                         } : {
                             y: {
                                 max: 1,
@@ -451,6 +475,11 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                             }
                         }
                     };
+                    
+                    // Add indexAxis for player charts
+                    if ('${_chartId}'.includes('top-rushers') || '${_chartId}'.includes('top-passers') || '${_chartId}'.includes('top-receivers')) {
+                        chartOptions.indexAxis = 'y';
+                    }
                     
                     // Initialize the chart
                     const ctx = canvas.getContext('2d');
@@ -868,7 +897,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
               </div>
               
               <div className="p-6">
-                <div className="h-80">
+                <div className="h-40">
                   {playerCharts[1].component}
                 </div>
               </div>
@@ -901,7 +930,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
             </div>
             
             <div className="p-6">
-              <div className="h-[41rem]">
+              <div className="h-[640px]">
                 {playerCharts[2].component}
               </div>
             </div>
