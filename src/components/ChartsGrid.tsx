@@ -123,10 +123,10 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
             padding: 24px;
         }
         .chart-content.top-receivers {
-            height: 640px;
+            height: 624px;
         }
         .chart-content.top-passers {
-            height: 200px;
+            height: 240px;
         }
         .chart-content.top-rushers {
             height: 372px;

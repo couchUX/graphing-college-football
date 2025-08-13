@@ -372,7 +372,8 @@ export const calculatePlayerStats = (plays: PlayData[], playType: 'rush' | 'pass
     relevantPlays = plays.filter(play => {
       return (play.playType?.toLowerCase().includes('rush') || 
               play.playType?.toLowerCase().includes('run')) && 
-             play.rusher; // Only include plays with a rusher identified
+             play.rusher && 
+             play.rusher.toLowerCase() !== 'team'; // Exclude "team" values
     });
     playerField = 'rusher';
   } else if (playType === 'pass') {
@@ -386,11 +387,16 @@ export const calculatePlayerStats = (plays: PlayData[], playType: 'rush' | 'pass
     playerField = 'passer';
   } else { // receive
     relevantPlays = plays.filter(play => {
+      const playText = play.playText?.toLowerCase() || '';
+      const isCompletion = (playText.includes('complete') && !playText.includes('incomplete')) || 
+                          playText.includes('reception') || 
+                          playText.includes('pass from');
+      
       return (play.playType?.toLowerCase().includes('pass') || 
               play.playType?.toLowerCase().includes('completion') ||
-              play.playType?.toLowerCase().includes('incompletion') ||
               play.playType?.toLowerCase().includes('reception')) &&
-             play.receiver; // Only include plays with a receiver identified
+             play.receiver && 
+             isCompletion; // Only include completed passes, exclude incomplete passes
     });
     playerField = 'receiver';
   }
