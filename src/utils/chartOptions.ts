@@ -268,9 +268,16 @@ export const createPlayMapOptions = (minY: number, maxY: number): ChartOptions<'
           const original = chart.constructor.defaults.plugins.legend.labels.generateLabels;
           const labels = original.call(this, chart);
           
+          // Filter and customize each label
+          const filteredLabels = labels.filter((label: any) => {
+            return !label.text.includes('< 0') &&
+                   !label.text.includes('Quarters') &&
+                   !label.text.includes('Drive');
+          });
+          
           // Customize each label based on dataset
-          labels.forEach((label: any, index: number) => {
-            const dataset = chart.data.datasets[index];
+          filteredLabels.forEach((label: any) => {
+            const dataset = chart.data.datasets[label.datasetIndex];
             if (dataset && dataset.label) {
               if (dataset.label.includes('Rush')) {
                 label.pointStyle = 'circle';
@@ -288,15 +295,10 @@ export const createPlayMapOptions = (minY: number, maxY: number): ChartOptions<'
             }
           });
           
-          return labels;
+          return filteredLabels;
         },
         boxWidth: 20,
-        padding: 12,
-        filter: function(item: any) {
-          return !item.text.includes('< 0') &&
-                 !item.text.includes('Quarters') &&
-                 !item.text.includes('Drive');
-        }
+        padding: 12
       }
     }
   }
