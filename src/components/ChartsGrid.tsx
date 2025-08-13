@@ -28,6 +28,40 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Helper function to extract count data from bar chart datasets
+  const enhanceBarDataWithCounts = (barData: any) => {
+    const enhanced = { ...barData };
+    
+    // Extract count arrays from the formatter functions in SR datasets
+    const teamSRDataset = enhanced.datasets.find((d: any) => d.label?.includes(' SR') && !d.label?.includes('NCAA'));
+    const oppSRDataset = enhanced.datasets.find((d: any) => d.label?.includes(' SR') && d.label !== teamSRDataset?.label && !d.label?.includes('NCAA'));
+    
+    if (teamSRDataset?.datalabels?.formatter && oppSRDataset?.datalabels?.formatter) {
+      // Create mock context to extract counts
+      const teamCounts = enhanced.labels.map((_: any, index: number) => {
+        try {
+          return teamSRDataset.datalabels.formatter(0, { dataIndex: index });
+        } catch {
+          return 0;
+        }
+      });
+      
+      const oppCounts = enhanced.labels.map((_: any, index: number) => {
+        try {
+          return oppSRDataset.datalabels.formatter(0, { dataIndex: index });
+        } catch {
+          return 0;
+        }
+      });
+      
+      // Add count arrays to the enhanced data
+      enhanced.teamCounts = teamCounts;
+      enhanced.oppCounts = oppCounts;
+    }
+    
+    return enhanced;
+  };
   const generateEmbedCode = (_chartId: string, title: string, chartData: any, _chartOptions: any, _chartType: 'bar' | 'line') => {
     // Generate unique container ID to avoid conflicts
     const uniqueId = `cfb-chart-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
@@ -43,6 +77,9 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
             formatter: undefined // Remove formatter function - we'll handle it in the embed template
           };
         }
+        
+        // Keep yAxisID for proper scaling, we'll handle axis visibility in the options
+        
         return cleanedDataset;
       })
     };
@@ -72,7 +109,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
             overflow: hidden;
         }
         .chart-header {
-            padding: 16px 24px;
+            padding: 18px 24px 16px;
             border-bottom: 1px solid #e2e8f0;
             background: white;
         }
@@ -84,7 +121,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
         }
         .chart-content {
             padding: 24px;
-            height: 320px;
+            height: 372px;
         }
         .embed-credit {
             font-size: 12px;
@@ -156,19 +193,71 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                         animation: {
                             duration: 0 // Disable animations to prevent conflicts
                         },
+                        elements: '${_chartType}' === 'line' ? '${_chartId}'.includes('play-map') ? {
+                            line: { 
+                                tension: 0, 
+                                borderWidth: 0 
+                            }
+                        } : {
+                            line: { 
+                                tension: 0.25, 
+                                borderWidth: 2.2 
+                            },
+                            point: { 
+                                pointRadius: '${_chartId}'.includes('team-lines') ? 0 : undefined
+                            }
+                        } : {},
                         plugins: {
                             datalabels: {
                                 display: function(context) {
+                                    // Suppress data labels on line charts
+                                    if ('${_chartType}' === 'line') {
+                                        return false;
+                                    }
                                     return context.dataset.datalabels && context.dataset.datalabels.display === true;
                                 },
                                 formatter: function(value, context) {
-                                    if (context.dataset.label === 'SR') {
+                                    // Special handling for Overall Team Performance chart
+                                    if ('${_chartId}' === 'overall-team-performance' && context.dataset.label === 'SR') {
                                         const playCount = context.dataIndex === 0 ? 
                                             (chartData.teamPlayCount || 0) : 
                                             (chartData.opponentPlayCount || 0);
                                         return playCount;
                                     }
-                                    return Math.round(value * 100) + '%';
+                                    
+                                    // Handle bar charts with count data (play-type, quarter, down, etc.)
+                                    if (context.dataset.label && context.dataset.label.includes(' SR') && 
+                                        (chartData.teamCounts || chartData.oppCounts)) {
+                                        
+                                        // Find the first team SR dataset in the chart to determine team order
+                                        const allDatasets = context.chart.data.datasets;
+                                        const teamSRDataset = allDatasets.find(d => d.label && d.label.includes(' SR') && !d.label.includes('NCAA'));
+                                        
+                                        // If this is the first team's SR dataset, use teamCounts
+                                        if (teamSRDataset && context.dataset.label === teamSRDataset.label && chartData.teamCounts) {
+                                            return chartData.teamCounts[context.dataIndex] || 0;
+                                        } 
+                                        // Otherwise, use oppCounts for the second team
+                                        else if (chartData.oppCounts) {
+                                            return chartData.oppCounts[context.dataIndex] || 0;
+                                        }
+                                    }
+                                    
+                                    // For other charts, show values based on type
+                                    if (typeof value === 'number') {
+                                        // If value is between 0 and 1, treat as percentage
+                                        if (value >= 0 && value <= 1) {
+                                            const percentage = Math.round(value * 100);
+                                            // Special case: if it's 100%, show "1" for single plays
+                                            if (percentage === 100) {
+                                                return '1';
+                                            }
+                                            return percentage + '%';
+                                        }
+                                        // Otherwise show as number (rounded if decimal)
+                                        return value % 1 === 0 ? value : Math.round(value * 100) / 100;
+                                    }
+                                    return value;
                                 },
                                 color: 'white',
                                 font: {
@@ -188,7 +277,48 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                                 align: 'center',
                                 anchor: 'center'
                             },
-                            legend: {
+                            legend: '${_chartId}'.includes('play-map') ? {
+                                position: 'top',
+                                align: 'start',
+                                labels: {
+                                    usePointStyle: true,
+                                    generateLabels: function(chart) {
+                                        // Call the original generateLabels to get default styling
+                                        const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                        const labels = original.call(this, chart);
+                                        
+                                        // Filter and customize each label
+                                        const filteredLabels = labels.filter(label => {
+                                            return !label.text.includes('< 0') &&
+                                                   !label.text.includes('Quarters') &&
+                                                   !label.text.includes('Drive');
+                                        });
+                                        
+                                        filteredLabels.forEach((label, index) => {
+                                            const dataset = chart.data.datasets[label.datasetIndex];
+                                            if (dataset && dataset.label) {
+                                                if (dataset.label.includes('Rush')) {
+                                                    label.pointStyle = 'circle';
+                                                    label.pointStyleWidth = 4;
+                                                    label.fillStyle = 'white';
+                                                } else if (dataset.label.includes('Pass')) {
+                                                    label.pointStyle = 'triangle';
+                                                    label.pointStyleWidth = 4;
+                                                    label.fillStyle = 'white';
+                                                } else {
+                                                    label.pointStyle = 'rect';
+                                                    label.pointStyleWidth = 4;
+                                                    label.fillStyle = 'white';
+                                                }
+                                            }
+                                        });
+                                        
+                                        return filteredLabels;
+                                    },
+                                    boxWidth: 20,
+                                    padding: 12
+                                }
+                            } : {
                                 position: 'top',
                                 align: 'start',
                                 labels: {
@@ -197,21 +327,118 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                                     boxHeight: 12,
                                     padding: 12,
                                     filter: function(legendItem, chartData) {
-                                        return legendItem.text !== 'NCAA Avg SR';
+                                        return !legendItem.text.includes('NCAA Avg SR') &&
+                                               !legendItem.text.includes('Quarters') &&
+                                               !legendItem.text.includes('50/50');
                                     }
                                 }
                             },
                             tooltip: {
+                                filter: function(tooltipItem) {
+                                    if ('${_chartId}'.includes('play-map')) {
+                                        return !tooltipItem.dataset.label.includes('< 0') &&
+                                               !tooltipItem.dataset.label.includes('Quarters') &&
+                                               !tooltipItem.dataset.label.includes('Drive');
+                                    }
+                                    return !tooltipItem.dataset.label.includes('NCAA Avg SR') && 
+                                           !tooltipItem.dataset.label.includes('50/50') && 
+                                           !tooltipItem.dataset.label.includes('< 0') &&
+                                           !tooltipItem.dataset.label.includes('Quarters');
+                                },
                                 callbacks: {
                                     label: function(context) {
                                         const label = context.dataset.label || '';
-                                        const value = Math.round(context.raw * 100);
-                                        return label + ': ' + value + '%';
+                                        let labelText;
+                                        
+                                        // Play maps show yards instead of percentages
+                                        if ('${_chartId}'.includes('play-map')) {
+                                            labelText = label + ': ' + context.parsed.y + ' yards';
+                                        } else {
+                                            const value = Math.round(context.parsed.y * 100);
+                                            labelText = label + ': ' + value + '%';
+                                        }
+                                        
+                                        // For line charts, include play text if available
+                                        if ('${_chartType}' === 'line' && context.raw && context.raw.text) {
+                                            return [labelText, context.raw.text];
+                                        }
+                                        
+                                        return labelText;
                                     }
                                 }
                             }
                         },
-                        scales: {
+                        scales: '${_chartType}' === 'line' ? '${_chartId}'.includes('play-map') ? {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                title: {
+                                    display: true,
+                                    text: 'Play Number'
+                                },
+                                min: 1,
+                                ticks: {
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return Math.floor(value);
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Yards Gained'
+                                },
+                                min: chartData.minY,
+                                max: chartData.maxY
+                            }
+                        } : {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                title: {
+                                    display: true,
+                                    text: '${_chartId}'.includes('team-lines') ? 'Play Number' : 'Team Play Number'
+                                },
+                                min: 1,
+                                ticks: {
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return Math.floor(value);
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                max: 1,
+                                min: 0,
+                                ticks: {
+                                    callback: function(value) {
+                                        return Math.round(value * 100) + '%';
+                                    }
+                                }
+                            }
+                        } : '${_chartId}'.includes('drive-metrics') ? {
+                            y: {
+                                stacked: false,
+                                max: 1,
+                                ticks: {
+                                    callback: function(value) {
+                                        return Math.round(value * 100) + '%';
+                                    }
+                                }
+                            },
+                            y1: {
+                                display: false,
+                                type: 'linear',
+                                position: 'right'
+                            }
+                        } : {
                             y: {
                                 max: 1,
                                 min: 0,
@@ -228,7 +455,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                     // Initialize the chart
                     const ctx = canvas.getContext('2d');
                     const chart = new Chart(ctx, {
-                        type: 'bar',
+                        type: '${_chartType}',
                         data: chartData,
                         options: chartOptions
                     });
@@ -272,7 +499,6 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
     // Generate embed code based on chart ID
     switch (chartId) {
       case 'overall-team-performance': {
-        // Add play counts for proper datalabels
         const enhancedData = {
           ...overallTeamData,
           teamColors: chartData.teamColors,
@@ -280,14 +506,95 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
           teamPlayCount: chartData.teamPlays.length,
           opponentPlayCount: chartData.opponentPlays.length
         };
-        
-        embedCode = generateEmbedCode(
-          chartId,
-          title,
-          enhancedData,
-          barOptions,
-          'bar'
-        );
+        embedCode = generateEmbedCode(chartId, title, enhancedData, barOptions, 'bar');
+        break;
+      }
+      case 'team-lines': {
+        embedCode = generateEmbedCode(chartId, title, teamLinesData, lineOptionsPlayNumberSRXR, 'line');
+        break;
+      }
+      case 'team-play-type-lines': {
+        embedCode = generateEmbedCode(chartId, title, teamPlayTypeLinesData, lineOptionsTeamPlay, 'line');
+        break;
+      }
+      case 'opponent-play-type-lines': {
+        embedCode = generateEmbedCode(chartId, title, opponentPlayTypeLinesData, lineOptionsTeamPlay, 'line');
+        break;
+      }
+      case 'team-rush-rate': {
+        embedCode = generateEmbedCode(chartId, title, teamRushRateData, lineOptionsTeamPlay, 'line');
+        break;
+      }
+      case 'opponent-rush-rate': {
+        embedCode = generateEmbedCode(chartId, title, opponentRushRateData, lineOptionsTeamPlay, 'line');
+        break;
+      }
+      case 'team-play-map': {
+        const enhancedPlayMapData = {
+          ...teamPlayMapData,
+          minY: teamMinY,
+          maxY: teamMaxY
+        };
+        embedCode = generateEmbedCode(chartId, title, enhancedPlayMapData, teamPlayMapOptions, 'line');
+        break;
+      }
+      case 'opponent-play-map': {
+        const enhancedPlayMapData = {
+          ...opponentPlayMapData,
+          minY: oppMinY,
+          maxY: oppMaxY
+        };
+        embedCode = generateEmbedCode(chartId, title, enhancedPlayMapData, opponentPlayMapOptions, 'line');
+        break;
+      }
+      case 'team-drive-metrics': {
+        embedCode = generateEmbedCode(chartId, title, teamDriveChartData, driveOptions, 'bar');
+        break;
+      }
+      case 'opponent-drive-metrics': {
+        embedCode = generateEmbedCode(chartId, title, opponentDriveChartData, driveOptions, 'bar');
+        break;
+      }
+      case 'play-type-bars': {
+        const barData = createTeamVsOpponentBarData('playType');
+        const enhancedBarData = enhanceBarDataWithCounts(barData);
+        embedCode = generateEmbedCode(chartId, title, enhancedBarData, barOptions, 'bar');
+        break;
+      }
+      case 'quarter-bars': {
+        const barData = createTeamVsOpponentBarData('quarter');
+        const enhancedBarData = enhanceBarDataWithCounts(barData);
+        embedCode = generateEmbedCode(chartId, title, enhancedBarData, barOptions, 'bar');
+        break;
+      }
+      case 'down-bars': {
+        const barData = createTeamVsOpponentBarData('down');
+        const enhancedBarData = enhanceBarDataWithCounts(barData);
+        embedCode = generateEmbedCode(chartId, title, enhancedBarData, barOptions, 'bar');
+        break;
+      }
+      case 'red-zone-bars': {
+        const barData = createTeamVsOpponentBarData('redZone');
+        const enhancedBarData = enhanceBarDataWithCounts(barData);
+        embedCode = generateEmbedCode(chartId, title, enhancedBarData, barOptions, 'bar');
+        break;
+      }
+      case 'distance-bars': {
+        const barData = createTeamVsOpponentBarData('distance');
+        const enhancedBarData = enhanceBarDataWithCounts(barData);
+        embedCode = generateEmbedCode(chartId, title, enhancedBarData, barOptions, 'bar');
+        break;
+      }
+      case 'top-rushers': {
+        embedCode = generateEmbedCode(chartId, title, createPlayerData(allRushers, 'rush'), playerOptions, 'bar');
+        break;
+      }
+      case 'top-passers': {
+        embedCode = generateEmbedCode(chartId, title, createPlayerData(allPassers, 'pass'), playerOptions, 'bar');
+        break;
+      }
+      case 'top-receivers': {
+        embedCode = generateEmbedCode(chartId, title, createPlayerData(allReceivers, 'receive'), playerOptions, 'bar');
         break;
       }
       default: {
