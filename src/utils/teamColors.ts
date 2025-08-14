@@ -202,6 +202,7 @@ const teamColorsData: { [key: string]: TeamColor } = {
   "Minnesota": { success: "rgba(244, 37, 37, 0.8)", explosive: "rgba(128, 0, 0, 0.8)", light: "rgba(255, 230, 230, 0.8)" },
   "Minot State": { success: "rgba(230, 50, 85, 0.8)", explosive: "rgba(120, 7, 29, 0.8)", light: "rgba(254, 231, 235, 0.8)" },
   "Mississippi": { success: "rgba(37, 170, 244, 0.8)", explosive: "rgba(0, 82, 128, 0.8)", light: "rgba(230, 246, 255, 0.8)" },
+  "Ole Miss": { success: "rgba(37, 170, 244, 0.8)", explosive: "rgba(0, 82, 128, 0.8)", light: "rgba(230, 246, 255, 0.8)" },
   "Mississippi College": { success: "rgba(37, 145, 244, 0.8)", explosive: "rgba(0, 67, 128, 0.8)", light: "rgba(230, 243, 255, 0.8)" },
   "Mississippi State": { success: "rgba(244, 37, 37, 0.8)", explosive: "rgba(128, 0, 0, 0.8)", light: "rgba(255, 230, 230, 0.8)" },
   "Mississippi Valley State": { success: "rgba(45, 235, 142, 0.8)", explosive: "rgba(5, 123, 65, 0.8)", light: "rgba(230, 254, 242, 0.8)" },
