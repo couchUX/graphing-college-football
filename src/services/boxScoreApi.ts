@@ -1,10 +1,6 @@
-const API_BASE_URL = 'https://api.collegefootballdata.com';
-const API_TOKEN = 'hLbzCRUDZnzyUKQfCCV56wmx8+weMvUqr4O7YJ4EhU1oCAvuNuop7+N1hABCVTup';
+import { API_BASE_URL, getApiHeaders } from '../config/api';
 
-const headers = {
-  'Authorization': `Bearer ${API_TOKEN}`,
-  'Content-Type': 'application/json',
-};
+const headers = getApiHeaders();
 
 export interface BoxScoreTeam {
   school: string;
