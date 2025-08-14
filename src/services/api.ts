@@ -1,7 +1,5 @@
 import { API_BASE_URL, getApiHeaders } from '../config/api';
 
-const headers = getApiHeaders();
-
 interface ApiPlayData {
   id: string; // Changed from number to string to handle large IDs properly
   drive_id: number;
@@ -86,7 +84,7 @@ export const fetchTeams = async (): Promise<Team[]> => {
     
     console.log('Fetching teams from:', url);
     
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers: getApiHeaders() });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -112,7 +110,7 @@ export const fetchGamesForTeam = async (params: {
     
     console.log('Fetching games from:', url);
     
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers: getApiHeaders() });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -140,7 +138,7 @@ export const fetchPlayByPlayData = async (params: {
     
     console.log('Fetching from:', url);
     
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers: getApiHeaders() });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

@@ -1,7 +1,5 @@
 import { API_BASE_URL, getApiHeaders } from '../config/api';
 
-const headers = getApiHeaders();
-
 export interface BoxScoreTeam {
   school: string;
   conference: string;
@@ -30,7 +28,7 @@ export const fetchBoxScore = async (params: {
     
     console.log('Fetching box score from:', url);
     
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers: getApiHeaders() });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
