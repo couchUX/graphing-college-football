@@ -11,9 +11,9 @@ export const createBaseOptions = (): ChartOptions<any> => ({
       position: 'top' as const,
       align: 'start' as const,
       labels: {
-        usePointStyle: true,
-        boxWidth: 8,
-        boxHeight: 8,
+        usePointStyle: false,
+        boxWidth: 12,
+        boxHeight: 12,
         padding: 12,
         filter: legendFilter
       }
@@ -122,12 +122,15 @@ export const createLineOptionsPlayNumber = (): ChartOptions<'line'> => ({
               if (dataset.label.includes('Rush')) {
                 label.pointStyle = 'circle';
                 label.pointStyleWidth = 4;
+                label.fillStyle = 'white';
               } else if (dataset.label.includes('Pass')) {
                 label.pointStyle = 'triangle';
                 label.pointStyleWidth = 4;
+                label.fillStyle = 'white';
               } else {
                 label.pointStyle = 'rect';
                 label.pointStyleWidth = 4;
+                label.fillStyle = 'white';
               }
             }
           });
@@ -178,28 +181,9 @@ export const createLineOptionsTeamPlay = (): ChartOptions<'line'> => ({
     legend: {
       ...createBaseOptions().plugins?.legend,
       labels: {
-        usePointStyle: true,
-        generateLabels: function(chart: any) {
-          const original = chart.constructor.defaults.plugins.legend.labels.generateLabels;
-          const labels = original.call(this, chart);
-          
-          // Customize each label based on dataset
-          labels.forEach((label: any, index: number) => {
-            const dataset = chart.data.datasets[index];
-            if (dataset) {
-               if (dataset.pointStyle === 'circle') {
-                   label.pointStyle = 'circle';
-                   label.radius = Array.isArray(dataset.pointRadius) ? 4 : dataset.pointRadius || 4;
-               } else if (dataset.pointStyle === 'triangle') {
-                   label.pointStyle = 'triangle';
-                   label.radius = Array.isArray(dataset.pointRadius) ? 6 : dataset.pointRadius || 6;
-               }
-            }
-          });
-          
-          return labels;
-        },
-        boxWidth: 20,
+        usePointStyle: false,
+        boxWidth: 12,
+        boxHeight: 12,
         padding: 12,
         filter: legendFilter
       }
@@ -284,32 +268,37 @@ export const createPlayMapOptions = (minY: number, maxY: number): ChartOptions<'
           const original = chart.constructor.defaults.plugins.legend.labels.generateLabels;
           const labels = original.call(this, chart);
           
+          // Filter and customize each label
+          const filteredLabels = labels.filter((label: any) => {
+            return !label.text.includes('< 0') &&
+                   !label.text.includes('Quarters') &&
+                   !label.text.includes('Drive');
+          });
+          
           // Customize each label based on dataset
-          labels.forEach((label: any, index: number) => {
-            const dataset = chart.data.datasets[index];
+          filteredLabels.forEach((label: any) => {
+            const dataset = chart.data.datasets[label.datasetIndex];
             if (dataset && dataset.label) {
               if (dataset.label.includes('Rush')) {
                 label.pointStyle = 'circle';
                 label.pointStyleWidth = 4;
+                label.fillStyle = 'white';
               } else if (dataset.label.includes('Pass')) {
                 label.pointStyle = 'triangle';
                 label.pointStyleWidth = 4;
+                label.fillStyle = 'white';
               } else {
                 label.pointStyle = 'rect';
                 label.pointStyleWidth = 4;
+                label.fillStyle = 'white';
               }
             }
           });
           
-          return labels;
+          return filteredLabels;
         },
         boxWidth: 20,
-        padding: 12,
-        filter: function(item: any) {
-          return !item.text.includes('< 0') &&
-                 !item.text.includes('Quarters') &&
-                 !item.text.includes('Drive');
-        }
+        padding: 12
       }
     }
   }
