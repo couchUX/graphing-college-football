@@ -110,10 +110,10 @@ const Dashboard: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-slate-900">
-                  College Football Analytics
+                  Graphing College Football
                 </h1>
                 <p className="text-slate-600 mt-1">
-                  Advanced play-by-play visualization and metrics
+                  Advanced play-by-play metrics and visualizations
                 </p>
               </div>
             </div>
@@ -251,6 +251,11 @@ const Dashboard: React.FC = () => {
                           <div>
                             <h4 className="font-semibold text-slate-900 mt-5">Drive chart play counts</h4>
                             <p className="text-slate-700">use a secondary Y-axis to show the number of plays per drive while maintaining the 0-100% scale for success and explosiveness rates.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-slate-900 mt-5">Embed buttons</h4>
+                            <p className="text-slate-700">Each chart has an "Embed" button that generates HTML code you can copy and paste into other websites or services like WordPress, blog posts, or social media. This allows you to share specific charts while keeping them interactive and up-to-date.</p>
                           </div>
                         </div>
                       </div>
