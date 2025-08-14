@@ -83,40 +83,8 @@ export const fetchTeams = async (): Promise<Team[]> => {
     const url = `${API_BASE_URL}/teams`;
     
     console.log('Fetching teams from:', url);
-    console.log('URL validation:', {
-      urlLength: url.length,
-      urlValid: URL.canParse ? URL.canParse(url) : 'cannot check',
-      baseUrl: API_BASE_URL
-    });
     
-    // Test if the issue is with headers by trying without auth first
-    console.log('Testing basic fetch without auth...');
-    try {
-      const testResponse = await fetch(url, { method: 'GET' });
-      console.log('Basic fetch status:', testResponse.status);
-    } catch (testError) {
-      console.log('Basic fetch failed too:', testError.message);
-    }
-    
-    // Now try with headers
-    const headers = getApiHeaders();
-    console.log('Request headers:', headers);
-    
-    // Validate headers don't contain invalid characters
-    Object.entries(headers).forEach(([key, value]) => {
-      console.log(`Header validation - ${key}:`, {
-        length: value.length,
-        hasNewlines: value.includes('\n'),
-        hasCarriageReturn: value.includes('\r'),
-        firstChar: value.charCodeAt(0),
-        lastChar: value.charCodeAt(value.length - 1)
-      });
-    });
-    
-    const response = await fetch(url, { 
-      method: 'GET',
-      headers: headers
-    });
+    const response = await fetch(url, { headers: getApiHeaders() });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
