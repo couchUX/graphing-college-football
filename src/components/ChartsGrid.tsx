@@ -796,13 +796,13 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
       <div className="space-y-8">
         {/* Team Charts Section */}
         <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Team charts</h2>
+        <h2 className="text-2xl font-bold text-neutral-900 mb-6">Team charts</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {teamCharts.map((chart) => (
-            <div key={chart.id} className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div key={chart.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
                 <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-neutral-900">
                     {chart.title}
                   </h3>
                 </div>
@@ -811,14 +811,14 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                   className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
                     copiedChart === chart.id 
                       ? 'border-green-300 bg-green-50' 
-                      : 'border-slate-300 hover:bg-slate-50'
+                      : 'border-neutral-300 hover:bg-neutral-50'
                   }`}
                   title={copiedChart === chart.id ? "Copied!" : "Copy embed code"}
                 >
                   {copiedChart === chart.id ? (
                     <Check className="h-4 w-4 text-green-600" />
                   ) : (
-                    <Copy className="h-4 w-4 text-slate-600" />
+                    <Copy className="h-4 w-4 text-neutral-600" />
                   )}
                 </button>
               </div>
@@ -835,15 +835,15 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
 
       {/* Player Charts Section */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Player charts</h2>
+        <h2 className="text-2xl font-bold text-neutral-900 mb-6">Player charts</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column - Rushers and Passers stacked */}
           <div className="space-y-6">
             {/* Top Rushers */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
                 <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-neutral-900">
                     {playerCharts[0].title}
                   </h3>
                 </div>
@@ -852,14 +852,14 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                   className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
                     copiedChart === playerCharts[0].id 
                       ? 'border-green-300 bg-green-50' 
-                      : 'border-slate-300 hover:bg-slate-50'
+                      : 'border-neutral-300 hover:bg-neutral-50'
                   }`}
                   title={copiedChart === playerCharts[0].id ? "Copied!" : "Copy embed code"}
                 >
                   {copiedChart === playerCharts[0].id ? (
                     <Check className="h-4 w-4 text-green-600" />
                   ) : (
-                    <Copy className="h-4 w-4 text-slate-600" />
+                    <Copy className="h-4 w-4 text-neutral-600" />
                   )}
                 </button>
               </div>
@@ -872,10 +872,10 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
             </div>
 
             {/* Top Passers */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
                 <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-neutral-900">
                     {playerCharts[1].title}
                   </h3>
                 </div>
@@ -884,14 +884,14 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                   className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
                     copiedChart === playerCharts[1].id 
                       ? 'border-green-300 bg-green-50' 
-                      : 'border-slate-300 hover:bg-slate-50'
+                      : 'border-neutral-300 hover:bg-neutral-50'
                   }`}
                   title={copiedChart === playerCharts[1].id ? "Copied!" : "Copy embed code"}
                 >
                   {copiedChart === playerCharts[1].id ? (
                     <Check className="h-4 w-4 text-green-600" />
                   ) : (
-                    <Copy className="h-4 w-4 text-slate-600" />
+                    <Copy className="h-4 w-4 text-neutral-600" />
                   )}
                 </button>
               </div>
@@ -905,10 +905,10 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
           </div>
 
           {/* Right column - Receivers spanning full height */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+          <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
               <div className="flex items-center space-x-3">
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold text-neutral-900">
                   {playerCharts[2].title}
                 </h3>
               </div>
@@ -917,14 +917,14 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                 className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
                   copiedChart === playerCharts[2].id 
                     ? 'border-green-300 bg-green-50' 
-                    : 'border-slate-300 hover:bg-slate-50'
+                    : 'border-neutral-300 hover:bg-neutral-50'
                 }`}
                 title={copiedChart === playerCharts[2].id ? "Copied!" : "Copy embed code"}
               >
                 {copiedChart === playerCharts[2].id ? (
                   <Check className="h-4 w-4 text-green-600" />
                 ) : (
-                  <Copy className="h-4 w-4 text-slate-600" />
+                  <Copy className="h-4 w-4 text-neutral-600" />
                 )}
               </button>
             </div>

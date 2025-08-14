@@ -20,8 +20,8 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
   overrideTeam2ToGray,
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-      <h2 className="text-xl font-semibold text-slate-900 mb-6">Box Score</h2>
+    <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 mb-8">
+      <h2 className="text-xl font-semibold text-neutral-900 mb-6">Box Score</h2>
       <div className="flex flex-col md:flex-row gap-6">
         <div className="flex-1">
           <BoxScoreTable

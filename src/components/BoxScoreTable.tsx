@@ -24,10 +24,10 @@ const BoxScoreTable: React.FC<BoxScoreTableProps> = ({
   const team2Colors = getDisplayTeamColors(team2Name, overrideTeam2ToGray);
   
   return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
       <table className="min-w-full">
         <thead>
-          <tr className="bg-slate-600 text-white">
+          <tr className="bg-neutral-600 text-white">
             <th 
               className="px-4 py-3 text-left text-sm font-semibold border-b-4"
               style={{ borderBottomColor: '#475569' }}
@@ -48,12 +48,12 @@ const BoxScoreTable: React.FC<BoxScoreTableProps> = ({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200">
+        <tbody className="divide-y divide-neutral-200">
           {stats.map((stat, index) => (
-            <tr key={stat.label} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="px-4 py-3 text-sm font-medium text-slate-900">{stat.label}</td>
-              <td className="px-4 py-3 text-sm text-slate-900 text-center font-semibold">{stat.team1Value}</td>
-              <td className="px-4 py-3 text-sm text-slate-900 text-center font-semibold">{stat.team2Value}</td>
+            <tr key={stat.label} className={index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}>
+              <td className="px-4 py-3 text-sm font-medium text-neutral-900">{stat.label}</td>
+              <td className="px-4 py-3 text-sm text-neutral-900 text-center font-semibold">{stat.team1Value}</td>
+              <td className="px-4 py-3 text-sm text-neutral-900 text-center font-semibold">{stat.team2Value}</td>
             </tr>
           ))}
         </tbody>
