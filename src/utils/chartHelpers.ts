@@ -256,6 +256,21 @@ export const createTeamVsOpponentBarData = (
         datalabels: {
           display: false
         }
+      },
+      // Fake dataset for "# Plays" legend item - using line type to avoid bar spacing
+      {
+        type: 'line' as const,
+        data: Array(allLabels.length).fill(null), // Null data won't render
+        label: "# Plays",
+        backgroundColor: 'rgba(0, 0, 0, 0)',
+        borderColor: 'rgba(0, 0, 0, 0)',
+        borderWidth: 0,
+        pointRadius: 0,
+        showLine: false,
+        fill: false,
+        datalabels: {
+          display: false
+        }
       }
     ]
   };

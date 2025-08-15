@@ -185,7 +185,18 @@ export const createLineOptionsTeamPlay = (): ChartOptions<'line'> => ({
         boxWidth: 12,
         boxHeight: 12,
         padding: 12,
-        filter: legendFilter
+        filter: legendFilter,
+        generateLabels: function(chart: any) {
+          const original = chart.constructor.defaults.plugins.legend.labels.generateLabels;
+          const labels = original.call(this, chart);
+          
+          // Ensure white fill for all legend boxes
+          labels.forEach((label: any) => {
+            label.fillStyle = 'white';
+          });
+          
+          return labels;
+        }
       }
     }
   }
@@ -211,7 +222,30 @@ export const createBarOptions = (): ChartOptions<'bar'> => ({
         boxWidth: 12, // Smaller box size for bar charts
         boxHeight: 12, // Keep 1:1 ratio
         padding: 12,
-        filter: legendFilter
+        filter: legendFilter,
+        generateLabels: function(chart) {
+          const data = chart.data;
+          if (data.datasets.length) {
+            return data.datasets.map((dataset, i) => {
+              return {
+                text: dataset.label,
+                fillStyle: dataset.label === '# Plays' ? 'white' : dataset.backgroundColor,
+                strokeStyle: dataset.label === '# Plays' ? '#666' : dataset.borderColor,
+                lineWidth: dataset.label === '# Plays' ? 1 : dataset.borderWidth,
+                pointStyle: dataset.pointStyle,
+                hidden: !chart.isDatasetVisible(i),
+                datasetIndex: i
+              };
+            }).filter((item, index) => {
+              // Apply the same filter logic as legendFilter
+              const dataset = chart.data.datasets[index];
+              if (!dataset || !dataset.data) return false;
+              if (dataset.label === '# Plays') return true; // Always show # Plays
+              return dataset.data.some((value: number) => value > 0);
+            });
+          }
+          return [];
+        }
       }
     }
   }

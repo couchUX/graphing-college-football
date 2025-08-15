@@ -25,6 +25,7 @@ const Dashboard: React.FC = () => {
     week: number;
     seasonType: string;
     team: string;
+    gameId?: string;
   } | null>(null);
 
   // Box score hook
@@ -42,7 +43,15 @@ const Dashboard: React.FC = () => {
   }) => {
     setIsLoading(true);
     setError(null);
-    setCurrentParams(params);
+    
+    // Get gameId from URL if available
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameId = urlParams.get('gameId');
+    
+    setCurrentParams({
+      ...params,
+      gameId: gameId || undefined
+    });
     
     try {
       const apiPlays = await fetchPlayByPlayData(params);
@@ -129,7 +138,7 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Data Input */}
-        <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-2xl shadow-sm border border-neutral-200 p-6 mb-8">
+        <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
           <GameSelector
             onFetchData={handleFetchData}
             isLoading={isLoading}
@@ -153,7 +162,7 @@ const Dashboard: React.FC = () => {
             </p>
 
             {/* Data Definitions and Notes Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 mb-4">
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-4">
               <button
                 onClick={() => setShowDataDefinitions(!showDataDefinitions)}
                 className="flex items-center justify-between w-full text-left"
@@ -177,9 +186,14 @@ const Dashboard: React.FC = () => {
                         
                         <div className="space-y-4">
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Success Rate (SR):</h4>
-                            <p className="text-neutral-700 mb-2">The percentage of plays that gain enough yards to be considered "successful" based on down and distance:</p>
-                            <ul className="list-disc list-inside space-y-1 text-neutral-700 ml-4">
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Analytics foundation</h4>
+                            <p className="text-neutral-600 leading-tight">This analysis is based roughly on the <a href="https://www.sbnation.com/college-football/2017/10/13/16457830/college-football-advanced-stats-analytics-rankings" target="_blank" rel="noopener noreferrer" className="text-neutral-600 underline hover:text-neutral-800">SP+ analytic system</a>, which provides a foundation for evaluating team performance through success rate and explosiveness metrics.</p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Success Rate (SR):</h4>
+                            <p className="text-neutral-600 leading-tight mb-2">The percentage of plays that gain enough yards to be considered "successful" based on down and distance:</p>
+                            <ul className="list-disc list-inside space-y-1 text-neutral-600 leading-tight ml-4">
                               <li><strong>1st down:</strong> Successful if the play gains at least 50% of the yards needed for a first down</li>
                               <li><strong>2nd down:</strong> Successful if the play gains at least 70% of the yards needed for a first down</li>
                               <li><strong>3rd & 4th down:</strong> Successful if the play gains 100% of the yards needed (achieves a first down or touchdown)</li>
@@ -187,38 +201,38 @@ const Dashboard: React.FC = () => {
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Explosiveness Rate (XR):</h4>
-                            <p className="text-neutral-700">The percentage of plays that gain more than 15 yards, regardless of down and distance. These are the "big plays" that can change the momentum of a game.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Explosiveness Rate (XR):</h4>
+                            <p className="text-neutral-600 leading-tight">The percentage of plays that gain more than 15 yards, regardless of down and distance. These are the "big plays" that can change the momentum of a game.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Rush Rate (RR):</h4>
-                            <p className="text-neutral-700">The percentage of offensive plays that are rushing attempts versus passing attempts. A 50% rush rate indicates a perfectly balanced offense.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Rush Rate (RR):</h4>
+                            <p className="text-neutral-600 leading-tight">The percentage of offensive plays that are rushing attempts versus passing attempts. A 50% rush rate indicates a perfectly balanced offense.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Cumulative Metrics:</h4>
-                            <p className="text-neutral-700">Charts showing "cumulative" data display running averages that update after each play. This shows how team performance evolves throughout the game.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Cumulative Metrics:</h4>
+                            <p className="text-neutral-600 leading-tight">Charts showing "cumulative" data display running averages that update after each play. This shows how team performance evolves throughout the game.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Red Zone:</h4>
-                            <p className="text-neutral-700">The area of the field within 20 yards of the opponent's goal line. Success rates often change dramatically in this area due to the compressed field.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Red Zone:</h4>
+                            <p className="text-neutral-600 leading-tight">The area of the field within 20 yards of the opponent's goal line. Success rates often change dramatically in this area due to the compressed field.</p>
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <h4 className="font-semibold text-neutral-900 mt-5">Play Types:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-neutral-700 ml-4">
+                        <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Play Types:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-neutral-600 leading-tight ml-4">
                           <li><strong>Rush:</strong> Any designed running play or quarterback scramble</li>
                           <li><strong>Pass:</strong> Any forward pass attempt, including completions, incompletions, and <strong>sacks</strong> (Note: Unlike traditional statistics that count sacks as rushing plays, this analysis correctly categorizes them as pass attempts with negative yardage)</li>
                         </ul>
                       </div>
 
                       <div>
-                        <h4 className="font-semibold text-neutral-900 mt-5">Excluded Plays:</h4>
-                        <p className="text-neutral-700">Penalties that result in no play occurring are excluded from the analysis, as are all special teams plays (punts, kickoffs, field goals) and extra point attempts.</p>
+                        <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Excluded Plays:</h4>
+                        <p className="text-neutral-600 leading-tight">Penalties that result in no play occurring are excluded from the analysis, as are all special teams plays (punts, kickoffs, field goals) and extra point attempts.</p>
                       </div>
                     </div>
 
@@ -229,38 +243,38 @@ const Dashboard: React.FC = () => {
                         
                         <div className="space-y-4">
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Data accuracy:</h4>
-                            <p className="text-neutral-700">There may be occasional errors in the charts as data is pulled from play-by-play records, which vary slightly between stadiums and can be subject to human error when recorded.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Data accuracy:</h4>
+                            <p className="text-neutral-600 leading-tight">There may be occasional errors in the charts as data is pulled from play-by-play records, which vary slightly between stadiums and can be subject to human error when recorded.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">NCAA average reference line:</h4>
-                            <p className="text-neutral-700">The average Success Rate for teams changes year over year, but tends to hover around 42-43%. This benchmark is marked on most charts as a dashed line for reference.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">NCAA average reference line:</h4>
+                            <p className="text-neutral-600 leading-tight">The average Success Rate for teams changes year over year, but tends to hover around 42-43%. This benchmark is marked on most charts as a dashed line for reference.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Team color conflicts:</h4>
-                            <p className="text-neutral-700">Having trouble distinguishing between opponents with similar colors? Use the team color override checkboxes at the top of the screen to display one team in gray.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Team color conflicts:</h4>
+                            <p className="text-neutral-600 leading-tight">Having trouble distinguishing between opponents with similar colors? Use the team color override checkboxes at the top of the screen to display one team in gray.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Explosive plays visualization:</h4>
-                            <p className="text-neutral-700">Bar charts display explosive plays as a subset of successful plays for visual clarity, even though rare edge cases exist where an explosive play might not meet success criteria (e.g., gaining 17 yards on 4th and 20). This simplification affects less than 1% of plays.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Explosive plays visualization:</h4>
+                            <p className="text-neutral-600 leading-tight">Bar charts display explosive plays as a subset of successful plays for visual clarity, even though rare edge cases exist where an explosive play might not meet success criteria (e.g., gaining 17 yards on 4th and 20). This simplification affects less than 1% of plays.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Special teams and scoring plays</h4>
-                            <p className="text-neutral-700">are excluded from this analysis to focus on standard offensive efficiency. Two-point conversions are also excluded.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Special teams and scoring plays</h4>
+                            <p className="text-neutral-600 leading-tight">are excluded from this analysis to focus on standard offensive efficiency. Two-point conversions are also excluded.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Drive chart play counts</h4>
-                            <p className="text-neutral-700">use a secondary Y-axis to show the number of plays per drive while maintaining the 0-100% scale for success and explosiveness rates.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Drive chart play counts</h4>
+                            <p className="text-neutral-600 leading-tight">use a secondary Y-axis to show the number of plays per drive while maintaining the 0-100% scale for success and explosiveness rates.</p>
                           </div>
 
                           <div>
-                            <h4 className="font-semibold text-neutral-900 mt-5">Embed buttons</h4>
-                            <p className="text-neutral-700">Each chart has an "Embed" button that generates HTML code you can copy and paste into other websites or services like WordPress, blog posts, or social media. This allows you to share specific charts while keeping them interactive and up-to-date.</p>
+                            <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Embed buttons</h4>
+                            <p className="text-neutral-600 leading-tight">Each chart has an "Embed" button that generates HTML code you can copy and paste into other websites or services like WordPress, blog posts, or social media. This allows you to share specific charts while keeping them interactive and up-to-date.</p>
                           </div>
                         </div>
                       </div>
@@ -271,7 +285,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* All Plays Data Section - Reorganized */}
-            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 mb-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
               <button
                 onClick={() => setShowAllPlays(!showAllPlays)}
                 className="flex items-center justify-between w-full text-left"
@@ -502,7 +516,7 @@ const Dashboard: React.FC = () => {
 
         {/* Box Score Loading */}
         {boxScoreLoading && currentParams && (
-          <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 mb-8">
+          <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
             <h2 className="text-xl font-semibold text-neutral-900 mb-6">Box Score</h2>
             <div className="flex items-center justify-center py-8">
               <div className="text-neutral-600">Loading box score...</div>
@@ -512,7 +526,7 @@ const Dashboard: React.FC = () => {
 
         {/* Box Score Error */}
         {boxScoreError && currentParams && (
-          <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 mb-8">
+          <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
             <h2 className="text-xl font-semibold text-neutral-900 mb-6">Box Score</h2>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-600 font-medium">{boxScoreError}</p>
@@ -525,7 +539,7 @@ const Dashboard: React.FC = () => {
           <div className="space-y-4 mb-8">
             {/* Team Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-sm">
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{currentParams.team} SR</p>
@@ -539,7 +553,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-sm">
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{currentParams.team} XR</p>
@@ -553,7 +567,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-sm">
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{currentParams.team} Plays</p>
@@ -565,7 +579,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-sm">
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{currentParams.team} YPP</p>
@@ -582,7 +596,7 @@ const Dashboard: React.FC = () => {
 
             {/* Opponent Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-sm">
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{opponentTeam} SR</p>
@@ -596,7 +610,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-sm">
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{opponentTeam} XR</p>
@@ -610,7 +624,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-sm">
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{opponentTeam} Plays</p>
@@ -622,7 +636,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-sm">
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{opponentTeam} YPP</p>
@@ -641,7 +655,7 @@ const Dashboard: React.FC = () => {
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
             <p className="text-red-600 font-medium">{error}</p>
           </div>
         )}
@@ -655,6 +669,7 @@ const Dashboard: React.FC = () => {
               team={currentParams.team} 
               overrideTeam1ToGray={overrideTeam1ToGray}
               overrideTeam2ToGray={overrideTeam2ToGray}
+              currentParams={currentParams}
             />
           </div>
         )}
