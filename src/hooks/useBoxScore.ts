@@ -75,72 +75,52 @@ export const useBoxScore = (params: {
 };
 
 const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, plays?: PlayData[], opponentTeam?: string): ProcessedBoxScore => {
-  console.log('processBoxScoreData received rawData:', rawData);
-  
-  // Debug: Log all available stat categories for both teams
-  if (rawData && rawData.length >= 2) {
-    console.log('Team 1 all stats:', rawData[0].stats);
-    console.log('Team 2 all stats:', rawData[1].stats);
-    
-    // Log all unique stat categories
-    const allCategories = new Set();
-    rawData.forEach(team => {
-      team.stats.forEach(stat => allCategories.add(stat.category));
-    });
-    console.log('All available stat categories:', Array.from(allCategories).sort());
-  }
 
-  // Use API school names for proper color matching
-  let team1Name = selectedTeam;
-  let team2Name = opponentTeam || 'Opponent';
-  
-  // If we have valid rawData, use the API school names for better color matching
-  if (rawData && rawData.length >= 2) {
-    // Try to identify which team is the selected team by matching school names
-    const selectedTeamData = rawData.find(team => 
-      team.school && (
-        team.school.toLowerCase().includes(selectedTeam.toLowerCase()) ||
-        selectedTeam.toLowerCase().includes(team.school.toLowerCase())
-      )
-    );
-    
-    if (selectedTeamData) {
-      // Use the API school name for the selected team
-      team1Name = selectedTeamData.school;
-      // Use the other team's school name as opponent
-      const opponentTeamData = rawData.find(team => team !== selectedTeamData);
-      if (opponentTeamData) {
-        team2Name = opponentTeamData.school;
-      }
-    } else {
-      // Fallback: use the API school names in order
-      team1Name = rawData[0].school || selectedTeam;
-      team2Name = rawData[1].school || (opponentTeam || 'Opponent');
-    }
-  }
-  
-  console.log('Using canonical team names from Dashboard:', { team1Name, team2Name });
-  
   // Ensure we have at least 2 teams
   if (!rawData || rawData.length < 2) {
     console.error('Insufficient team data - need at least 2 teams, got:', rawData?.length || 0);
     return {
-      team1Name,
-      team2Name,
+      team1Name: selectedTeam,
+      team2Name: opponentTeam || 'Opponent',
       firstTableStats: [],
       secondTableStats: [],
     };
   }
 
-  const team1 = rawData[0];
-  const team2 = rawData[1];
+  // Assign teams based on logical order (selected team first, opponent second)
+  // instead of raw API order which might be home/away
+  let team1: BoxScoreTeam;
+  let team2: BoxScoreTeam;
+  let team1Name: string;
+  let team2Name: string;
   
-  console.log('Team 1 data:', team1);
-  console.log('Team 2 data:', team2);
-  console.log('Team 1 school from API:', team1?.school);
-  console.log('Team 2 school from API:', team2?.school);
+  const selectedTeamData = rawData.find(team => 
+    team.team && (
+      team.team.toLowerCase().includes(selectedTeam.toLowerCase()) ||
+      selectedTeam.toLowerCase().includes(team.team.toLowerCase())
+    )
+  );
   
-  console.log('Final team names:', { team1Name, team2Name });
+  if (selectedTeamData) {
+    // Use the matched team as team1 (main team)
+    team1 = selectedTeamData;
+    team1Name = selectedTeamData.team;
+    // Use the other team as team2 (opponent)
+    const opponentTeamData = rawData.find(team => team !== selectedTeamData);
+    if (opponentTeamData) {
+      team2 = opponentTeamData;
+      team2Name = opponentTeamData.team;
+    } else {
+      team2 = rawData[1];
+      team2Name = rawData[1].team || (opponentTeam || 'Opponent');
+    }
+  } else {
+    // Fallback to original order if no match found
+    team1 = rawData[0];
+    team2 = rawData[1];
+    team1Name = rawData[0].team || selectedTeam;
+    team2Name = rawData[1].team || (opponentTeam || 'Opponent');
+  }
 
   // Helper function to get stat value
   const getStat = (team: BoxScoreTeam, category: string): string => {
