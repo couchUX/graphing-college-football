@@ -44,7 +44,7 @@ export const useChartData = (plays: PlayData[], team: string, overrideTeam1ToGra
       labels: [team, opponentTeam],
       datasets: [
         {
-          label: 'XR',
+          label: 'Explosiveness Rate (XR)',
           data: [
             teamPlays.length > 0 ? teamExplosivePlays / teamPlays.length : 0,
             opponentPlays.length > 0 ? opponentExplosivePlays / opponentPlays.length : 0
@@ -56,7 +56,7 @@ export const useChartData = (plays: PlayData[], team: string, overrideTeam1ToGra
           }
         },
         {
-          label: 'SR',
+          label: 'Success Rate (SR)',
           data: [
             teamPlays.length > 0 ? teamSuccessfulPlays / teamPlays.length : 0,
             opponentPlays.length > 0 ? opponentSuccessfulPlays / opponentPlays.length : 0
@@ -79,6 +79,21 @@ export const useChartData = (plays: PlayData[], team: string, overrideTeam1ToGra
           borderWidth: 2,
           borderDash: [3, 3],
           pointRadius: 0,
+          datalabels: {
+            display: false
+          }
+        },
+        // Fake dataset for "# Plays" legend item - using line type to avoid bar spacing
+        {
+          type: 'line' as const,
+          data: [null, null], // Null data won't render
+          label: "# Plays",
+          backgroundColor: 'rgba(0, 0, 0, 0)',
+          borderColor: 'rgba(0, 0, 0, 0)',
+          borderWidth: 0,
+          pointRadius: 0,
+          showLine: false,
+          fill: false,
           datalabels: {
             display: false
           }

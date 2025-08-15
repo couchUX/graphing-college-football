@@ -105,18 +105,19 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
         .chart-container {
             background: white;
             border-radius: 12px;
+            border: 1px solid #e5e5e5;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
         .chart-header {
             padding: 18px 24px 16px;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e5e5e5;
             background: white;
         }
         .chart-title {
             font-size: 18px;
             font-weight: 600;
-            color: #1e293b;
+            color: #171717;
             margin: 0;
         }
         .chart-content {
@@ -136,10 +137,10 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
         }
         .embed-credit {
             font-size: 12px;
-            color: #64748b;
+            color: #737373;
             text-align: center;
             padding: 12px;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid #e5e5e5;
         }
     </style>
 </head>
@@ -347,6 +348,32 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
                                         return !legendItem.text.includes('NCAA Avg SR') &&
                                                !legendItem.text.includes('Quarters') &&
                                                !legendItem.text.includes('50/50');
+                                    },
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        if (data.datasets.length) {
+                                            return data.datasets.map((dataset, i) => {
+                                                return {
+                                                    text: dataset.label,
+                                                    fillStyle: dataset.label === '# Plays' ? 'white' : dataset.backgroundColor,
+                                                    strokeStyle: dataset.label === '# Plays' ? '#666' : dataset.borderColor,
+                                                    lineWidth: dataset.label === '# Plays' ? 1 : dataset.borderWidth,
+                                                    pointStyle: dataset.pointStyle,
+                                                    hidden: !chart.isDatasetVisible(i),
+                                                    datasetIndex: i
+                                                };
+                                            }).filter((item, index) => {
+                                                // Apply the same filter logic as above
+                                                const dataset = chart.data.datasets[index];
+                                                if (!dataset || !dataset.data) return false;
+                                                if (dataset.label === '# Plays') return true; // Always show # Plays
+                                                if (dataset.label && (dataset.label.includes('NCAA Avg SR') || 
+                                                                    dataset.label.includes('Quarters') || 
+                                                                    dataset.label.includes('50/50'))) return false;
+                                                return dataset.data.some((value) => value > 0);
+                                            });
+                                        }
+                                        return [];
                                     }
                                 }
                             },
