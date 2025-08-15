@@ -185,7 +185,18 @@ export const createLineOptionsTeamPlay = (): ChartOptions<'line'> => ({
         boxWidth: 12,
         boxHeight: 12,
         padding: 12,
-        filter: legendFilter
+        filter: legendFilter,
+        generateLabels: function(chart: any) {
+          const original = chart.constructor.defaults.plugins.legend.labels.generateLabels;
+          const labels = original.call(this, chart);
+          
+          // Ensure white fill for all legend boxes
+          labels.forEach((label: any) => {
+            label.fillStyle = 'white';
+          });
+          
+          return labels;
+        }
       }
     }
   }
