@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen, Flame, Ruler, Settings } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -112,10 +112,10 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-neutral-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-16 h-16">
+            <div className="flex items-start md:items-center space-x-3">
+              <div className="flex items-center justify-center w-15 h-15">
                 <img 
                   src={logo} 
                   alt="Graphing College Football Logo" 
@@ -123,11 +123,11 @@ const Dashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-neutral-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 mt-0.5 sm:mt-0">
                   Graphing College Football
                 </h1>
-                <p className="text-neutral-500 mt-1">
-                  Advanced play-by-play metrics and visualizations
+                <p className="text-sm sm:text-base text-neutral-500 mt-0 sm:mt-1">
+                  Advanced play-by-play metrics<span className="hidden sm:inline"> and visualizations</span>
                 </p>
               </div>
             </div>
@@ -138,7 +138,7 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Data Input */}
-        <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
+        <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow-sm sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
           <GameSelector
             onFetchData={handleFetchData}
             isLoading={isLoading}
@@ -170,7 +170,7 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <BookOpen className="h-5 w-5 text-neutral-600" />
                   <h2 className="text-xl font-semibold text-neutral-900">
-                    Data Definitions and Notes
+                    <span className="hidden sm:inline">Data </span>Definitions and Notes
                   </h2>
                 </div>
                 <ChevronDown className={`h-6 w-6 text-neutral-500 transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
@@ -293,7 +293,7 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <Database className="h-5 w-5 text-neutral-600" />
                   <h2 className="text-xl font-semibold text-neutral-900">
-                    All plays data ({rawApiData.length} raw plays, {filteredPlays.length} rush/pass plays)
+                    All plays data
                   </h2>
                 </div>
                 <ChevronDown className={`h-6 w-6 text-neutral-500 transition-transform ${showAllPlays ? 'rotate-180' : ''}`} />
@@ -536,38 +536,128 @@ const Dashboard: React.FC = () => {
 
         {/* Metrics Summary for Both Teams */}
         {plays.length > 0 && currentParams && teamColors && (
-          <div className="space-y-4 mb-8">
-            {/* Team Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">{currentParams.team} SR</p>
-                    <p className="text-2xl font-bold text-neutral-900">
-                      {teamPlays.length > 0 ? ((teamSuccessfulPlays / teamPlays.length) * 100).toFixed(1) : '0.0'}%
-                    </p>
+          <div className="mb-8">
+            {/* Desktop: Two Rows */}
+            <div className="hidden md:block space-y-4">
+              {/* Team Metrics Row */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-600">{currentParams.team} Plays</p>
+                      <p className="text-2xl font-bold text-neutral-900">{teamPlays.length}</p>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
+                      <BarChart3 className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
-                    <TrendingUp className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                </div>
+                
+                <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-600">{currentParams.team} SR</p>
+                      <p className="text-2xl font-bold text-neutral-900">
+                        {teamPlays.length > 0 ? ((teamSuccessfulPlays / teamPlays.length) * 100).toFixed(1) : '0.0'}%
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
+                      <Settings className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-600">{currentParams.team} XR</p>
+                      <p className="text-2xl font-bold text-neutral-900">
+                        {teamPlays.length > 0 ? ((teamExplosivePlays / teamPlays.length) * 100).toFixed(1) : '0.0'}%
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
+                      <Flame className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-600">{currentParams.team} YPP</p>
+                      <p className="text-2xl font-bold text-neutral-900">
+                        {teamPlays.length > 0 ? (teamTotalYards / teamPlays.length).toFixed(1) : '0.0'}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
+                      <Ruler className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                    </div>
                   </div>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">{currentParams.team} XR</p>
-                    <p className="text-2xl font-bold text-neutral-900">
-                      {teamPlays.length > 0 ? ((teamExplosivePlays / teamPlays.length) * 100).toFixed(1) : '0.0'}%
-                    </p>
+
+              {/* Opponent Metrics Row */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-600">{opponentTeam} Plays</p>
+                      <p className="text-2xl font-bold text-neutral-900">{opponentPlays.length}</p>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
+                      <BarChart3 className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
-                    <Target className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                </div>
+                
+                <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-600">{opponentTeam} SR</p>
+                      <p className="text-2xl font-bold text-neutral-900">
+                        {opponentPlays.length > 0 ? ((opponentSuccessfulPlays / opponentPlays.length) * 100).toFixed(1) : '0.0'}%
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
+                      <Settings className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-600">{opponentTeam} XR</p>
+                      <p className="text-2xl font-bold text-neutral-900">
+                        {opponentPlays.length > 0 ? ((opponentExplosivePlays / opponentPlays.length) * 100).toFixed(1) : '0.0'}%
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
+                      <Flame className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-600">{opponentTeam} YPP</p>
+                      <p className="text-2xl font-bold text-neutral-900">
+                        {opponentPlays.length > 0 ? (opponentTotalYards / opponentPlays.length).toFixed(1) : '0.0'}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
+                      <Ruler className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
+                    </div>
                   </div>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+            </div>
+
+            {/* Mobile: Alternating Pattern */}
+            <div className="md:hidden grid grid-cols-1 gap-4">
+              {/* Team 1 Plays */}
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{currentParams.team} Plays</p>
@@ -578,53 +668,9 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">{currentParams.team} YPP</p>
-                    <p className="text-2xl font-bold text-neutral-900">
-                      {teamPlays.length > 0 ? (teamTotalYards / teamPlays.length).toFixed(1) : '0.0'}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
-                    <TrendingUp className="h-6 w-6" style={{ color: teamColors.colorDark }} />
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Opponent Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">{opponentTeam} SR</p>
-                    <p className="text-2xl font-bold text-neutral-900">
-                      {opponentPlays.length > 0 ? ((opponentSuccessfulPlays / opponentPlays.length) * 100).toFixed(1) : '0.0'}%
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
-                    <TrendingUp className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">{opponentTeam} XR</p>
-                    <p className="text-2xl font-bold text-neutral-900">
-                      {opponentPlays.length > 0 ? ((opponentExplosivePlays / opponentPlays.length) * 100).toFixed(1) : '0.0'}%
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
-                    <Target className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+              {/* Team 2 Plays */}
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{opponentTeam} Plays</p>
@@ -635,8 +681,84 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-xl pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 border border-neutral-200 shadow-sm">
+
+              {/* Team 1 SR */}
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 border border-neutral-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">{currentParams.team} SR</p>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {teamPlays.length > 0 ? ((teamSuccessfulPlays / teamPlays.length) * 100).toFixed(1) : '0.0'}%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
+                    <Settings className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Team 2 SR */}
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 border border-neutral-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">{opponentTeam} SR</p>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {opponentPlays.length > 0 ? ((opponentSuccessfulPlays / opponentPlays.length) * 100).toFixed(1) : '0.0'}%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
+                    <Settings className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Team 1 XR */}
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 border border-neutral-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">{currentParams.team} XR</p>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {teamPlays.length > 0 ? ((teamExplosivePlays / teamPlays.length) * 100).toFixed(1) : '0.0'}%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
+                    <Flame className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Team 2 XR */}
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 border border-neutral-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">{opponentTeam} XR</p>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {opponentPlays.length > 0 ? ((opponentExplosivePlays / opponentPlays.length) * 100).toFixed(1) : '0.0'}%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
+                    <Flame className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Team 1 YPP */}
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 border border-neutral-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">{currentParams.team} YPP</p>
+                    <p className="text-2xl font-bold text-neutral-900">
+                      {teamPlays.length > 0 ? (teamTotalYards / teamPlays.length).toFixed(1) : '0.0'}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: teamColors.light }}>
+                    <Ruler className="h-6 w-6" style={{ color: teamColors.colorDark }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Team 2 YPP */}
+              <div className="bg-white rounded-xl pt-4 px-4 pb-4 border border-neutral-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-neutral-600">{opponentTeam} YPP</p>
@@ -645,7 +767,7 @@ const Dashboard: React.FC = () => {
                     </p>
                   </div>
                   <div className="p-3 rounded-lg" style={{ backgroundColor: opponentColors.light }}>
-                    <TrendingUp className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
+                    <Ruler className="h-6 w-6" style={{ color: opponentColors.colorDark }} />
                   </div>
                 </div>
               </div>
@@ -683,7 +805,7 @@ const Dashboard: React.FC = () => {
                 Enter Parameters to Load Play Data
               </h3>
               <p className="text-neutral-600 max-w-md mx-auto">
-                Fill in the year, season type, week, and team above, then click "Fetch Play Data" 
+                Fill in the year, season type, week, and team above, then click "Fetch Data" 
                 to start exploring detailed analytics and visualizations.
               </p>
             </div>

@@ -227,7 +227,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
             height: 624px;
         }
         .chart-content.top-passers {
-            height: 240px;
+            height: 280px !important;
         }
         .chart-content.top-rushers {
             height: 372px;
@@ -1149,7 +1149,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
               </div>
               
               <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
-                <div className="h-40">
+                <div className="h-50" style={{ height: '200px' }}>
                   {playerCharts[1].component}
                 </div>
               </div>

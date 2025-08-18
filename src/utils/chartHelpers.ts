@@ -1,6 +1,32 @@
 import { PlayData } from '../types';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from './chartConfig';
 
+// Helper function to truncate player names for chart display
+const truncatePlayerName = (name: string, maxLength: number = 14): string => {
+  if (!name || name.length <= maxLength) return name;
+  
+  // Try to keep full first name and truncate last name
+  const nameParts = name.split(' ');
+  if (nameParts.length === 1) {
+    return name.substring(0, maxLength - 1) + '…';
+  }
+  
+  const firstName = nameParts[0];
+  const lastName = nameParts[nameParts.length - 1];
+  
+  // If first name + space + one char of last name fits, use that
+  if (firstName.length + 2 <= maxLength) {
+    const remainingLength = maxLength - firstName.length - 2; // -2 for space and ellipsis
+    if (lastName.length <= remainingLength + 1) {
+      return name; // Full name fits
+    }
+    return `${firstName} ${lastName.substring(0, remainingLength)}…`;
+  }
+  
+  // If first name is too long, truncate it
+  return firstName.substring(0, maxLength - 1) + '…';
+};
+
 // Helper function to get point colors based on success/explosiveness
 export const getPointColors = (playsArray: PlayData[], teamColors: any) => {
   return playsArray.map(play => {
@@ -424,7 +450,7 @@ export const createPlayerData = (players: any[], playType: string) => {
   }
 
   return {
-    labels: players.map(p => p.name),
+    labels: players.map(p => truncatePlayerName(p.name)),
     datasets: datasets
   };
 };
