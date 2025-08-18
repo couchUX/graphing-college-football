@@ -248,99 +248,104 @@ const GameSelector: React.FC<GameSelectorProps> = ({
 
   return (
     <div className="flex flex-wrap items-end gap-4">
-      {/* Year Dropdown */}
-      <div className="flex-shrink-0">
-        <label className="block text-sm font-medium text-neutral-700 mb-2">
-          Year
-        </label>
-        <Listbox value={year} onChange={setYear}>
-          <div className="relative">
-            <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-3 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors cursor-default">
-              <span className="block truncate">{year}</span>
-              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
-              </span>
-            </Listbox.Button>
-            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-              {years.map((yearOption) => (
-                <Listbox.Option
-                  key={yearOption}
-                  className={({ active }) =>
-                    `relative cursor-default select-none py-2 pl-3 pr-9 ${
-                      active ? 'bg-emerald-100 text-emerald-900' : 'text-neutral-900'
-                    }`
-                  }
-                  value={yearOption}
-                >
-                  {({ selected }) => (
-                    <>
-                      <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
-                        {yearOption}
-                      </span>
-                      {selected ? (
-                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-emerald-600">
-                          <Check className="h-4 w-4" aria-hidden="true" />
-                        </span>
-                      ) : null}
-                    </>
-                  )}
-                </Listbox.Option>
-              ))}
-            </Listbox.Options>
-          </div>
-        </Listbox>
-      </div>
-
-      {/* Team Type-ahead */}
-      <div className="flex-grow min-w-0">
-        <label className="block text-sm font-medium text-neutral-700 mb-2">
-          Team
-        </label>
-        <Combobox value={selectedTeam} onChange={setSelectedTeam}>
-          <div className="relative">
-            <Combobox.Input
-              className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 pr-10 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-              displayValue={(team: Team | null) => team?.school || ''}
-              onChange={(event) => setTeamQuery(event.target.value)}
-              placeholder="e.g., Alabama"
-            />
-            <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3">
-              <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
-            </Combobox.Button>
-            <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-              {loadingTeams ? (
-                <div className="px-4 py-2 text-sm text-neutral-500">Loading teams...</div>
-              ) : filteredTeams.length === 0 && teamQuery !== '' ? (
-                <div className="px-4 py-2 text-sm text-neutral-500">No teams found.</div>
-              ) : (
-                filteredTeams.map((team) => (
-                  <Combobox.Option
-                    key={team.id}
-                    className={({ active }) =>
-                      `relative cursor-default select-none py-2 pl-3 pr-9 ${
-                        active ? 'bg-emerald-100 text-emerald-900' : 'text-neutral-900'
-                      }`
-                    }
-                    value={team}
-                  >
-                    {({ selected, active }) => (
-                      <>
-                        <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
-                          {team.school}
-                        </span>
-                        {selected ? (
-                          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-emerald-600">
-                            <Check className="h-4 w-4" aria-hidden="true" />
+      {/* Year and Team Row on Mobile */}
+      <div className="w-full sm:contents">
+        <div className="flex gap-2 w-full sm:gap-4 sm:w-auto">
+          {/* Year Dropdown */}
+          <div className="flex-shrink-0 sm:w-auto">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              Year
+            </label>
+            <Listbox value={year} onChange={setYear}>
+              <div className="relative">
+                <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-3 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors cursor-default">
+                  <span className="block truncate">{year}</span>
+                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                    <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                  </span>
+                </Listbox.Button>
+                <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  {years.map((yearOption) => (
+                    <Listbox.Option
+                      key={yearOption}
+                      className={({ active }) =>
+                        `relative cursor-default select-none py-2 pl-3 pr-9 ${
+                          active ? 'bg-emerald-100 text-emerald-900' : 'text-neutral-900'
+                        }`
+                      }
+                      value={yearOption}
+                    >
+                      {({ selected }) => (
+                        <>
+                          <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                            {yearOption}
                           </span>
-                        ) : null}
-                      </>
-                    )}
-                  </Combobox.Option>
-                ))
-              )}
-            </Combobox.Options>
+                          {selected ? (
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-emerald-600">
+                              <Check className="h-4 w-4" aria-hidden="true" />
+                            </span>
+                          ) : null}
+                        </>
+                      )}
+                    </Listbox.Option>
+                  ))}
+                </Listbox.Options>
+              </div>
+            </Listbox>
           </div>
-        </Combobox>
+
+          {/* Team Type-ahead */}
+          <div className="flex-grow min-w-0">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              Team
+            </label>
+            <Combobox value={selectedTeam} onChange={setSelectedTeam}>
+              <div className="relative">
+                <Combobox.Input
+                  className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 pr-10 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  displayValue={(team: Team | null) => team?.school || ''}
+                  onChange={(event) => setTeamQuery(event.target.value)}
+                  placeholder="e.g., Alabama"
+                />
+                <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                </Combobox.Button>
+                <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  {loadingTeams ? (
+                    <div className="px-4 py-2 text-sm text-neutral-500">Loading teams...</div>
+                  ) : filteredTeams.length === 0 && teamQuery !== '' ? (
+                    <div className="px-4 py-2 text-sm text-neutral-500">No teams found.</div>
+                  ) : (
+                    filteredTeams.map((team) => (
+                      <Combobox.Option
+                        key={team.id}
+                        className={({ active }) =>
+                          `relative cursor-default select-none py-2 pl-3 pr-9 ${
+                            active ? 'bg-emerald-100 text-emerald-900' : 'text-neutral-900'
+                          }`
+                        }
+                        value={team}
+                      >
+                        {({ selected }) => (
+                          <>
+                            <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                              {team.school}
+                            </span>
+                            {selected ? (
+                              <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-emerald-600">
+                                <Check className="h-4 w-4" aria-hidden="true" />
+                              </span>
+                            ) : null}
+                          </>
+                        )}
+                      </Combobox.Option>
+                    ))
+                  )}
+                </Combobox.Options>
+              </div>
+            </Combobox>
+          </div>
+        </div>
       </div>
 
       {/* Game Dropdown */}
@@ -391,13 +396,13 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         </Listbox>
       </div>
 
-      {/* Color Override Checkboxes */}
+      {/* Color Override Checkboxes - Desktop order: before button */}
       {currentParams && opponentTeam !== 'Opponent' && (
-        <div className="flex-shrink-0 space-y-2">
-          <label className="block text-sm font-medium text-neutral-700 mb-2">
+        <div className="w-full sm:flex-shrink-0 sm:w-auto space-y-2 order-3 sm:order-2">
+          <label className="hidden sm:block text-sm font-medium text-neutral-700 mb-2">
             Color Overrides
           </label>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-1 sm:gap-2">
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -405,7 +410,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 onChange={(e) => setOverrideTeam1ToGray(e.target.checked)}
                 className="rounded border-neutral-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-sm text-neutral-700">Set team to gray</span>
+              <span className="text-sm text-neutral-700">Chart team in gray</span>
             </label>
             <label className="flex items-center space-x-2">
               <input
@@ -414,20 +419,20 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 onChange={(e) => setOverrideTeam2ToGray(e.target.checked)}
                 className="rounded border-neutral-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-sm text-neutral-700">Set opponent to gray</span>
+              <span className="text-sm text-neutral-700">Chart opponent in gray</span>
             </label>
           </div>
         </div>
       )}
 
-      {/* Fetch Button */}
-      <div className="flex-shrink-0">
+      {/* Fetch Button - Mobile order: before checkboxes, Desktop order: after checkboxes */}
+      <div className="w-full sm:flex-shrink-0 sm:w-auto order-2 sm:order-3">
         <button
           onClick={handleFetchData}
           disabled={isLoading || !selectedGame || !selectedTeam}
-          className="flex items-center space-x-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
+          className="w-full sm:w-auto flex items-center justify-center sm:justify-start space-x-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
         >
-          <span>{isLoading ? 'Loading...' : 'Fetch Play Data'}</span>
+          <span>{isLoading ? 'Loading...' : 'Fetch Data'}</span>
           <Play className="h-5 w-5" />
         </button>
       </div>

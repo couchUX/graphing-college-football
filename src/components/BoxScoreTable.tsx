@@ -9,6 +9,7 @@ interface BoxScoreTableProps {
   tableTitle: string;
   overrideTeam1ToGray: boolean;
   overrideTeam2ToGray: boolean;
+  isFirst: boolean;
 }
 
 const BoxScoreTable: React.FC<BoxScoreTableProps> = ({ 
@@ -17,16 +18,26 @@ const BoxScoreTable: React.FC<BoxScoreTableProps> = ({
   team2Name, 
   tableTitle, 
   overrideTeam1ToGray, 
-  overrideTeam2ToGray 
+  overrideTeam2ToGray,
+  isFirst 
 }) => {
   // Get team colors
   const team1Colors = getDisplayTeamColors(team1Name, overrideTeam1ToGray);
   const team2Colors = getDisplayTeamColors(team2Name, overrideTeam2ToGray);
   
   return (
-    <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-      <table className="min-w-full">
-        <thead>
+    <div className={`bg-white overflow-hidden ${
+      isFirst 
+        ? 'rounded-t-lg md:rounded-lg border border-neutral-200' 
+        : 'rounded-b-lg md:rounded-lg border-0 border-l border-r border-b border-neutral-200 md:border'
+    }`}>
+      <table className="min-w-full table-fixed">
+        <colgroup>
+          <col className="w-auto" />
+          <col className="w-24" />
+          <col className="w-24" />
+        </colgroup>
+        <thead className={isFirst ? '' : 'hidden md:table-header-group'}>
           <tr className="bg-neutral-600 text-white">
             <th 
               className="px-4 py-3 text-left text-sm font-semibold border-b-4"

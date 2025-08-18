@@ -384,6 +384,15 @@ export const createPlayerOptions = (): ChartOptions<'bar'> => ({
   },
   plugins: {
     ...createBaseOptions().plugins,
+    tooltip: {
+      callbacks: {
+        label: (context: any) => {
+          const value = context.parsed.x;
+          const label = context.dataset.label || '';
+          return `${label}: ${value} ${value === 1 ? 'play' : 'plays'}`;
+        }
+      }
+    },
     legend: {
       ...createBaseOptions().plugins?.legend,
       labels: {
