@@ -45,10 +45,10 @@ const Toast: React.FC<ToastProps> = ({
   if (!isVisible && !show) return null;
 
   return (
-    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+    <div className="fixed bottom-8 left-4 right-4 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 sm:w-auto z-50">
       <div
         className={`
-          flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 ease-out
+          flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 ease-out w-full sm:w-auto
           ${show ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}
           ${typeStyles[type]}
         `}

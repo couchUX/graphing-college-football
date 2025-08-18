@@ -3,6 +3,7 @@ import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen, Flame, 
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
+import Toast from './Toast';
 import { PlayData } from '../types';
 import { fetchPlayByPlayData } from '../services/api';
 import { processPlayData } from '../utils/metrics';
@@ -20,6 +21,8 @@ const Dashboard: React.FC = () => {
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [overrideTeam1ToGray, setOverrideTeam1ToGray] = useState<boolean>(false);
   const [overrideTeam2ToGray, setOverrideTeam2ToGray] = useState<boolean>(false);
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string>('');
   const [currentParams, setCurrentParams] = useState<{
     year: number;
     week: number;
@@ -27,6 +30,12 @@ const Dashboard: React.FC = () => {
     team: string;
     gameId?: string;
   } | null>(null);
+
+  // Toast handler for embed copying
+  const handleCopyEmbed = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+  };
 
   // Box score hook
   // Get opponent team
@@ -126,7 +135,7 @@ const Dashboard: React.FC = () => {
                 <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 mt-0.5 sm:mt-0">
                   Graphing College Football
                 </h1>
-                <p className="text-sm sm:text-base text-neutral-500 mt-0 sm:mt-1">
+                <p className="text-sm sm:text-base text-neutral-500 mt-0">
                   Advanced play-by-play metrics<span className="hidden sm:inline"> and visualizations</span>
                 </p>
               </div>
@@ -511,6 +520,8 @@ const Dashboard: React.FC = () => {
             team2Name={boxScoreData.team2Name}
             overrideTeam1ToGray={overrideTeam1ToGray}
             overrideTeam2ToGray={overrideTeam2ToGray}
+            onCopyEmbed={handleCopyEmbed}
+            currentParams={currentParams}
           />
         )}
 
@@ -812,6 +823,12 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </main>
+      <Toast
+        message={toastMessage}
+        type="success"
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </div>
   );
 };
