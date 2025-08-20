@@ -87,6 +87,18 @@ const Dashboard: React.FC = () => {
     seasonType: string;
     team: string;
   }) => {
+    // Track Google Analytics event
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'fetch_data', {
+        'event_category': 'user_interaction',
+        'event_label': `${params.team}_${params.year}_week${params.week}_${params.seasonType}`,
+        'custom_parameter_team': params.team,
+        'custom_parameter_year': params.year,
+        'custom_parameter_week': params.week,
+        'custom_parameter_season_type': params.seasonType
+      });
+    }
+    
     setIsLoading(true);
     setError(null);
     

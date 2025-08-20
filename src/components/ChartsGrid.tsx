@@ -894,6 +894,21 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
       setShowToast(true);
       console.log(`Embed code copied for: ${title}`);
       
+      // Track embed copy event in Google Analytics
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'copy_embed', {
+          'event_category': 'user_interaction',
+          'event_label': `${chartId}_${title}`,
+          'custom_parameter_chart_id': chartId,
+          'custom_parameter_chart_title': title,
+          'custom_parameter_chart_type': chartId.includes('lines') || chartId.includes('rush-rate') || chartId.includes('play-map') ? 'line' : 'bar',
+          'custom_parameter_team': currentParams?.team || '',
+          'custom_parameter_year': currentParams?.year || '',
+          'custom_parameter_week': currentParams?.week || '',
+          'custom_parameter_season_type': currentParams?.seasonType || ''
+        });
+      }
+      
       // Clear the copied state after 2 seconds
       setTimeout(() => {
         setCopiedChart(null);

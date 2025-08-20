@@ -154,6 +154,19 @@ const GameSelector: React.FC<GameSelectorProps> = ({
             // Auto-fetch data if we have all parameters from URL  
             setTimeout(() => {
               if (game && selectedTeam) {
+                // Track URL parameter loading in Google Analytics
+                if (typeof window !== 'undefined' && (window as any).gtag) {
+                  (window as any).gtag('event', 'url_parameter_load', {
+                    'event_category': 'user_interaction',
+                    'event_label': `${selectedTeam.school}_${game.season}_week${game.week}_${game.seasonType}`,
+                    'custom_parameter_team': selectedTeam.school,
+                    'custom_parameter_year': game.season,
+                    'custom_parameter_week': game.week,
+                    'custom_parameter_season_type': game.seasonType,
+                    'custom_parameter_game_id': game.id.toString()
+                  });
+                }
+                
                 onFetchData({ 
                   year: game.season, 
                   week: game.week, 
