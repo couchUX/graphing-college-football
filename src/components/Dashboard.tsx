@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen, Flame, Ruler, Settings } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
@@ -36,6 +36,43 @@ const Dashboard: React.FC = () => {
     setToastMessage(message);
     setShowToast(true);
   };
+
+  // Dynamic canonical URL management
+  useEffect(() => {
+    // Remove existing canonical link
+    const existingCanonical = document.querySelector('link[rel="canonical"]');
+    if (existingCanonical) {
+      existingCanonical.remove();
+    }
+
+    // Create new canonical URL based on current state
+    const canonical = document.createElement('link');
+    canonical.rel = 'canonical';
+    
+    if (currentParams) {
+      // Build URL with current parameters
+      const params = new URLSearchParams();
+      params.set('year', currentParams.year.toString());
+      params.set('seasonType', currentParams.seasonType);
+      params.set('week', currentParams.week.toString());
+      params.set('team', currentParams.team);
+      if (currentParams.gameId) {
+        params.set('gameId', currentParams.gameId.toString());
+      }
+      if (overrideTeam1ToGray) {
+        params.set('grayTeam', 'true');
+      }
+      if (overrideTeam2ToGray) {
+        params.set('grayOpponent', 'true');
+      }
+      canonical.href = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    } else {
+      // Default to base URL if no params
+      canonical.href = `${window.location.origin}${window.location.pathname}`;
+    }
+    
+    document.head.appendChild(canonical);
+  }, [currentParams, overrideTeam1ToGray, overrideTeam2ToGray]);
 
   // Box score hook
   // Get opponent team
