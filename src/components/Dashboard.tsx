@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen, Flame, Ruler, Settings } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -19,6 +19,14 @@ const Dashboard: React.FC = () => {
   const [showAllPlays, setShowAllPlays] = useState<boolean>(false);
   const [showRawPlays, setShowRawPlays] = useState<boolean>(false);
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
+  const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
+  const [showContactModal, setShowContactModal] = useState<boolean>(false);
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+  const [isSubmittingContact, setIsSubmittingContact] = useState<boolean>(false);
   const [overrideTeam1ToGray, setOverrideTeam1ToGray] = useState<boolean>(false);
   const [overrideTeam2ToGray, setOverrideTeam2ToGray] = useState<boolean>(false);
   const [showToast, setShowToast] = useState<boolean>(false);
@@ -35,6 +43,54 @@ const Dashboard: React.FC = () => {
   const handleCopyEmbed = (message: string) => {
     setToastMessage(message);
     setShowToast(true);
+  };
+
+  // Contact form handlers
+  const handleContactFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setContactForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleContactFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isSubmittingContact) return;
+    
+    setIsSubmittingContact(true);
+    
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactForm),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Success
+        setContactForm({ name: '', email: '', message: '' });
+        setShowContactModal(false);
+        setToastMessage('Message sent successfully! I\'ll get back to you soon.');
+        setShowToast(true);
+      } else {
+        // Server returned an error
+        setToastMessage(result.error || 'Failed to send message. Please try again.');
+        setShowToast(true);
+      }
+    } catch (error) {
+      // Network or other error
+      console.error('Contact form error:', error);
+      setToastMessage('Failed to send message. Please try again later.');
+      setShowToast(true);
+    } finally {
+      setIsSubmittingContact(false);
+    }
   };
 
   // Dynamic canonical URL management
@@ -173,7 +229,7 @@ const Dashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-start md:items-center space-x-3">
-              <div className="flex items-center justify-center w-15 h-15">
+              <div className="hidden sm:flex items-center justify-center w-15 h-15">
                 <img 
                   src={logo} 
                   alt="Graphing College Football Logo" 
@@ -189,6 +245,15 @@ const Dashboard: React.FC = () => {
                 </p>
               </div>
             </div>
+            
+            {/* Info Button */}
+            <button
+              onClick={() => setShowInfoModal(true)}
+              className="flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
+              title="About this project"
+            >
+              <Info className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </header>
@@ -878,6 +943,193 @@ const Dashboard: React.FC = () => {
         isVisible={showToast}
         onClose={() => setShowToast(false)}
       />
+
+      {/* Info Modal */}
+      {showInfoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-neutral-800 text-neutral-300 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium text-white">About This Project</h2>
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="text-neutral-400 hover:text-neutral-300 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <p className="leading-relaxed">
+                  This tool is the culmination of 10+ years of work! I'm a{' '}
+                  <a href="https://medium.com/alex-couch-s-portfolio" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
+                    product designer
+                  </a>
+                  {' '}by day, and I write an advanced analytics column for{' '}
+                  <a href="https://rollbamaroll.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
+                    RollBamaRoll.com
+                  </a>
+                  . I love data visualization, and am a big fan of college football from growing up.
+                </p>
+                
+                <p>
+                  Running this site costs money, though 😬: if you do find this useful, buy me a coffee to support continued development!
+                </p>
+                
+                <div className="pt-4 space-y-3">
+                  <a 
+                    href="https://buymeacoffee.com/alexcouch" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    ☕ Support this project
+                  </a>
+                  <div>
+                    <button 
+                      onClick={() => setShowContactModal(true)}
+                      className="text-sm text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Get in touch
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-neutral-800 text-neutral-300 rounded-lg max-w-md w-full">
+            <form onSubmit={handleContactFormSubmit}>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-medium text-white">Get in Touch</h2>
+                  <button
+                    type="button"
+                    onClick={() => setShowContactModal(false)}
+                    className="text-neutral-400 hover:text-neutral-300 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-neutral-300 mb-2">
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={contactForm.name}
+                      onChange={handleContactFormChange}
+                      required
+                      className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-2">
+                      Your Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={contactForm.email}
+                      onChange={handleContactFormChange}
+                      required
+                      className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-neutral-300 mb-2">
+                      Message
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={contactForm.message}
+                      onChange={handleContactFormChange}
+                      required
+                      rows={4}
+                      className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      placeholder="Enter your message"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowContactModal(false)}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-700 hover:bg-neutral-600 rounded-md transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingContact}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed rounded-md transition-colors"
+                  >
+                    {isSubmittingContact ? 'Sending...' : 'Send Message'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Footer */}
+      <footer className="bg-neutral-800 text-neutral-300 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-lg font-medium text-white">About This Project</p>
+              <p className="text-sm leading-relaxed max-w-3xl">
+                This tool is the culmination of 10+ years of work! I'm a <a href="https://medium.com/alex-couch-s-portfolio" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">product designer</a> by day, and I write an advanced analytics column for <a href="https://rollbamaroll.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">RollBamaRoll.com</a>. I love data viz, and am a big fan of college football from growing up.
+              </p>
+            </div>
+            
+            <div className="pt-4 border-t border-neutral-700">
+              <p className="text-sm mb-5">
+                Running this site costs money, though 😬: if you do find this useful, buy me a coffee to support continued development!
+              </p>
+              <div className="space-y-3">
+                <a 
+                  href="https://buymeacoffee.com/alexcouch" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  ☕ Support this project
+                </a>
+                <div>
+                  <button 
+                    onClick={() => setShowContactModal(true)}
+                    className="text-sm text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Get in touch
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
