@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+const nodemailer = require('nodemailer');
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -20,13 +20,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    // For now, we'll use a service like Nodemailer with Gmail or a service like EmailJS
-    // Since we don't want to expose your email in the frontend, we'll handle it here
-    
-    // You'll need to set up environment variables in Vercel for these:
-    // SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, CONTACT_EMAIL
-    
-    const nodemailer = require('nodemailer');
+    // Check if all required environment variables are set
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.error('Missing SMTP environment variables');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
 
     const transporter = nodemailer.createTransporter({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -58,6 +56,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error) {
     console.error('Contact form error:', error);
+    
+    // More specific error handling
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      // Gmail specific errors
+      if (error.message.includes('Invalid login')) {
+        return res.status(500).json({ error: 'Email authentication failed. Please check credentials.' });
+      }
+      
+      if (error.message.includes('connect')) {
+        return res.status(500).json({ error: 'Could not connect to email server.' });
+      }
+    }
+    
     return res.status(500).json({ error: 'Failed to send message. Please try again later.' });
   }
 }
