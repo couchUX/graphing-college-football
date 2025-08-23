@@ -7,8 +7,8 @@ interface BoxScoreTableProps {
   team1Name: string;
   team2Name: string;
   tableTitle: string;
-  overrideTeam1ToGray: boolean;
-  overrideTeam2ToGray: boolean;
+  selectedTeamColor: string;
+  selectedOpponentColor: string;
   isFirst: boolean;
 }
 
@@ -17,13 +17,13 @@ const BoxScoreTable: React.FC<BoxScoreTableProps> = ({
   team1Name, 
   team2Name, 
   tableTitle, 
-  overrideTeam1ToGray, 
-  overrideTeam2ToGray,
+  selectedTeamColor, 
+  selectedOpponentColor,
   isFirst 
 }) => {
   // Get team colors
-  const team1Colors = getDisplayTeamColors(team1Name, overrideTeam1ToGray);
-  const team2Colors = getDisplayTeamColors(team2Name, overrideTeam2ToGray);
+  const team1Colors = getDisplayTeamColors(team1Name, selectedTeamColor);
+  const team2Colors = getDisplayTeamColors(team2Name, selectedOpponentColor);
   
   return (
     <div className={`bg-white overflow-hidden ${

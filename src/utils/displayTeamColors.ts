@@ -1,4 +1,5 @@
 import { getTeamColors } from './teamColors';
+import { colorPalette } from './colorPalette';
 
 interface TeamColors {
   success: string;
@@ -8,19 +9,26 @@ interface TeamColors {
   colorDark?: string;
 }
 
-// Predefined gray color scheme
-const grayColors: TeamColors = {
-  success: 'rgba(107, 114, 128, 0.8)', // gray-500
-  explosive: 'rgba(75, 85, 99, 0.8)', // gray-600
-  light: 'rgba(229, 231, 235, 0.8)', // gray-200
-  color: '#6B7280', // gray-500
-  colorDark: '#374151', // gray-700
+// Convert a color option to the TeamColors format
+const colorOptionToTeamColors = (colorOption: { primary: string; light: string; dark: string }): TeamColors => {
+  return {
+    success: colorOption.primary + 'CC', // Add alpha for transparency
+    explosive: colorOption.dark + 'CC',   // Add alpha for transparency
+    light: colorOption.light + 'CC',     // Add alpha for transparency
+    color: colorOption.primary,
+    colorDark: colorOption.dark,
+  };
 };
 
-export const getDisplayTeamColors = (teamName: string, overrideToGray: boolean = false): TeamColors => {
-  if (overrideToGray) {
-    return grayColors;
+export const getDisplayTeamColors = (teamName: string, customColorId?: string): TeamColors => {
+  // If custom color is specified and not 'default', use the custom color
+  if (customColorId && customColorId !== 'default') {
+    const customColor = colorPalette.find(color => color.id === customColorId);
+    if (customColor) {
+      return colorOptionToTeamColors(customColor);
+    }
   }
   
+  // Otherwise use the team's default colors
   return getTeamColors(teamName);
 };

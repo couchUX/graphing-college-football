@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Target, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info } from 'lucide-react';
+import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -27,8 +27,8 @@ const Dashboard: React.FC = () => {
     message: ''
   });
   const [isSubmittingContact, setIsSubmittingContact] = useState<boolean>(false);
-  const [overrideTeam1ToGray, setOverrideTeam1ToGray] = useState<boolean>(false);
-  const [overrideTeam2ToGray, setOverrideTeam2ToGray] = useState<boolean>(false);
+  const [selectedTeamColor, setSelectedTeamColor] = useState<string>('default');
+  const [selectedOpponentColor, setSelectedOpponentColor] = useState<string>('default');
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>('');
   const [currentParams, setCurrentParams] = useState<{
@@ -115,11 +115,11 @@ const Dashboard: React.FC = () => {
       if (currentParams.gameId) {
         params.set('gameId', currentParams.gameId.toString());
       }
-      if (overrideTeam1ToGray) {
-        params.set('grayTeam', 'true');
+      if (selectedTeamColor !== 'default') {
+        params.set('teamColor', selectedTeamColor);
       }
-      if (overrideTeam2ToGray) {
-        params.set('grayOpponent', 'true');
+      if (selectedOpponentColor !== 'default') {
+        params.set('opponentColor', selectedOpponentColor);
       }
       canonical.href = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     } else {
@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
     }
     
     document.head.appendChild(canonical);
-  }, [currentParams, overrideTeam1ToGray, overrideTeam2ToGray]);
+  }, [currentParams, selectedTeamColor, selectedOpponentColor]);
 
   // Box score hook
   // Get opponent team
@@ -219,8 +219,8 @@ const Dashboard: React.FC = () => {
   const opponentTotalYards = opponentPlays.reduce((sum, p) => sum + p.yardsGained, 0);
 
   // Get team colors
-  const teamColors = currentParams ? getDisplayTeamColors(currentParams.team, overrideTeam1ToGray) : null;
-  const opponentColors = getDisplayTeamColors(opponentTeam, overrideTeam2ToGray);
+  const teamColors = currentParams ? getDisplayTeamColors(currentParams.team, selectedTeamColor) : null;
+  const opponentColors = getDisplayTeamColors(opponentTeam, selectedOpponentColor);
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
@@ -266,12 +266,13 @@ const Dashboard: React.FC = () => {
           <GameSelector
             onFetchData={handleFetchData}
             isLoading={isLoading}
-            overrideTeam1ToGray={overrideTeam1ToGray}
-            setOverrideTeam1ToGray={setOverrideTeam1ToGray}
-            overrideTeam2ToGray={overrideTeam2ToGray}
-            setOverrideTeam2ToGray={setOverrideTeam2ToGray}
+            selectedTeamColor={selectedTeamColor}
+            setSelectedTeamColor={setSelectedTeamColor}
+            selectedOpponentColor={selectedOpponentColor}
+            setSelectedOpponentColor={setSelectedOpponentColor}
             currentParams={currentParams}
             opponentTeam={opponentTeam}
+            hasDataBeenFetched={plays.length > 0}
           />
         </div>
 
@@ -633,8 +634,8 @@ const Dashboard: React.FC = () => {
             secondTableStats={boxScoreData.secondTableStats}
             team1Name={boxScoreData.team1Name}
             team2Name={boxScoreData.team2Name}
-            overrideTeam1ToGray={overrideTeam1ToGray}
-            overrideTeam2ToGray={overrideTeam2ToGray}
+            selectedTeamColor={selectedTeamColor}
+            selectedOpponentColor={selectedOpponentColor}
             onCopyEmbed={handleCopyEmbed}
             currentParams={currentParams}
           />
@@ -915,8 +916,8 @@ const Dashboard: React.FC = () => {
             <ChartsGrid 
               plays={filteredPlays} 
               team={currentParams.team} 
-              overrideTeam1ToGray={overrideTeam1ToGray}
-              overrideTeam2ToGray={overrideTeam2ToGray}
+              selectedTeamColor={selectedTeamColor}
+              selectedOpponentColor={selectedOpponentColor}
               currentParams={currentParams}
             />
           </div>
