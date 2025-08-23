@@ -223,12 +223,12 @@ const Dashboard: React.FC = () => {
   const opponentColors = getDisplayTeamColors(opponentTeam, overrideTeam2ToGray);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-start md:items-center space-x-3">
+            <div className="flex items-start md:items-center sm:space-x-3">
               <div className="hidden sm:flex items-center justify-center w-15 h-15">
                 <img 
                   src={logo} 
@@ -259,9 +259,10 @@ const Dashboard: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Data Input */}
-        <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow-sm sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+      <main className="flex-grow py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Data Input */}
+          <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow-sm sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
           <GameSelector
             onFetchData={handleFetchData}
             isLoading={isLoading}
@@ -927,15 +928,16 @@ const Dashboard: React.FC = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-12">
               <BarChart3 className="h-16 w-16 text-slate-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-neutral-900 mb-2">
-                Enter Parameters to Load Play Data
+                Find a game above to load the graphs
               </h3>
               <p className="text-neutral-600 max-w-md mx-auto">
-                Fill in the year, season type, week, and team above, then click "Fetch Data" 
+                Fill in the year, team, and game, then click "Fetch Data" 
                 to start exploring detailed analytics and visualizations.
               </p>
             </div>
           </div>
         )}
+        </div>
       </main>
       <Toast
         message={toastMessage}

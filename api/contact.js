@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: false,
