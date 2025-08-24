@@ -949,13 +949,13 @@ const Dashboard: React.FC = () => {
       {/* Info Modal */}
       {showInfoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-neutral-800 text-neutral-300 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-white">About This Project</h2>
+                <h2 className="text-lg font-medium text-neutral-900">About This Project</h2>
                 <button
                   onClick={() => setShowInfoModal(false)}
-                  className="text-neutral-400 hover:text-neutral-300 transition-colors"
+                  className="text-neutral-400 hover:text-neutral-600 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -964,23 +964,23 @@ const Dashboard: React.FC = () => {
               </div>
               
               <div className="space-y-4">
-                <p className="leading-relaxed">
+                <p className="leading-relaxed text-neutral-700">
                   This tool is the culmination of 10+ years of work! I'm a{' '}
-                  <a href="https://medium.com/alex-couch-s-portfolio" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
+                  <a href="https://medium.com/alex-couch-s-portfolio" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">
                     product designer
                   </a>
                   {' '}by day, and I write an advanced analytics column for{' '}
-                  <a href="https://rollbamaroll.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
+                  <a href="https://rollbamaroll.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">
                     RollBamaRoll.com
                   </a>
                   . I love data visualization, and am a big fan of college football from growing up.
                 </p>
                 
-                <p>
-                  Running this site costs money, though 😬: if you do find this useful, buy me a coffee to support continued development!
+                <p className="text-neutral-700">
+                  If you find this useful, feel free to buy me a coffee to support continued development!
                 </p>
                 
-                <div className="pt-4 space-y-3">
+                <div className="pt-2 space-y-3">
                   <a 
                     href="https://buymeacoffee.com/alexcouch" 
                     target="_blank"
@@ -992,7 +992,7 @@ const Dashboard: React.FC = () => {
                   <div>
                     <button 
                       onClick={() => setShowContactModal(true)}
-                      className="text-sm text-blue-400 hover:text-blue-300 underline"
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
                     >
                       Get in touch
                     </button>
@@ -1007,15 +1007,15 @@ const Dashboard: React.FC = () => {
       {/* Contact Modal */}
       {showContactModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-neutral-800 text-neutral-300 rounded-lg max-w-md w-full">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-xl">
             <form onSubmit={handleContactFormSubmit}>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-medium text-white">Get in Touch</h2>
+                  <h2 className="text-lg font-medium text-neutral-900">Get in Touch</h2>
                   <button
                     type="button"
                     onClick={() => setShowContactModal(false)}
-                    className="text-neutral-400 hover:text-neutral-300 transition-colors"
+                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1025,7 +1025,7 @@ const Dashboard: React.FC = () => {
                 
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-neutral-300 mb-2">
+                    <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-2">
                       Your Name
                     </label>
                     <input
@@ -1035,13 +1035,13 @@ const Dashboard: React.FC = () => {
                       value={contactForm.name}
                       onChange={handleContactFormChange}
                       required
-                      className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter your name"
                     />
                   </div>
                   
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-2">
+                    <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
                       Your Email
                     </label>
                     <input
@@ -1051,13 +1051,13 @@ const Dashboard: React.FC = () => {
                       value={contactForm.email}
                       onChange={handleContactFormChange}
                       required
-                      className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter your email"
                     />
                   </div>
                   
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-neutral-300 mb-2">
+                    <label htmlFor="message" className="block text-sm font-medium text-neutral-700 mb-2">
                       Message
                     </label>
                     <textarea
@@ -1067,7 +1067,7 @@ const Dashboard: React.FC = () => {
                       onChange={handleContactFormChange}
                       required
                       rows={4}
-                      className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-md text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                       placeholder="Enter your message"
                     />
                   </div>
@@ -1077,7 +1077,7 @@ const Dashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowContactModal(false)}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-700 hover:bg-neutral-600 rounded-md transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-md transition-colors"
                   >
                     Cancel
                   </button>
@@ -1096,19 +1096,19 @@ const Dashboard: React.FC = () => {
       )}
       
       {/* Footer */}
-      <footer className="bg-neutral-800 text-neutral-300 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12">
+      <footer className="border-t border-neutral-200 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-14">
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="text-lg font-medium text-white">About This Project</p>
-              <p className="text-sm leading-relaxed max-w-3xl">
-                This tool is the culmination of 10+ years of work! I'm a <a href="https://medium.com/alex-couch-s-portfolio" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">product designer</a> by day, and I write an advanced analytics column for <a href="https://rollbamaroll.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">RollBamaRoll.com</a>. I love data viz, and am a big fan of college football from growing up.
+              <p className="text-lg font-medium text-neutral-900">About This Project</p>
+              <p className="text-sm leading-relaxed max-w-3xl text-neutral-700">
+                This tool is the culmination of 10+ years of work! I'm a <a href="https://medium.com/alex-couch-s-portfolio" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">product designer</a> by day, and I write an advanced analytics column for <a href="https://rollbamaroll.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">RollBamaRoll.com</a>. I love data viz, and am a big fan of college football from growing up.
               </p>
             </div>
             
-            <div className="pt-4 border-t border-neutral-700">
-              <p className="text-sm mb-5">
-                Running this site costs money, though 😬: if you do find this useful, buy me a coffee to support continued development!
+            <div>
+              <p className="text-sm mb-5 text-neutral-700">
+                If you find this useful, feel free to buy me a coffee to support continued development!
               </p>
               <div className="space-y-3">
                 <a 
@@ -1122,7 +1122,7 @@ const Dashboard: React.FC = () => {
                 <div>
                   <button 
                     onClick={() => setShowContactModal(true)}
-                    className="text-sm text-blue-400 hover:text-blue-300 underline"
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
                   >
                     Get in touch
                   </button>
