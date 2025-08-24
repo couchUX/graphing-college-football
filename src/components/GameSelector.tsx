@@ -38,7 +38,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
   opponentTeam,
   hasDataBeenFetched
 }) => {
-  const [year, setYear] = useState<number>(2024);
+  const [year, setYear] = useState<number>(2025);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamQuery, setTeamQuery] = useState<string>('');
   const [showTeamColorPicker, setShowTeamColorPicker] = useState<boolean>(false);
@@ -294,7 +294,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         team.school.toLowerCase().includes(teamQuery.toLowerCase())
       ).slice(0, 10); // Show top 10 matches
 
-  const years = [2024, 2023, 2022, 2021, 2020];
+  const years = [2025, 2024, 2023, 2022, 2021, 2020];
 
   return (
     <div className="flex flex-wrap items-end gap-4">

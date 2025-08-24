@@ -191,7 +191,27 @@ export const createTeamVsOpponentBarData = (
   const allLabels = Array.from(new Set([
     ...teamData.map(d => d.label),
     ...opponentData.map(d => d.label)
-  ])).sort();
+  ]));
+  
+  // Custom sort based on category
+  if (category === 'playType') {
+    // Rush first, then Pass
+    allLabels.sort((a, b) => {
+      if (a === 'Rush' && b !== 'Rush') return -1;
+      if (b === 'Rush' && a !== 'Rush') return 1;
+      return a.localeCompare(b);
+    });
+  } else if (category === 'redZone') {
+    // Red Zone first, then Other
+    allLabels.sort((a, b) => {
+      if (a === 'Red Zone' && b !== 'Red Zone') return -1;
+      if (b === 'Red Zone' && a !== 'Red Zone') return 1;
+      return a.localeCompare(b);
+    });
+  } else {
+    // Default alphabetical sort for other categories
+    allLabels.sort();
+  }
 
   // Create data arrays ensuring all labels are represented
   const teamSR = allLabels.map(label => {

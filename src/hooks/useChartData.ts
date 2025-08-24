@@ -287,8 +287,6 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           backgroundColor: teamColors.light,
           borderWidth: 2,
           pointBackgroundColor: teamPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
-            if (!isRush) return 'rgba(255,255,255,0.9)';
             return getPointColors([play], teamColors)[0];
           }),
           pointStyle: teamPlays.map(play => {
@@ -324,8 +322,6 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           backgroundColor: opponentColors.light,
           borderWidth: 2,
           pointBackgroundColor: opponentPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
-            if (!isRush) return 'rgba(255,255,255,0.9)';
             return getPointColors([play], opponentColors)[0];
           }),
           pointStyle: opponentPlays.map(play => {

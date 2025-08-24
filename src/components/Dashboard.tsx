@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info } from 'lucide-react';
+import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -651,8 +651,8 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Box Score Error */}
-        {boxScoreError && currentParams && (
+        {/* Box Score Error - Only show if main play data loaded successfully */}
+        {boxScoreError && currentParams && plays.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
             <h2 className="text-xl font-semibold text-neutral-900 mb-6">Box Score</h2>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -924,17 +924,34 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Empty State */}
-        {plays.length === 0 && !isLoading && !error && (
+        {plays.length === 0 && !isLoading && (
           <div className="text-center py-8">
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-12">
-              <BarChart3 className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-neutral-900 mb-2">
-                Find a game above to load the graphs
-              </h3>
-              <p className="text-neutral-600 max-w-md mx-auto">
-                Fill in the year, team, and game, then click "Fetch Data" 
-                to start exploring detailed analytics and visualizations.
-              </p>
+              {currentParams ? (
+                // Game was selected but no data returned
+                <>
+                  <AlertCircle className="h-16 w-16 text-amber-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-neutral-900 mb-2">
+                    No data available for this game
+                  </h3>
+                  <p className="text-neutral-600 max-w-md mx-auto">
+                    We couldn't find play-by-play data for {currentParams.team} in {currentParams.seasonType === 'regular' ? `Week ${currentParams.week}` : `Postseason Week ${currentParams.week}`}, {currentParams.year}. 
+                    {error ? ' There was an error retrieving the data.' : ' This game may not have occurred yet or data may not be available.'}
+                  </p>
+                </>
+              ) : (
+                // No game selected yet
+                <>
+                  <BarChart3 className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-neutral-900 mb-2">
+                    Find a game above to load the graphs
+                  </h3>
+                  <p className="text-neutral-600 max-w-md mx-auto">
+                    Fill in the year, team, and game, then click "Fetch Data" 
+                    to start exploring detailed analytics and visualizations.
+                  </p>
+                </>
+              )}
             </div>
           </div>
         )}
