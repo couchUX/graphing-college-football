@@ -280,6 +280,20 @@ const GameSelector: React.FC<GameSelectorProps> = ({
     window.history.replaceState({}, '', newURL);
   };
 
+  // Reset color selections when team or game changes (if not loading from URL)
+  useEffect(() => {
+    if (!isLoadingFromURL && hasDataBeenFetched) {
+      // Only reset if the selected team doesn't match the currently fetched data
+      if (!currentParams || !selectedTeam || selectedTeam.school !== currentParams.team) {
+        setSelectedTeamColor('default');
+        setSelectedOpponentColor('default');
+        // Close any open color pickers
+        setShowTeamColorPicker(false);
+        setShowOpponentColorPicker(false);
+      }
+    }
+  }, [selectedTeam, selectedGame, hasDataBeenFetched, currentParams, isLoadingFromURL]);
+
   // Update URL when selections change (but not during initial URL loading)
   useEffect(() => {
     if (!isLoadingFromURL) {
@@ -358,7 +372,8 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                   placeholder="e.g., Alabama"
                 />
                 {/* Color Picker inside input */}
-                {selectedTeam && hasDataBeenFetched && (
+                {selectedTeam && hasDataBeenFetched && currentParams && 
+                 selectedTeam.school === currentParams.team && (
                   <div className="absolute inset-y-0 right-10 flex items-center">
                     <div 
                       className="w-5 h-5 rounded border border-neutral-200 cursor-pointer hover:scale-110 transition-transform"
@@ -417,7 +432,8 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 </Combobox.Options>
                 
                 {/* Team Color Picker Dropdown */}
-                {showTeamColorPicker && selectedTeam && hasDataBeenFetched && (
+                {showTeamColorPicker && selectedTeam && hasDataBeenFetched && currentParams && 
+                 selectedTeam.school === currentParams.team && (
                   <div ref={teamColorPickerRef} className="absolute top-full left-0 mt-1 bg-white border border-neutral-300 rounded-md shadow-lg z-50 p-2">
                     <div className="grid grid-cols-5 gap-1 w-40">
                       {/* Default option */}
@@ -489,7 +505,11 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                  games.length === 0 ? 'No games found' : 'Select a game'}
               </span>
               {/* Color Picker inside input for opponent team */}
-              {selectedGame && opponentTeam && hasDataBeenFetched && (
+              {selectedGame && opponentTeam && hasDataBeenFetched && currentParams && 
+               selectedTeam && selectedTeam.school === currentParams.team &&
+               selectedGame.season === currentParams.year &&
+               selectedGame.week === currentParams.week &&
+               selectedGame.seasonType === currentParams.seasonType && (
                 <div className="absolute inset-y-0 right-10 flex items-center">
                   <div 
                     className="w-5 h-5 rounded border border-neutral-200 cursor-pointer hover:scale-110 transition-transform"
@@ -543,7 +563,11 @@ const GameSelector: React.FC<GameSelectorProps> = ({
             </Listbox.Options>
             
             {/* Opponent Color Picker Dropdown */}
-            {showOpponentColorPicker && selectedGame && opponentTeam && hasDataBeenFetched && (
+            {showOpponentColorPicker && selectedGame && opponentTeam && hasDataBeenFetched && currentParams && 
+             selectedTeam && selectedTeam.school === currentParams.team &&
+             selectedGame.season === currentParams.year &&
+             selectedGame.week === currentParams.week &&
+             selectedGame.seasonType === currentParams.seasonType && (
               <div ref={opponentColorPickerRef} className="absolute top-full left-0 mt-1 bg-white border border-neutral-300 rounded-md shadow-lg z-50 p-2">
                 <div className="grid grid-cols-5 gap-1 w-40">
                   {/* Default option */}
