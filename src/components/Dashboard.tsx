@@ -379,7 +379,7 @@ const Dashboard: React.FC = () => {
 
                           <div>
                             <h4 className="font-semibold text-neutral-900 mt-5 mb-0.5">Team color conflicts:</h4>
-                            <p className="text-neutral-600 leading-tight">Having trouble distinguishing between opponents with similar colors? Use the team color override checkboxes at the top of the screen to display one team in gray.</p>
+                            <p className="text-neutral-600 leading-tight">Having trouble distinguishing between opponents with similar colors? Use the team color override controls in the team selection area up top.</p>
                           </div>
 
                           <div>
