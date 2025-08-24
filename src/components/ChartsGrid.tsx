@@ -20,8 +20,8 @@ initializeChartDefaults();
 interface ChartsGridProps {
   plays: PlayData[];
   team: string;
-  overrideTeam1ToGray?: boolean;
-  overrideTeam2ToGray?: boolean;
+  selectedTeamColor?: string;
+  selectedOpponentColor?: string;
   currentParams?: {
     year: number;
     week: number;
@@ -31,7 +31,7 @@ interface ChartsGridProps {
   } | null;
 }
 
-const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGray = false, overrideTeam2ToGray = false, currentParams = null }) => {
+const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor = 'default', selectedOpponentColor = 'default', currentParams = null }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -920,7 +920,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, overrideTeam1ToGra
     }
   };
 
-  const chartData = useChartData(plays, team, overrideTeam1ToGray, overrideTeam2ToGray);
+  const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor);
   const {
     team: selectedTeam,
     opponentTeam,

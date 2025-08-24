@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play, ChevronDown, Check } from 'lucide-react';
 import { Listbox, Combobox } from '@headlessui/react';
 import { fetchTeams, fetchGamesForTeam, Team, TeamGame } from '../services/api';
+import { getTeamColors } from '../utils/teamColors';
+import { colorPalette } from '../utils/colorPalette';
 
 interface GameSelectorProps {
   onFetchData: (params: {
@@ -11,10 +13,10 @@ interface GameSelectorProps {
     team: string;
   }) => void;
   isLoading: boolean;
-  overrideTeam1ToGray: boolean;
-  setOverrideTeam1ToGray: (value: boolean) => void;
-  overrideTeam2ToGray: boolean;
-  setOverrideTeam2ToGray: (value: boolean) => void;
+  selectedTeamColor: string;
+  setSelectedTeamColor: (value: string) => void;
+  selectedOpponentColor: string;
+  setSelectedOpponentColor: (value: string) => void;
   currentParams: {
     year: number;
     week: number;
@@ -22,27 +24,35 @@ interface GameSelectorProps {
     team: string;
   } | null;
   opponentTeam: string;
+  hasDataBeenFetched: boolean;
 }
 
 const GameSelector: React.FC<GameSelectorProps> = ({ 
   onFetchData, 
   isLoading, 
-  overrideTeam1ToGray, 
-  setOverrideTeam1ToGray, 
-  overrideTeam2ToGray, 
-  setOverrideTeam2ToGray, 
+  selectedTeamColor,
+  setSelectedTeamColor,
+  selectedOpponentColor,
+  setSelectedOpponentColor,
   currentParams, 
-  opponentTeam 
+  opponentTeam,
+  hasDataBeenFetched
 }) => {
   const [year, setYear] = useState<number>(2024);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamQuery, setTeamQuery] = useState<string>('');
+  const [showTeamColorPicker, setShowTeamColorPicker] = useState<boolean>(false);
+  const [showOpponentColorPicker, setShowOpponentColorPicker] = useState<boolean>(false);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loadingTeams, setLoadingTeams] = useState<boolean>(false);
   const [selectedGame, setSelectedGame] = useState<TeamGame | null>(null);
   const [games, setGames] = useState<TeamGame[]>([]);
   const [loadingGames, setLoadingGames] = useState<boolean>(false);
   const [isLoadingFromURL, setIsLoadingFromURL] = useState<boolean>(true); // Start as true to prevent initial URL updates
+  
+  // Refs for click outside functionality
+  const teamColorPickerRef = useRef<HTMLDivElement>(null);
+  const opponentColorPickerRef = useRef<HTMLDivElement>(null);
 
   const handleFetchData = () => {
     if (selectedGame && selectedTeam) {
@@ -54,6 +64,25 @@ const GameSelector: React.FC<GameSelectorProps> = ({
       });
     }
   };
+
+  // Handle clicks outside color picker dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (teamColorPickerRef.current && !teamColorPickerRef.current.contains(event.target as Node)) {
+        setShowTeamColorPicker(false);
+      }
+      if (opponentColorPickerRef.current && !opponentColorPickerRef.current.contains(event.target as Node)) {
+        setShowOpponentColorPicker(false);
+      }
+    };
+
+    if (showTeamColorPicker || showOpponentColorPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showTeamColorPicker, showOpponentColorPicker]);
 
   // Load teams on mount and handle URL parameters
   useEffect(() => {
@@ -69,18 +98,26 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         const urlYear = urlParams.get('year');
         const urlTeam = urlParams.get('team');
         const urlGameId = urlParams.get('gameId');
+        const urlTeamColor = urlParams.get('teamColor');
+        const urlOpponentColor = urlParams.get('opponentColor');
+        // Legacy support for old gray parameters
         const urlGrayTeam = urlParams.get('grayTeam') === 'true';
         const urlGrayOpponent = urlParams.get('grayOpponent') === 'true';
         
         // Check if we have URL parameters to load
         const hasURLParams = urlYear && urlTeam;
         
-        // Set color overrides from URL
-        if (urlParams.has('grayTeam')) {
-          setOverrideTeam1ToGray(urlGrayTeam);
+        // Set color overrides from URL (new system first, then legacy)
+        if (urlTeamColor) {
+          setSelectedTeamColor(urlTeamColor);
+        } else if (urlParams.has('grayTeam')) {
+          setSelectedTeamColor(urlGrayTeam ? 'neutral' : 'default');
         }
-        if (urlParams.has('grayOpponent')) {
-          setOverrideTeam2ToGray(urlGrayOpponent);
+        
+        if (urlOpponentColor) {
+          setSelectedOpponentColor(urlOpponentColor);
+        } else if (urlParams.has('grayOpponent')) {
+          setSelectedOpponentColor(urlGrayOpponent ? 'neutral' : 'default');
         }
         
         if (hasURLParams) {
@@ -232,11 +269,11 @@ const GameSelector: React.FC<GameSelectorProps> = ({
     }
     
     // Add color override parameters
-    if (overrideTeam1ToGray) {
-      params.set('grayTeam', 'true');
+    if (selectedTeamColor !== 'default') {
+      params.set('teamColor', selectedTeamColor);
     }
-    if (overrideTeam2ToGray) {
-      params.set('grayOpponent', 'true');
+    if (selectedOpponentColor !== 'default') {
+      params.set('opponentColor', selectedOpponentColor);
     }
     
     const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
@@ -248,7 +285,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
     if (!isLoadingFromURL) {
       updateURL();
     }
-  }, [year, selectedTeam, selectedGame, overrideTeam1ToGray, overrideTeam2ToGray, isLoadingFromURL]);
+  }, [year, selectedTeam, selectedGame, selectedTeamColor, selectedOpponentColor, isLoadingFromURL]);
 
   // Filter teams based on query
   const filteredTeams = teamQuery === '' 
@@ -315,11 +352,34 @@ const GameSelector: React.FC<GameSelectorProps> = ({
             <Combobox value={selectedTeam} onChange={setSelectedTeam}>
               <div className="relative">
                 <Combobox.Input
-                  className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 pr-10 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 pr-16 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                   displayValue={(team: Team | null) => team?.school || ''}
                   onChange={(event) => setTeamQuery(event.target.value)}
                   placeholder="e.g., Alabama"
                 />
+                {/* Color Picker inside input */}
+                {selectedTeam && hasDataBeenFetched && (
+                  <div className="absolute inset-y-0 right-10 flex items-center">
+                    <div 
+                      className="w-5 h-5 rounded border border-neutral-200 cursor-pointer hover:scale-110 transition-transform"
+                      style={{ 
+                        backgroundColor: (() => {
+                          if (selectedTeamColor === 'default') {
+                            const teamColors = getTeamColors(selectedTeam.school);
+                            return teamColors.success.replace(/rgba\(([^)]+)\)/, 'rgb($1)').replace(', 0.8', '');
+                          }
+                          const customColor = colorPalette.find(c => c.id === selectedTeamColor);
+                          return customColor ? customColor.primary : '#6B7280';
+                        })()
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowTeamColorPicker(!showTeamColorPicker);
+                      }}
+                    />
+                  </div>
+                )}
                 <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3">
                   <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
                 </Combobox.Button>
@@ -355,6 +415,59 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                     ))
                   )}
                 </Combobox.Options>
+                
+                {/* Team Color Picker Dropdown */}
+                {showTeamColorPicker && selectedTeam && hasDataBeenFetched && (
+                  <div ref={teamColorPickerRef} className="absolute top-full left-0 mt-1 bg-white border border-neutral-300 rounded-md shadow-lg z-50 p-2">
+                    <div className="grid grid-cols-5 gap-1 w-40">
+                      {/* Default option */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTeamColor('default');
+                          setShowTeamColorPicker(false);
+                        }}
+                        className={`w-7 h-7 rounded border-2 transition-all ${
+                          selectedTeamColor === 'default' 
+                            ? 'border-neutral-900 scale-110' 
+                            : 'border-neutral-200 hover:border-neutral-400'
+                        }`}
+                        style={{ 
+                          backgroundColor: (() => {
+                            const teamColors = getTeamColors(selectedTeam.school);
+                            return teamColors.success.replace(/rgba\(([^)]+)\)/, 'rgb($1)').replace(', 0.8', '');
+                          })()
+                        }}
+                        title="Default team colors"
+                      >
+                        {selectedTeamColor === 'default' && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full border border-neutral-900"></div>
+                          </div>
+                        )}
+                      </button>
+
+                      {/* Color palette options */}
+                      {colorPalette.map((color) => (
+                        <button
+                          key={color.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTeamColor(color.id);
+                            setShowTeamColorPicker(false);
+                          }}
+                          className={`w-7 h-7 rounded border-2 transition-all ${
+                            selectedTeamColor === color.id 
+                              ? 'border-neutral-900 scale-110' 
+                              : 'border-neutral-200 hover:border-neutral-400'
+                          }`}
+                          style={{ backgroundColor: color.primary }}
+                          title={`Custom color: ${color.id}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </Combobox>
           </div>
@@ -368,13 +481,36 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         </label>
         <Listbox value={selectedGame} onChange={setSelectedGame} disabled={!selectedTeam || loadingGames}>
           <div className="relative">
-            <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-3 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors cursor-default disabled:bg-neutral-100 disabled:cursor-not-allowed">
+            <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-3 pr-16 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors cursor-default disabled:bg-neutral-100 disabled:cursor-not-allowed">
               <span className="block truncate">
                 {!selectedTeam ? 'Select a team first' : 
                  loadingGames ? 'Loading games...' : 
                  selectedGame ? formatGameDisplay(selectedGame) : 
                  games.length === 0 ? 'No games found' : 'Select a game'}
               </span>
+              {/* Color Picker inside input for opponent team */}
+              {selectedGame && opponentTeam && hasDataBeenFetched && (
+                <div className="absolute inset-y-0 right-10 flex items-center">
+                  <div 
+                    className="w-5 h-5 rounded border border-neutral-200 cursor-pointer hover:scale-110 transition-transform"
+                    style={{ 
+                      backgroundColor: (() => {
+                        if (selectedOpponentColor === 'default') {
+                          const teamColors = getTeamColors(opponentTeam);
+                          return teamColors.success.replace(/rgba\(([^)]+)\)/, 'rgb($1)').replace(', 0.8', '');
+                        }
+                        const customColor = colorPalette.find(c => c.id === selectedOpponentColor);
+                        return customColor ? customColor.primary : '#6B7280';
+                      })()
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowOpponentColorPicker(!showOpponentColorPicker);
+                    }}
+                  />
+                </div>
+              )}
               <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                 <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
               </span>
@@ -405,38 +541,63 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 </Listbox.Option>
               ))}
             </Listbox.Options>
+            
+            {/* Opponent Color Picker Dropdown */}
+            {showOpponentColorPicker && selectedGame && opponentTeam && hasDataBeenFetched && (
+              <div ref={opponentColorPickerRef} className="absolute top-full left-0 mt-1 bg-white border border-neutral-300 rounded-md shadow-lg z-50 p-2">
+                <div className="grid grid-cols-5 gap-1 w-40">
+                  {/* Default option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOpponentColor('default');
+                      setShowOpponentColorPicker(false);
+                    }}
+                    className={`w-7 h-7 rounded border-2 transition-all ${
+                      selectedOpponentColor === 'default' 
+                        ? 'border-neutral-900 scale-110' 
+                        : 'border-neutral-200 hover:border-neutral-400'
+                    }`}
+                    style={{ 
+                      backgroundColor: (() => {
+                        const teamColors = getTeamColors(opponentTeam);
+                        return teamColors.success.replace(/rgba\(([^)]+)\)/, 'rgb($1)').replace(', 0.8', '');
+                      })()
+                    }}
+                    title="Default opponent colors"
+                  >
+                    {selectedOpponentColor === 'default' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full border border-neutral-900"></div>
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Color palette options */}
+                  {colorPalette.map((color) => (
+                    <button
+                      key={color.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedOpponentColor(color.id);
+                        setShowOpponentColorPicker(false);
+                      }}
+                      className={`w-7 h-7 rounded border-2 transition-all ${
+                        selectedOpponentColor === color.id 
+                          ? 'border-neutral-900 scale-110' 
+                          : 'border-neutral-200 hover:border-neutral-400'
+                      }`}
+                      style={{ backgroundColor: color.primary }}
+                      title={`Custom color: ${color.id}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Listbox>
       </div>
 
-      {/* Color Override Checkboxes - Desktop order: before button */}
-      {currentParams && opponentTeam !== 'Opponent' && (
-        <div className="w-full sm:flex-shrink-0 sm:w-auto space-y-2 order-3 sm:order-2">
-          <label className="hidden sm:block text-sm font-medium text-neutral-700 mb-2">
-            Color Overrides
-          </label>
-          <div className="flex flex-col gap-1 sm:gap-2">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={overrideTeam1ToGray}
-                onChange={(e) => setOverrideTeam1ToGray(e.target.checked)}
-                className="rounded border-neutral-300 text-emerald-600 focus:ring-emerald-500"
-              />
-              <span className="text-sm text-neutral-700">Chart team in gray</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={overrideTeam2ToGray}
-                onChange={(e) => setOverrideTeam2ToGray(e.target.checked)}
-                className="rounded border-neutral-300 text-emerald-600 focus:ring-emerald-500"
-              />
-              <span className="text-sm text-neutral-700">Chart opponent in gray</span>
-            </label>
-          </div>
-        </div>
-      )}
 
       {/* Fetch Button - Mobile order: before checkboxes, Desktop order: after checkboxes */}
       <div className="w-full sm:flex-shrink-0 sm:w-auto order-2 sm:order-3">

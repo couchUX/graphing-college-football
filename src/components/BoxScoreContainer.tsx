@@ -9,12 +9,12 @@ const generateBoxScoreEmbed = (
   allStats: BoxScoreStat[],
   team1Name: string,
   team2Name: string,
-  overrideTeam1ToGray: boolean,
-  overrideTeam2ToGray: boolean,
+  selectedTeamColor: string,
+  selectedOpponentColor: string,
   currentParams?: any
 ): string => {
-  const team1Colors = getDisplayTeamColors(team1Name, overrideTeam1ToGray);
-  const team2Colors = getDisplayTeamColors(team2Name, overrideTeam2ToGray);
+  const team1Colors = getDisplayTeamColors(team1Name, selectedTeamColor);
+  const team2Colors = getDisplayTeamColors(team2Name, selectedOpponentColor);
 
   // Generate game URL
   const gameUrl = currentParams ? (() => {
@@ -26,11 +26,11 @@ const generateBoxScoreEmbed = (
     if (currentParams.gameId) {
       params.set('gameId', currentParams.gameId.toString());
     }
-    if (overrideTeam1ToGray) {
-      params.set('grayTeam', 'true');
+    if (selectedTeamColor !== 'default') {
+      params.set('teamColor', selectedTeamColor);
     }
-    if (overrideTeam2ToGray) {
-      params.set('grayOpponent', 'true');
+    if (selectedOpponentColor !== 'default') {
+      params.set('opponentColor', selectedOpponentColor);
     }
     return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   })() : window.location.href;
@@ -195,8 +195,8 @@ interface BoxScoreContainerProps {
   secondTableStats: BoxScoreStat[];
   team1Name: string;
   team2Name: string;
-  overrideTeam1ToGray: boolean;
-  overrideTeam2ToGray: boolean;
+  selectedTeamColor: string;
+  selectedOpponentColor: string;
   onCopyEmbed?: (message: string) => void;
   currentParams?: any;
 }
@@ -206,8 +206,8 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
   secondTableStats,
   team1Name,
   team2Name,
-  overrideTeam1ToGray,
-  overrideTeam2ToGray,
+  selectedTeamColor,
+  selectedOpponentColor,
   onCopyEmbed,
   currentParams,
 }) => {
@@ -219,8 +219,8 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
       [...firstTableStats, ...secondTableStats],
       team1Name,
       team2Name,
-      overrideTeam1ToGray,
-      overrideTeam2ToGray,
+      selectedTeamColor,
+      selectedOpponentColor,
       currentParams
     );
 
@@ -261,8 +261,8 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
             team1Name={team1Name}
             team2Name={team2Name}
             tableTitle="Stats"
-            overrideTeam1ToGray={overrideTeam1ToGray}
-            overrideTeam2ToGray={overrideTeam2ToGray}
+            selectedTeamColor={selectedTeamColor}
+            selectedOpponentColor={selectedOpponentColor}
             isFirst={true}
           />
         </div>
@@ -272,8 +272,8 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
             team1Name={team1Name}
             team2Name={team2Name}
             tableTitle="Stats (cont'd)"
-            overrideTeam1ToGray={overrideTeam1ToGray}
-            overrideTeam2ToGray={overrideTeam2ToGray}
+            selectedTeamColor={selectedTeamColor}
+            selectedOpponentColor={selectedOpponentColor}
             isFirst={false}
           />
         </div>

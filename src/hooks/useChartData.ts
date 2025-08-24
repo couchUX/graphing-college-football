@@ -14,7 +14,7 @@ import {
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
 
-export const useChartData = (plays: PlayData[], team: string, overrideTeam1ToGray: boolean = false, overrideTeam2ToGray: boolean = false) => {
+export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default') => {
   return useMemo(() => {
     // Get opponent team
     const opponentTeam = plays.find(p => p.offense !== team && p.defense !== team)?.offense || 
@@ -25,8 +25,8 @@ export const useChartData = (plays: PlayData[], team: string, overrideTeam1ToGra
     const opponentPlays = plays.filter(p => p.offense === opponentTeam);
 
     // Get team colors with override support
-    const teamColors = getDisplayTeamColors(team, overrideTeam1ToGray);
-    const opponentColors = getDisplayTeamColors(opponentTeam, overrideTeam2ToGray);
+    const teamColors = getDisplayTeamColors(team, selectedTeamColor);
+    const opponentColors = getDisplayTeamColors(opponentTeam, selectedOpponentColor);
 
     // Calculate basic stats
     const teamSuccessfulPlays = teamPlays.filter(p => p.success).length;
@@ -614,5 +614,5 @@ export const useChartData = (plays: PlayData[], team: string, overrideTeam1ToGra
       // Enhanced player data creator
       createPlayerData
     };
-  }, [plays, team, overrideTeam1ToGray, overrideTeam2ToGray]);
+  }, [plays, team, selectedTeamColor, selectedOpponentColor]);
 };
