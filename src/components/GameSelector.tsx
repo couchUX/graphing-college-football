@@ -98,17 +98,25 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         const urlYear = urlParams.get('year');
         const urlTeam = urlParams.get('team');
         const urlGameId = urlParams.get('gameId');
+        const urlTeamColor = urlParams.get('teamColor');
+        const urlOpponentColor = urlParams.get('opponentColor');
+        // Legacy support for old gray parameters
         const urlGrayTeam = urlParams.get('grayTeam') === 'true';
         const urlGrayOpponent = urlParams.get('grayOpponent') === 'true';
         
         // Check if we have URL parameters to load
         const hasURLParams = urlYear && urlTeam;
         
-        // Set color overrides from URL
-        if (urlParams.has('grayTeam')) {
+        // Set color overrides from URL (new system first, then legacy)
+        if (urlTeamColor) {
+          setSelectedTeamColor(urlTeamColor);
+        } else if (urlParams.has('grayTeam')) {
           setSelectedTeamColor(urlGrayTeam ? 'neutral' : 'default');
         }
-        if (urlParams.has('grayOpponent')) {
+        
+        if (urlOpponentColor) {
+          setSelectedOpponentColor(urlOpponentColor);
+        } else if (urlParams.has('grayOpponent')) {
           setSelectedOpponentColor(urlGrayOpponent ? 'neutral' : 'default');
         }
         
@@ -262,10 +270,10 @@ const GameSelector: React.FC<GameSelectorProps> = ({
     
     // Add color override parameters
     if (selectedTeamColor !== 'default') {
-      params.set('grayTeam', 'true');
+      params.set('teamColor', selectedTeamColor);
     }
     if (selectedOpponentColor !== 'default') {
-      params.set('grayOpponent', 'true');
+      params.set('opponentColor', selectedOpponentColor);
     }
     
     const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;

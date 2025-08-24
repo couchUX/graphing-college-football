@@ -27,10 +27,10 @@ const generateBoxScoreEmbed = (
       params.set('gameId', currentParams.gameId.toString());
     }
     if (selectedTeamColor !== 'default') {
-      params.set('grayTeam', 'true');
+      params.set('teamColor', selectedTeamColor);
     }
     if (selectedOpponentColor !== 'default') {
-      params.set('grayOpponent', 'true');
+      params.set('opponentColor', selectedOpponentColor);
     }
     return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   })() : window.location.href;
