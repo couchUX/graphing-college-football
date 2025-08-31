@@ -557,12 +557,20 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                                         const data = chart.data;
                                         if (data.datasets.length) {
                                             return data.datasets.map((dataset, i) => {
+                                                // Handle backgroundColor arrays (like in Overall Team Performance chart)
+                                                let fillColor = dataset.backgroundColor;
+                                                if (dataset.label === '# Plays') {
+                                                    fillColor = 'white';
+                                                } else if (Array.isArray(dataset.backgroundColor)) {
+                                                    // For datasets with backgroundColor arrays, use the first color for legend
+                                                    fillColor = dataset.backgroundColor[0];
+                                                }
+
                                                 return {
                                                     text: dataset.label,
-                                                    fillStyle: dataset.label === '# Plays' ? 'white' : dataset.backgroundColor,
+                                                    fillStyle: fillColor,
                                                     strokeStyle: dataset.label === '# Plays' ? '#666' : dataset.borderColor,
                                                     lineWidth: dataset.label === '# Plays' ? 1 : dataset.borderWidth,
-                                                    pointStyle: dataset.pointStyle,
                                                     hidden: !chart.isDatasetVisible(i),
                                                     datasetIndex: i
                                                 };
