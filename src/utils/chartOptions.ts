@@ -227,21 +227,38 @@ export const createBarOptions = (): ChartOptions<'bar'> => ({
           const data = chart.data;
           if (data.datasets.length) {
             return data.datasets.map((dataset, i) => {
+              // Handle backgroundColor arrays (like in Overall Team Performance chart)
+              let fillColor = dataset.backgroundColor;
+              if (dataset.label === '# Plays') {
+                fillColor = 'white';
+              } else if (Array.isArray(dataset.backgroundColor)) {
+                // For datasets with backgroundColor arrays, use the first color for legend
+                fillColor = dataset.backgroundColor[0];
+              }
+
               return {
                 text: dataset.label,
-                fillStyle: dataset.label === '# Plays' ? 'white' : dataset.backgroundColor,
+                fillStyle: fillColor,
                 strokeStyle: dataset.label === '# Plays' ? '#666' : dataset.borderColor,
                 lineWidth: dataset.label === '# Plays' ? 1 : dataset.borderWidth,
-                pointStyle: dataset.pointStyle,
                 hidden: !chart.isDatasetVisible(i),
                 datasetIndex: i
               };
-            }).filter((item, index) => {
+            }).filter((_, index) => {
               // Apply the same filter logic as legendFilter
               const dataset = chart.data.datasets[index];
               if (!dataset || !dataset.data) return false;
               if (dataset.label === '# Plays') return true; // Always show # Plays
-              return dataset.data.some((value: number) => value > 0);
+              return dataset.data.some((value) => {
+                if (typeof value === 'number') {
+                  return value > 0;
+                }
+                // Handle other data types like Point, BubbleDataPoint, etc.
+                if (value && typeof value === 'object' && 'y' in value) {
+                  return (value as any).y > 0;
+                }
+                return false;
+              });
             });
           }
           return [];

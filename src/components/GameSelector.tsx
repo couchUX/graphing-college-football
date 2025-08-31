@@ -308,7 +308,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         team.school.toLowerCase().includes(teamQuery.toLowerCase())
       ).slice(0, 10); // Show top 10 matches
 
-  const years = [2025, 2024, 2023, 2022, 2021, 2020];
+  const years = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014];
 
   return (
     <div className="flex flex-wrap items-end gap-4">
