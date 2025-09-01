@@ -70,10 +70,27 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     return enhanced;
   };
   const generateEmbedCode = (_chartId: string, title: string, chartData: any, _chartOptions: any, _chartType: 'bar' | 'line') => {
-    // Generate the game URL using chart data parameters
-    const gameUrl = chartData.currentParams ? 
-      `https://graphingcollegefootball.com/?year=${chartData.currentParams.year}&team=${encodeURIComponent(chartData.currentParams.team)}${chartData.currentParams.gameId ? `&gameId=${chartData.currentParams.gameId}` : ''}` :
-      'https://graphingcollegefootball.com';
+    // Generate the game URL using chart data parameters - only include necessary params
+    const gameUrl = chartData.currentParams ? (() => {
+      const params = new URLSearchParams();
+      // Only include the essential parameters that the GameSelector expects
+      params.set('year', chartData.currentParams.year.toString());
+      params.set('team', chartData.currentParams.team);
+      if (chartData.currentParams.gameId) {
+        params.set('gameId', chartData.currentParams.gameId.toString());
+      }
+      // Note: Do NOT include week, seasonType as they're not needed for the main app URL
+      
+      // Add color parameters if they're not default
+      if (selectedTeamColor !== 'default') {
+        params.set('teamColor', selectedTeamColor);
+      }
+      if (selectedOpponentColor !== 'default') {
+        params.set('opponentColor', selectedOpponentColor);
+      }
+      
+      return `https://graphingcollegefootball.com/?${params.toString()}`;
+    })() : 'https://graphingcollegefootball.com';
     
     // Generate chart-specific data definitions
     const getDataDefinitions = (chartType: 'bar' | 'line', title: string) => {

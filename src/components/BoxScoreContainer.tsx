@@ -16,24 +16,27 @@ const generateBoxScoreEmbed = (
   const team1Colors = getDisplayTeamColors(team1Name, selectedTeamColor);
   const team2Colors = getDisplayTeamColors(team2Name, selectedOpponentColor);
 
-  // Generate game URL
+  // Generate game URL - only include necessary parameters
   const gameUrl = currentParams ? (() => {
     const params = new URLSearchParams();
+    // Only include the essential parameters that the GameSelector expects
     params.set('year', currentParams.year.toString());
-    params.set('seasonType', currentParams.seasonType);
-    params.set('week', currentParams.week.toString());
     params.set('team', currentParams.team);
     if (currentParams.gameId) {
       params.set('gameId', currentParams.gameId.toString());
     }
+    // Note: Do NOT include week, seasonType as they're not needed for the main app URL
+    
+    // Add color parameters if they're not default
     if (selectedTeamColor !== 'default') {
       params.set('teamColor', selectedTeamColor);
     }
     if (selectedOpponentColor !== 'default') {
       params.set('opponentColor', selectedOpponentColor);
     }
-    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-  })() : window.location.href;
+    
+    return `https://graphingcollegefootball.com/?${params.toString()}`;
+  })() : 'https://graphingcollegefootball.com';
 
   const statsRows = allStats.map((stat, index) => `
     <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}">
