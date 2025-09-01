@@ -99,18 +99,11 @@ const generateBoxScoreEmbed = (
             text-align: left;
             font-size: 14px;
             font-weight: 600;
-            border-bottom: 4px solid;
-        }
-        th.team1-header {
-            border-bottom-color: ${team1Colors.success || '#6b7280'};
-            text-align: center;
-        }
-        th.team2-header {
-            border-bottom-color: ${team2Colors.success || '#6b7280'};
+            border-bottom: 4px solid #475569;
             text-align: center;
         }
         th.stat-header {
-            border-bottom-color: #475569;
+            text-align: left;
         }
         tbody tr {
             border-bottom: 1px solid #e5e5e5;
@@ -174,8 +167,8 @@ const generateBoxScoreEmbed = (
                 <thead>
                     <tr>
                         <th class="stat-header">Stats</th>
-                        <th class="team1-header">${team1Name || 'Team 1'}</th>
-                        <th class="team2-header">${team2Name || 'Team 2'}</th>
+                        <th style="border-bottom-color: ${team1Colors.success || '#6b7280'}; text-align: center;">${team1Name || 'Team 1'}</th>
+                        <th style="border-bottom-color: ${team2Colors.success || '#6b7280'}; text-align: center;">${team2Name || 'Team 2'}</th>
                     </tr>
                 </thead>
                 <tbody>
