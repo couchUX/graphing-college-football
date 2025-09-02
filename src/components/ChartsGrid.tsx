@@ -166,13 +166,13 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
         if (_chartId === 'overall-team-performance' && dataset.label === 'Success Rate (SR)') {
           // Store the play counts directly in the dataset for the embed
           cleanedDataset.playCountData = dataset.data.map((value: number, index: number) => {
-            // Extract play counts from the original formatter logic
+            // Extract play counts using the correct property names
             if (index === 0) {
-              // Team data - count from chartData context if available
-              return chartData.teamPlays?.length || Math.round(value * 100); // fallback to percentage if counts not available
+              // Team data - use teamPlayCount from enhanced data
+              return chartData.teamPlayCount || Math.round(value * 100);
             } else {
-              // Opponent data
-              return chartData.opponentPlays?.length || Math.round(value * 100);
+              // Opponent data - use opponentPlayCount from enhanced data
+              return chartData.opponentPlayCount || Math.round(value * 100);
             }
           });
         }
