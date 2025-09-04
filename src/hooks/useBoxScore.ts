@@ -57,7 +57,7 @@ export const useBoxScore = (params: {
         }
 
         // Process the raw data into our format
-        const processedData = processBoxScoreData(game.teams, params.team, plays, opponentTeam);
+        const processedData = processBoxScoreData(game.teams, params.team, plays, opponentTeam, game);
         setBoxScoreData(processedData);
       } catch (err) {
         setError('Failed to load box score data');
@@ -74,7 +74,7 @@ export const useBoxScore = (params: {
   return { boxScoreData, loading, error };
 };
 
-const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, plays?: PlayData[], opponentTeam?: string): ProcessedBoxScore => {
+const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, plays?: PlayData[], opponentTeam?: string, game?: Game): ProcessedBoxScore => {
 
   // Ensure we have at least 2 teams
   if (!rawData || rawData.length < 2) {
@@ -130,6 +130,29 @@ const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, play
     return value;
   };
 
+  // Helper function to get stat value with fallback category names
+  const getStatWithFallback = (team: BoxScoreTeam, primaryCategory: string, fallbackCategories: string[] = []): string => {
+    // Try primary category first
+    let stat = team.stats.find(s => s.category === primaryCategory);
+    if (stat) {
+      console.log(`Found stat for primary category "${primaryCategory}":`, stat.stat);
+      return stat.stat;
+    }
+    
+    // Try fallback categories
+    for (const fallback of fallbackCategories) {
+      stat = team.stats.find(s => s.category === fallback);
+      if (stat) {
+        console.log(`Found stat for fallback category "${fallback}":`, stat.stat);
+        return stat.stat;
+      }
+    }
+    
+    console.log(`No stat found for "${primaryCategory}" or fallbacks:`, fallbackCategories);
+    console.log('Available categories:', team.stats.map(s => s.category));
+    return '0';
+  };
+
   // Helper function to safely parse integer
   const parseIntSafe = (value: string): number => {
     const parsed = parseInt(value) || 0;
@@ -174,6 +197,11 @@ const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, play
       label: 'Points',
       team1Value: team1.points.toString(),
       team2Value: team2.points.toString(),
+    },
+    {
+      label: 'Game Excitement',
+      team1Value: game?.excitementIndex ? game.excitementIndex.toFixed(1) : '0',
+      team2Value: game?.excitementIndex ? game.excitementIndex.toFixed(1) : '0',
     },
     {
       label: 'Total yards',
@@ -228,6 +256,11 @@ const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, play
       label: '4th down eff',
       team1Value: getStat(team1, 'fourthDownEff'),
       team2Value: getStat(team2, 'fourthDownEff'),
+    },
+    {
+      label: 'Explosiveness',
+      team1Value: game?.advancedStats?.[team1Name]?.explosiveness ? game.advancedStats[team1Name].explosiveness!.toFixed(2) : '0',
+      team2Value: game?.advancedStats?.[team2Name]?.explosiveness ? game.advancedStats[team2Name].explosiveness!.toFixed(2) : '0',
     },
     {
       label: 'Turnovers',
