@@ -22,6 +22,7 @@ interface GameSelectorProps {
     week: number;
     seasonType: string;
     team: string;
+    gameId?: string;
   } | null;
   opponentTeam: string;
   hasDataBeenFetched: boolean;
@@ -268,31 +269,47 @@ const GameSelector: React.FC<GameSelectorProps> = ({
       params.set('gameId', currentGame.id.toString());
     }
     
-    // Add color override parameters
+    // Add color override parameters (and ensure removal when default)
     if (selectedTeamColor !== 'default') {
       params.set('teamColor', selectedTeamColor);
+    } else {
+      params.delete('teamColor'); // Remove parameter when color is default
     }
     if (selectedOpponentColor !== 'default') {
       params.set('opponentColor', selectedOpponentColor);
+    } else {
+      params.delete('opponentColor'); // Remove parameter when color is default
     }
     
     const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
     window.history.replaceState({}, '', newURL);
   };
 
+  // Keep track of previous opponent to detect changes
+  const [previousOpponent, setPreviousOpponent] = useState<string>('');
+
   // Reset color selections when team or game changes (if not loading from URL)
   useEffect(() => {
     if (!isLoadingFromURL && hasDataBeenFetched) {
-      // Only reset if the selected team doesn't match the currently fetched data
-      if (!currentParams || !selectedTeam || selectedTeam.school !== currentParams.team) {
+      // Reset if the selected team doesn't match the currently fetched data
+      // OR if the opponent team has changed
+      const teamChanged = !currentParams || !selectedTeam || selectedTeam.school !== currentParams.team;
+      const opponentChanged = opponentTeam !== previousOpponent && previousOpponent !== '';
+      
+      if (teamChanged || opponentChanged) {
         setSelectedTeamColor('default');
         setSelectedOpponentColor('default');
         // Close any open color pickers
         setShowTeamColorPicker(false);
         setShowOpponentColorPicker(false);
       }
+      
+      // Update previous opponent for next comparison
+      if (opponentTeam && opponentTeam !== previousOpponent) {
+        setPreviousOpponent(opponentTeam);
+      }
     }
-  }, [selectedTeam, selectedGame, hasDataBeenFetched, currentParams, isLoadingFromURL]);
+  }, [selectedTeam, selectedGame, hasDataBeenFetched, currentParams, isLoadingFromURL, opponentTeam, previousOpponent]);
 
   // Update URL when selections change (but not during initial URL loading)
   useEffect(() => {
@@ -373,7 +390,8 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 />
                 {/* Color Picker inside input */}
                 {selectedTeam && hasDataBeenFetched && currentParams && 
-                 selectedTeam.school === currentParams.team && (
+                 selectedTeam.school === currentParams.team &&
+                 (!currentParams.gameId || !selectedGame || selectedGame.id.toString() === currentParams.gameId) && (
                   <div className="absolute inset-y-0 right-10 flex items-center">
                     <div 
                       className="w-5 h-5 rounded border border-neutral-200 cursor-pointer hover:scale-110 transition-transform"
@@ -433,7 +451,8 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 
                 {/* Team Color Picker Dropdown */}
                 {showTeamColorPicker && selectedTeam && hasDataBeenFetched && currentParams && 
-                 selectedTeam.school === currentParams.team && (
+                 selectedTeam.school === currentParams.team &&
+                 (!currentParams.gameId || !selectedGame || selectedGame.id.toString() === currentParams.gameId) && (
                   <div ref={teamColorPickerRef} className="absolute top-full left-0 mt-1 bg-white border border-neutral-300 rounded-md shadow-lg z-50 p-2">
                     <div className="grid grid-cols-5 gap-1 w-40">
                       {/* Default option */}
@@ -509,6 +528,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                selectedTeam && selectedTeam.school === currentParams.team &&
                selectedGame.season === currentParams.year &&
                selectedGame.week === currentParams.week &&
+               (!currentParams.gameId || selectedGame.id.toString() === currentParams.gameId) &&
                selectedGame.seasonType === currentParams.seasonType && (
                 <div className="absolute inset-y-0 right-10 flex items-center">
                   <div 
@@ -567,6 +587,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
              selectedTeam && selectedTeam.school === currentParams.team &&
              selectedGame.season === currentParams.year &&
              selectedGame.week === currentParams.week &&
+             (!currentParams.gameId || selectedGame.id.toString() === currentParams.gameId) &&
              selectedGame.seasonType === currentParams.seasonType && (
               <div ref={opponentColorPickerRef} className="absolute top-full left-0 mt-1 bg-white border border-neutral-300 rounded-md shadow-lg z-50 p-2">
                 <div className="grid grid-cols-5 gap-1 w-40">

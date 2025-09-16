@@ -158,6 +158,10 @@ const Dashboard: React.FC = () => {
     setIsLoading(true);
     setError(null);
     
+    // Clear existing data immediately to hide color selectors during team switch
+    setPlays([]);
+    setRawApiData([]);
+    
     // Get gameId from URL if available
     const urlParams = new URLSearchParams(window.location.search);
     const gameId = urlParams.get('gameId');
@@ -168,7 +172,10 @@ const Dashboard: React.FC = () => {
     });
     
     try {
-      const apiPlays = await fetchPlayByPlayData(params);
+      const apiPlays = await fetchPlayByPlayData({
+        ...params,
+        gameId: gameId || undefined
+      });
       setRawApiData(apiPlays); // Store raw API data for debugging
       const processedPlays = processPlayData(apiPlays);
       setPlays(processedPlays);

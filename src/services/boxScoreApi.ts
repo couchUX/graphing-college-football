@@ -27,21 +27,66 @@ export const fetchBoxScore = async (params: {
   week: number;
   seasonType: string;
   team: string;
+  gameId?: string;
 }): Promise<Game[]> => {
   try {
-    const { year, week, seasonType, team } = params;
-    const baseUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${team}&week=${week}`;
+    const { year, week, seasonType, team, gameId } = params;
     
-    console.log('Fetching box score from:', baseUrl);
+    let data;
     
-    // Fetch basic box score data
-    const response = await fetch(baseUrl, { headers: getApiHeaders() });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // If gameId is provided, try to filter by specific game
+    if (gameId) {
+      // Get game info first
+      const gameInfoUrl = `${API_BASE_URL}/games?id=${gameId}`;
+      console.log('Fetching game info for box score from:', gameInfoUrl);
+      
+      try {
+        const gameInfoResponse = await fetch(gameInfoUrl, { headers: getApiHeaders() });
+        if (gameInfoResponse.ok) {
+          const gameInfo = await gameInfoResponse.json();
+          if (gameInfo.length > 0) {
+            const game = gameInfo[0];
+            
+            // Try to get box score by gameId (using the game's week)
+            const gameSpecificUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${team}&week=${game.week}`;
+            console.log('Fetching box score by game week from:', gameSpecificUrl);
+            
+            const gameSpecificResponse = await fetch(gameSpecificUrl, { headers: getApiHeaders() });
+            if (gameSpecificResponse.ok) {
+              const gameSpecificData = await gameSpecificResponse.json();
+              
+              // Filter to only the specific game
+              const filteredData = gameSpecificData.filter((g: any) => g.id.toString() === gameId.toString());
+              
+              if (filteredData.length > 0) {
+                console.log('Successfully filtered box score data by gameId:', filteredData.length);
+                data = filteredData;
+              } else {
+                console.log('No box score data found for specific gameId, falling back to week-based fetch');
+                data = gameSpecificData;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Game-specific box score fetch failed, falling back to week-based fetch:', error);
+      }
     }
     
-    const data = await response.json();
+    // Fallback to week-based fetch if gameId approach failed
+    if (!data) {
+      const baseUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${team}&week=${week}`;
+      console.log('Fetching box score by week from:', baseUrl);
+      
+      const response = await fetch(baseUrl, { headers: getApiHeaders() });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      data = await response.json();
+    }
+    
     console.log('Fetched box score data:', data);
     
     // Enhance with additional metrics for each game

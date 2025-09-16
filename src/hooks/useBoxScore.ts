@@ -20,6 +20,7 @@ export const useBoxScore = (params: {
   week: number;
   seasonType: string;
   team: string;
+  gameId?: string;
 } | null, plays?: PlayData[], opponentTeam?: string) => {
   const [boxScoreData, setBoxScoreData] = useState<ProcessedBoxScore | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -45,7 +46,10 @@ export const useBoxScore = (params: {
       setError(null);
       
       try {
-        const games = await fetchBoxScore(params);
+        const games = await fetchBoxScore({
+          ...params,
+          gameId: params.gameId
+        });
         
         if (games.length === 0) {
           throw new Error('No games found for the specified parameters');

@@ -131,12 +131,37 @@ export const fetchPlayByPlayData = async (params: {
   week: number;
   seasonType: string;
   team: string;
+  gameId?: string;
 }): Promise<ApiPlayData[]> => {
   try {
-    const { year, week, seasonType, team } = params;
-    const url = `${API_BASE_URL}/plays?seasonType=${seasonType}&year=${year}&team=${team}&week=${week}`;
+    const { year, week, seasonType, team, gameId } = params;
     
-    console.log('Fetching from:', url);
+    // If gameId is provided, try to fetch by gameId first
+    if (gameId) {
+      const gameIdUrl = `${API_BASE_URL}/plays?gameId=${gameId}`;
+      console.log('Fetching plays by gameId from:', gameIdUrl);
+      
+      try {
+        const gameIdResponse = await fetch(gameIdUrl, { headers: getApiHeaders() });
+        if (gameIdResponse.ok) {
+          const gameIdData = await gameIdResponse.json();
+          console.log('Fetched plays by gameId:', gameIdData.length);
+          
+          // If we got meaningful data (more than a few plays), use it
+          if (gameIdData.length > 10) {
+            return gameIdData;
+          } else {
+            console.log('GameId returned insufficient data, falling back to week-based fetch');
+          }
+        }
+      } catch (error) {
+        console.log('GameId fetch failed, falling back to week-based fetch:', error);
+      }
+    }
+    
+    // Fallback to week-based fetch
+    const url = `${API_BASE_URL}/plays?seasonType=${seasonType}&year=${year}&team=${team}&week=${week}`;
+    console.log('Fetching plays by week from:', url);
     
     const response = await fetch(url, { headers: getApiHeaders() });
     
@@ -145,10 +170,57 @@ export const fetchPlayByPlayData = async (params: {
     }
     
     const data = await response.json();
-    console.log('Fetched plays:', data.length);
+    console.log('Fetched plays by week:', data.length);
+    
+    // If gameId was provided but gameId fetch failed, try to filter the week-based results
+    let finalData = data;
+    if (gameId && data.length > 0) {
+      console.log('Attempting to filter week-based results by gameId:', gameId);
+      
+      try {
+        // Get game info to help with filtering
+        const gameInfoUrl = `${API_BASE_URL}/games?id=${gameId}`;
+        const gameInfoResponse = await fetch(gameInfoUrl, { headers: getApiHeaders() });
+        
+        if (gameInfoResponse.ok) {
+          const gameInfo = await gameInfoResponse.json();
+          if (gameInfo.length > 0) {
+            const game = gameInfo[0];
+            const gameDate = new Date(game.startDate);
+            const gameDateString = gameDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+            
+            console.log('Game date for filtering:', gameDateString);
+            
+            // Filter plays by matching the game date (with tolerance for games spanning midnight)
+            const filteredPlays = data.filter((play: ApiPlayData) => {
+              if (play.wallclock) {
+                const playDateTime = new Date(play.wallclock);
+                const gameDateTime = new Date(game.startDate);
+                
+                // Allow plays within 24 hours of game start (to handle games that span midnight)
+                const timeDiff = Math.abs(playDateTime.getTime() - gameDateTime.getTime());
+                const hoursDiff = timeDiff / (1000 * 60 * 60);
+                
+                return hoursDiff <= 24;
+              }
+              return false;
+            });
+            
+            if (filteredPlays.length > 0) {
+              console.log(`Filtered plays by game date: ${filteredPlays.length} plays for game ${gameId}`);
+              finalData = filteredPlays;
+            } else {
+              console.log('Date filtering failed, returning all week plays');
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Game filtering failed:', error);
+      }
+    }
     
     // Ensure IDs are treated as strings
-    const processedData = data.map((play: any) => ({
+    const processedData = finalData.map((play: any) => ({
       ...play,
       id: String(play.id) // Convert ID to string to handle large numbers properly
     }));
