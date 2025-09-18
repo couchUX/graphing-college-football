@@ -106,7 +106,7 @@ export const fetchGamesForTeam = async (params: {
 }): Promise<TeamGame[]> => {
   try {
     const { year, team } = params;
-    const url = `${API_BASE_URL}/games?year=${year}&team=${team}`;
+    const url = `${API_BASE_URL}/games?year=${year}&team=${encodeURIComponent(team)}`;
     
     console.log('Fetching games from:', url);
     
@@ -160,7 +160,7 @@ export const fetchPlayByPlayData = async (params: {
     }
     
     // Fallback to week-based fetch
-    const url = `${API_BASE_URL}/plays?seasonType=${seasonType}&year=${year}&team=${team}&week=${week}`;
+    const url = `${API_BASE_URL}/plays?seasonType=${seasonType}&year=${year}&team=${encodeURIComponent(team)}&week=${week}`;
     console.log('Fetching plays by week from:', url);
     
     const response = await fetch(url, { headers: getApiHeaders() });

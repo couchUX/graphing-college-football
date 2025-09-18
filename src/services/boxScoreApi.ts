@@ -48,7 +48,7 @@ export const fetchBoxScore = async (params: {
             const game = gameInfo[0];
             
             // Try to get box score by gameId (using the game's week)
-            const gameSpecificUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${team}&week=${game.week}`;
+            const gameSpecificUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${encodeURIComponent(team)}&week=${game.week}`;
             console.log('Fetching box score by game week from:', gameSpecificUrl);
             
             const gameSpecificResponse = await fetch(gameSpecificUrl, { headers: getApiHeaders() });
@@ -75,7 +75,7 @@ export const fetchBoxScore = async (params: {
     
     // Fallback to week-based fetch if gameId approach failed
     if (!data) {
-      const baseUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${team}&week=${week}`;
+      const baseUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${encodeURIComponent(team)}&week=${week}`;
       console.log('Fetching box score by week from:', baseUrl);
       
       const response = await fetch(baseUrl, { headers: getApiHeaders() });
@@ -130,7 +130,7 @@ export const fetchBoxScore = async (params: {
             
             for (const teamName of teamNames) {
               try {
-                const teamAdvancedUrl = `${API_BASE_URL}/stats/game/advanced?year=${year}&week=${week}&seasonType=${seasonType}&team=${teamName}`;
+                const teamAdvancedUrl = `${API_BASE_URL}/stats/game/advanced?year=${year}&week=${week}&seasonType=${seasonType}&team=${encodeURIComponent(teamName)}`;
                 const teamResponse = await fetch(teamAdvancedUrl, { headers: getApiHeaders() });
                 
                 if (teamResponse.ok) {
