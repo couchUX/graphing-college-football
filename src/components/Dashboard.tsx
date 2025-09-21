@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle } from 'lucide-react';
+import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle, Link } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -9,6 +9,7 @@ import { fetchPlayByPlayData } from '../services/api';
 import { processPlayData } from '../utils/metrics';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { useBoxScore } from '../hooks/useBoxScore';
+import { createShareableUrl, copyToClipboard } from '../services/urlShortener';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
 const Dashboard: React.FC = () => {
@@ -42,6 +43,34 @@ const Dashboard: React.FC = () => {
   // Toast handler for embed copying
   const handleCopyEmbed = (message: string) => {
     setToastMessage(message);
+    setShowToast(true);
+  };
+
+  // Handler for copying page link
+  const handleCopyPageLink = async () => {
+    if (!currentParams) {
+      setToastMessage('No game data available to share');
+      setShowToast(true);
+      return;
+    }
+
+    const params = {
+      year: currentParams.year,
+      team: currentParams.team,
+      gameId: currentParams.gameId,
+      teamColor: selectedTeamColor !== 'default' ? selectedTeamColor : undefined,
+      opponentColor: selectedOpponentColor !== 'default' ? selectedOpponentColor : undefined
+    };
+
+    const shareableUrl = createShareableUrl(params);
+    const success = await copyToClipboard(shareableUrl);
+
+    if (success) {
+      setToastMessage('Page link copied to clipboard!');
+    } else {
+      setToastMessage('Failed to copy link');
+    }
+
     setShowToast(true);
   };
 
@@ -286,9 +315,18 @@ const Dashboard: React.FC = () => {
         {/* Game Info Banner */}
         {plays.length > 0 && currentParams && (
           <div className="mb-8">
-            <h3 className="text-2xl font-bold text-neutral-900 mb-2">
-              {currentParams.team} vs. {opponentTeam}
-            </h3>
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-2xl font-bold text-neutral-900">
+                {currentParams.team} vs. {opponentTeam}
+              </h3>
+              <button
+                onClick={handleCopyPageLink}
+                className="flex items-center justify-center w-8 h-8 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200 group"
+                title="Copy short link to this page"
+              >
+                <Link className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
             <p className="text-neutral-600 mb-6">
               {currentParams.year} • Week {currentParams.week} • {currentParams.seasonType === 'regular' ? 'Regular Season' : 'Postseason'}
             </p>

@@ -230,6 +230,7 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
     }
   };
 
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
       <div className="flex items-center justify-between mb-6">
@@ -237,8 +238,8 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
         <button
           onClick={handleCopyEmbed}
           className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-            copied 
-              ? 'border-green-300 bg-green-50' 
+            copied
+              ? 'border-green-300 bg-green-50'
               : 'border-neutral-300 hover:bg-neutral-50'
           }`}
           title={copied ? "Copied!" : "Copy embed code"}

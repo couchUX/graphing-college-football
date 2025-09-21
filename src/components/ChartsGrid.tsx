@@ -945,6 +945,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     }
   };
 
+
   const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor);
   const {
     team: selectedTeam,
@@ -1101,8 +1102,8 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                 <button
                   onClick={() => handleCopyEmbed(chart.id, chart.title)}
                   className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                    copiedChart === chart.id 
-                      ? 'border-green-300 bg-green-50' 
+                    copiedChart === chart.id
+                      ? 'border-green-300 bg-green-50'
                       : 'border-neutral-300 hover:bg-neutral-50'
                   }`}
                   title={copiedChart === chart.id ? "Copied!" : "Copy embed code"}
@@ -1142,8 +1143,8 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                 <button
                   onClick={() => handleCopyEmbed(playerCharts[0].id, playerCharts[0].title)}
                   className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                    copiedChart === playerCharts[0].id 
-                      ? 'border-green-300 bg-green-50' 
+                    copiedChart === playerCharts[0].id
+                      ? 'border-green-300 bg-green-50'
                       : 'border-neutral-300 hover:bg-neutral-50'
                   }`}
                   title={copiedChart === playerCharts[0].id ? "Copied!" : "Copy embed code"}
@@ -1174,8 +1175,8 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                 <button
                   onClick={() => handleCopyEmbed(playerCharts[1].id, playerCharts[1].title)}
                   className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                    copiedChart === playerCharts[1].id 
-                      ? 'border-green-300 bg-green-50' 
+                    copiedChart === playerCharts[1].id
+                      ? 'border-green-300 bg-green-50'
                       : 'border-neutral-300 hover:bg-neutral-50'
                   }`}
                   title={copiedChart === playerCharts[1].id ? "Copied!" : "Copy embed code"}
@@ -1207,8 +1208,8 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
               <button
                 onClick={() => handleCopyEmbed(playerCharts[2].id, playerCharts[2].title)}
                 className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                  copiedChart === playerCharts[2].id 
-                    ? 'border-green-300 bg-green-50' 
+                  copiedChart === playerCharts[2].id
+                    ? 'border-green-300 bg-green-50'
                     : 'border-neutral-300 hover:bg-neutral-50'
                 }`}
                 title={copiedChart === playerCharts[2].id ? "Copied!" : "Copy embed code"}
