@@ -24,6 +24,8 @@ interface ApiPlayData {
   };
   wallclock: string;
   time_remaining: number;
+  home?: string;
+  away?: string;
 }
 
 export interface Team {
@@ -191,20 +193,41 @@ export const fetchPlayByPlayData = async (params: {
             
             console.log('Game date for filtering:', gameDateString);
             
-            // Filter plays by matching the game date (with tolerance for games spanning midnight)
-            const filteredPlays = data.filter((play: ApiPlayData) => {
-              if (play.wallclock) {
-                const playDateTime = new Date(play.wallclock);
-                const gameDateTime = new Date(game.startDate);
-                
-                // Allow plays within 24 hours of game start (to handle games that span midnight)
-                const timeDiff = Math.abs(playDateTime.getTime() - gameDateTime.getTime());
-                const hoursDiff = timeDiff / (1000 * 60 * 60);
-                
-                return hoursDiff <= 24;
-              }
-              return false;
+            // First try to filter by game_id if available in play data
+            let filteredPlays = data.filter((play: ApiPlayData) => {
+              return play.game_id && play.game_id.toString() === gameId.toString();
             });
+
+            // If no game_id filtering worked, try date-based filtering
+            if (filteredPlays.length === 0) {
+              console.log('No game_id matches found, trying date-based filtering');
+              filteredPlays = data.filter((play: ApiPlayData) => {
+                if (play.wallclock) {
+                  const playDateTime = new Date(play.wallclock);
+                  const gameDateTime = new Date(game.startDate);
+
+                  // Allow plays within 24 hours of game start (to handle games that span midnight)
+                  const timeDiff = Math.abs(playDateTime.getTime() - gameDateTime.getTime());
+                  const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+                  return hoursDiff <= 24;
+                }
+                return false;
+              });
+            }
+
+            // If still no matches, try filtering by opponent teams
+            if (filteredPlays.length === 0) {
+              console.log('Date filtering failed, trying team-based filtering');
+              const homeTeam = game.homeTeam;
+              const awayTeam = game.awayTeam;
+
+              filteredPlays = data.filter((play: ApiPlayData) => {
+                return (play.home && play.away &&
+                        ((play.home === homeTeam && play.away === awayTeam) ||
+                         (play.home === awayTeam && play.away === homeTeam)));
+              });
+            }
             
             if (filteredPlays.length > 0) {
               console.log(`Filtered plays by game date: ${filteredPlays.length} plays for game ${gameId}`);

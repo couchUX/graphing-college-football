@@ -244,11 +244,92 @@ const GameSelector: React.FC<GameSelectorProps> = ({
 
   const formatGameDisplay = (game: TeamGame) => {
     if (!selectedTeam) return '';
-    
+
     const opponent = game.homeTeam === selectedTeam.school ? game.awayTeam : game.homeTeam;
     const isHome = game.homeTeam === selectedTeam.school;
-    const weekLabel = game.seasonType === 'regular' ? `Week ${game.week}` : `Postseason ${game.week}`;
-    return `${weekLabel}: ${isHome ? 'vs' : '@'} ${opponent}`;
+
+    if (game.seasonType === 'regular') {
+      return `Week ${game.week}: ${isHome ? 'vs' : '@'} ${opponent}`;
+    } else {
+      // For postseason games, use more descriptive labels
+      let postseasonLabel = getPostseasonLabel(game, games);
+      return `${postseasonLabel}: ${isHome ? 'vs' : '@'} ${opponent}`;
+    }
+  };
+
+  const getPostseasonLabel = (game: TeamGame, allGames: TeamGame[]) => {
+    if (!game.notes) {
+      // If no notes, use chronological numbering for multiple postseason games
+      const postseasonGames = allGames
+        .filter(g => g.seasonType === 'postseason')
+        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+      if (postseasonGames.length > 1) {
+        const gameIndex = postseasonGames.findIndex(g => g.id === game.id);
+        return `Postseason ${gameIndex + 1}`;
+      }
+      return `Postseason ${game.week}`;
+    }
+
+    const notes = game.notes.toUpperCase();
+
+    // Championship game patterns (most specific first)
+    if (notes.includes('NATIONAL CHAMPIONSHIP') || notes.includes('CFP CHAMPIONSHIP')) {
+      return 'National Championship';
+    }
+
+    // Semifinal patterns
+    if (notes.includes('SEMIFINAL') || notes.includes('SEMI-FINAL')) {
+      return 'CFP Semifinal';
+    }
+
+    // New Year's Six Bowl patterns
+    if (notes.includes('ROSE BOWL')) return 'Rose Bowl';
+    if (notes.includes('SUGAR BOWL')) return 'Sugar Bowl';
+    if (notes.includes('ORANGE BOWL')) return 'Orange Bowl';
+    if (notes.includes('PEACH BOWL')) return 'Peach Bowl';
+    if (notes.includes('COTTON BOWL')) return 'Cotton Bowl';
+    if (notes.includes('FIESTA BOWL')) return 'Fiesta Bowl';
+
+    // Other major bowls
+    if (notes.includes('CITRUS BOWL')) return 'Citrus Bowl';
+    if (notes.includes('OUTBACK BOWL')) return 'Outback Bowl';
+    if (notes.includes('GATOR BOWL')) return 'Gator Bowl';
+    if (notes.includes('LIBERTY BOWL')) return 'Liberty Bowl';
+    if (notes.includes('HOLIDAY BOWL')) return 'Holiday Bowl';
+    if (notes.includes('ALAMO BOWL')) return 'Alamo Bowl';
+
+    // General playoff detection (fallback)
+    if (notes.includes('PLAYOFF') || notes.includes('CFP')) {
+      const postseasonGames = allGames
+        .filter(g => g.seasonType === 'postseason')
+        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+      if (postseasonGames.length > 1) {
+        const gameIndex = postseasonGames.findIndex(g => g.id === game.id);
+        return gameIndex === 0 ? 'CFP Semifinal' : 'National Championship';
+      }
+    }
+
+    // Generic bowl game - try to extract bowl name
+    if (notes.includes('BOWL')) {
+      const bowlMatch = notes.match(/(\w+(?:\s+\w+)*)\s+BOWL/);
+      if (bowlMatch) {
+        return `${bowlMatch[1].toLowerCase().replace(/\b\w/g, l => l.toUpperCase())} Bowl`;
+      }
+    }
+
+    // Final fallback: use chronological numbering
+    const postseasonGames = allGames
+      .filter(g => g.seasonType === 'postseason')
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+    if (postseasonGames.length > 1) {
+      const gameIndex = postseasonGames.findIndex(g => g.id === game.id);
+      return `Postseason ${gameIndex + 1}`;
+    }
+
+    return `Postseason ${game.week}`;
   };
 
   // Update URL with current selections
