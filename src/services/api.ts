@@ -142,13 +142,13 @@ export const fetchPlayByPlayData = async (params: {
     if (gameId) {
       const gameIdUrl = `${API_BASE_URL}/plays?gameId=${gameId}`;
       console.log('Fetching plays by gameId from:', gameIdUrl);
-      
+
       try {
         const gameIdResponse = await fetch(gameIdUrl, { headers: getApiHeaders() });
         if (gameIdResponse.ok) {
           const gameIdData = await gameIdResponse.json();
           console.log('Fetched plays by gameId:', gameIdData.length);
-          
+
           // If we got meaningful data (more than a few plays), use it
           if (gameIdData.length > 10) {
             return gameIdData;
@@ -173,6 +173,7 @@ export const fetchPlayByPlayData = async (params: {
     
     const data = await response.json();
     console.log('Fetched plays by week:', data.length);
+
     
     // If gameId was provided but gameId fetch failed, try to filter the week-based results
     let finalData = data;
@@ -212,7 +213,8 @@ export const fetchPlayByPlayData = async (params: {
 
                   return hoursDiff <= 24;
                 }
-                return false;
+                // Include plays without wallclock (like overtime plays)
+                return true;
               });
             }
 
@@ -247,7 +249,8 @@ export const fetchPlayByPlayData = async (params: {
       ...play,
       id: String(play.id) // Convert ID to string to handle large numbers properly
     }));
-    
+
+
     return processedData;
   } catch (error) {
     console.error('Error fetching play-by-play data:', error);

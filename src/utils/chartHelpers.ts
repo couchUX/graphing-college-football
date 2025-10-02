@@ -1,6 +1,15 @@
 import { PlayData } from '../types';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from './chartConfig';
 
+// Helper function to format quarter labels (Q1-Q4, OT for all overtime)
+export const formatQuarterLabel = (quarter: number): string => {
+  if (quarter <= 4) {
+    return `Q${quarter}`;
+  } else {
+    return 'OT';
+  }
+};
+
 // Helper function to truncate player names for chart display
 const truncatePlayerName = (name: string, maxLength: number = 14): string => {
   if (!name || name.length <= maxLength) return name;
@@ -43,7 +52,7 @@ export const groupByCategory = (playsArray: PlayData[], category: 'quarter' | 'd
   playsArray.forEach(play => {
     let key: string;
     if (category === 'quarter') {
-      key = `Q${play.quarter}`;
+      key = formatQuarterLabel(play.quarter);
     } else if (category === 'down') {
       key = `${play.down}${play.down === 1 ? 'st' : play.down === 2 ? 'nd' : play.down === 3 ? 'rd' : 'th'} Down`;
     } else if (category === 'playType') {
@@ -62,12 +71,24 @@ export const groupByCategory = (playsArray: PlayData[], category: 'quarter' | 'd
     groups[key].push(play);
   });
 
-  return Object.entries(groups).map(([label, groupPlays]) => ({
+  const results = Object.entries(groups).map(([label, groupPlays]) => ({
     label,
     count: groupPlays.length,
     sr: groupPlays.length > 0 ? groupPlays.filter(p => p.success).length / groupPlays.length : 0,
     xr: groupPlays.length > 0 ? groupPlays.filter(p => p.explosiveness).length / groupPlays.length : 0
   }));
+
+  // Sort quarters in the correct order: Q1, Q2, Q3, Q4, OT
+  if (category === 'quarter') {
+    const quarterOrder = ['Q1', 'Q2', 'Q3', 'Q4', 'OT'];
+    results.sort((a, b) => {
+      const aIndex = quarterOrder.indexOf(a.label);
+      const bIndex = quarterOrder.indexOf(b.label);
+      return aIndex - bIndex;
+    });
+  }
+
+  return results;
 };
 
 // Helper function to create quarter gridlines
@@ -194,7 +215,15 @@ export const createTeamVsOpponentBarData = (
   ]));
   
   // Custom sort based on category
-  if (category === 'playType') {
+  if (category === 'quarter') {
+    // Sort quarters in the correct order: Q1, Q2, Q3, Q4, OT
+    const quarterOrder = ['Q1', 'Q2', 'Q3', 'Q4', 'OT'];
+    allLabels.sort((a, b) => {
+      const aIndex = quarterOrder.indexOf(a);
+      const bIndex = quarterOrder.indexOf(b);
+      return aIndex - bIndex;
+    });
+  } else if (category === 'playType') {
     // Rush first, then Pass
     allLabels.sort((a, b) => {
       if (a === 'Rush' && b !== 'Rush') return -1;

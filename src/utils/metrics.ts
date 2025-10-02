@@ -178,22 +178,27 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
     console.log(`${index + 1}: ID ${play.id} - Q${play.quarter || play.period} D${play.drive_number || play.driveNumber} P${play.play_number || play.playNumber}`);
   });
 
+
   // Filter to only rush and pass plays (including sacks) AFTER sorting
   const rushPassPlays = sortedPlays.filter(play => {
     const playType = play.play_type || play.playType || '';
     const lowerPlayType = playType.toLowerCase();
-    return lowerPlayType.includes('rush') || 
-           lowerPlayType.includes('run') || 
+    const isIncluded = lowerPlayType.includes('rush') ||
+           lowerPlayType.includes('run') ||
            lowerPlayType.includes('pass') ||
            lowerPlayType.includes('completion') ||
            lowerPlayType.includes('incompletion') ||
            lowerPlayType.includes('sack'); // Include sacks as pass plays
+
+
+    return isIncluded;
   });
 
   console.log('Filtered rush/pass plays - first 10 (should be in chronological order):');
   rushPassPlays.slice(0, 10).forEach((play, index) => {
     console.log(`${index + 1}: ID ${play.id} - Q${play.quarter || play.period} D${play.drive_number || play.driveNumber} P${play.play_number || play.playNumber} - ${play.play_type || play.playType}`);
   });
+
 
   // Calculate drive-based play numbers for rush/pass plays only
   const drivePlayCounts: { [key: string]: number } = {};
