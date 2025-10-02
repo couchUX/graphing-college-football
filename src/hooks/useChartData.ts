@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { PlayData } from '../types';
-import { getDisplayTeamColors } from '../utils/displayTeamColors';
+import { getDisplayTeamColors, getDisplayTeamColorsForPlayerChart } from '../utils/displayTeamColors';
 import { calculatePlayerStats } from '../utils/metrics';
 import { 
   getPointColors, 
@@ -27,6 +27,10 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     // Get team colors with override support
     const teamColors = getDisplayTeamColors(team, selectedTeamColor);
     const opponentColors = getDisplayTeamColors(opponentTeam, selectedOpponentColor);
+
+    // Get player-specific colors with extra dark explosives for layering
+    const teamPlayerColors = getDisplayTeamColorsForPlayerChart(team, selectedTeamColor);
+    const opponentPlayerColors = getDisplayTeamColorsForPlayerChart(opponentTeam, selectedOpponentColor);
 
     // Calculate basic stats
     const teamSuccessfulPlays = teamPlays.filter(p => p.success).length;
@@ -542,8 +546,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
 
     // Combine and sort players by team, then by total plays
     const allRushers = [
-      ...teamRushers.map(p => ({ ...p, team: team, teamColors })),
-      ...opponentRushers.map(p => ({ ...p, team: opponentTeam, teamColors: opponentColors }))
+      ...teamRushers.map(p => ({ ...p, team: team, teamColors: teamPlayerColors })),
+      ...opponentRushers.map(p => ({ ...p, team: opponentTeam, teamColors: opponentPlayerColors }))
     ].sort((a, b) => {
       if (a.team === team && b.team !== team) return -1;
       if (a.team !== team && b.team === team) return 1;
@@ -551,8 +555,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     });
 
     const allPassers = [
-      ...teamPassers.map(p => ({ ...p, team: team, teamColors })),
-      ...opponentPassers.map(p => ({ ...p, team: opponentTeam, teamColors: opponentColors }))
+      ...teamPassers.map(p => ({ ...p, team: team, teamColors: teamPlayerColors })),
+      ...opponentPassers.map(p => ({ ...p, team: opponentTeam, teamColors: opponentPlayerColors }))
     ].sort((a, b) => {
       if (a.team === team && b.team !== team) return -1;
       if (a.team !== team && b.team === team) return 1;
@@ -560,8 +564,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     });
 
     const allReceivers = [
-      ...teamReceivers.map(p => ({ ...p, team: team, teamColors })),
-      ...opponentReceivers.map(p => ({ ...p, team: opponentTeam, teamColors: opponentColors }))
+      ...teamReceivers.map(p => ({ ...p, team: team, teamColors: teamPlayerColors })),
+      ...opponentReceivers.map(p => ({ ...p, team: opponentTeam, teamColors: opponentPlayerColors }))
     ].sort((a, b) => {
       if (a.team === team && b.team !== team) return -1;
       if (a.team !== team && b.team === team) return 1;

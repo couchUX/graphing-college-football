@@ -470,7 +470,7 @@ export const createPlayerData = (players: any[], playType: string) => {
         backgroundColor: '#4B5563',
         borderColor: '#374151',
         borderWidth: 1,
-      },
+      }
     ];
   } else { // receive
     datasets = [
@@ -494,7 +494,7 @@ export const createPlayerData = (players: any[], playType: string) => {
         backgroundColor: players.map(p => p.teamColors.light),
         borderColor: '#374151',
         borderWidth: 1,
-      },
+      }
     ];
   }
 
