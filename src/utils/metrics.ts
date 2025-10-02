@@ -1,10 +1,40 @@
 import { ApiPlayData, PlayData, ProcessedMetrics, DriveMetrics, PlayerStats } from '../types';
 
-const calculateSuccess = (down: number, distance: number, yardsGained: number): boolean => {
+const calculateSuccess = (down: number, distance: number, yardsGained: number, playType: string = '', playText: string = ''): boolean => {
+  // Special handling for two-point conversions
+  const lowerPlayType = playType.toLowerCase();
+  const lowerPlayText = playText.toLowerCase();
+
+  if (lowerPlayType.includes('conversion') || lowerPlayType.includes('two point') || lowerPlayType.includes('2pt')) {
+    // For two-point conversions, check for explicit failure first
+    if (lowerPlayText.includes('failed') ||
+        lowerPlayText.includes('fails') ||
+        lowerPlayText.includes('attempt fails') ||
+        lowerPlayText.includes('no good') ||
+        lowerPlayText.includes('incomplete') ||
+        lowerPlayText.includes('intercepted') ||
+        lowerPlayText.includes('interception')) {
+      return false;
+    }
+
+    // Then check for explicit success indicators
+    // Key pattern: "for Two-Point Conversion" at end indicates success
+    return lowerPlayText.includes('good') ||
+           lowerPlayText.includes('touchdown') ||
+           lowerPlayText.includes('conversion good') ||
+           lowerPlayText.includes('successful') ||
+           lowerPlayText.endsWith('for two-point conversion') ||
+           lowerPlayText.endsWith('for 2pt conversion') ||
+           lowerPlayText.endsWith('for two-point conversion.') ||
+           lowerPlayText.endsWith('for 2pt conversion.') ||
+           (yardsGained >= 2 && !lowerPlayText.includes('tackled')); // Yards gained but not tackled short
+  }
+
+  // Existing success logic for regular plays
   if (!down || !distance || yardsGained === undefined || yardsGained === null) {
     return false;
   }
-  
+
   switch (down) {
     case 1:
       return yardsGained >= distance * 0.5;
@@ -179,7 +209,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   });
 
 
-  // Filter to only rush and pass plays (including sacks) AFTER sorting
+  // Filter to only rush, pass, and two-point conversion plays (including sacks) AFTER sorting
   const rushPassPlays = sortedPlays.filter(play => {
     const playType = play.play_type || play.playType || '';
     const lowerPlayType = playType.toLowerCase();
@@ -188,7 +218,10 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
            lowerPlayType.includes('pass') ||
            lowerPlayType.includes('completion') ||
            lowerPlayType.includes('incompletion') ||
-           lowerPlayType.includes('sack'); // Include sacks as pass plays
+           lowerPlayType.includes('sack') || // Include sacks as pass plays
+           lowerPlayType.includes('conversion') ||
+           lowerPlayType.includes('two point') ||
+           lowerPlayType.includes('2pt');
 
 
     return isIncluded;
@@ -207,10 +240,10 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   // The playNumber is now assigned sequentially to the filtered plays in chronological order
   const processedPlays = rushPassPlays.map((play, index) => {
     const yardsGained = play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 0);
-    const success = calculateSuccess(play.down, play.distance, yardsGained);
-    const explosiveness = calculateExplosiveness(yardsGained);
     const playType = play.play_type || play.playType || '';
     const playText = play.play_text || play.playText || '';
+    const success = calculateSuccess(play.down, play.distance, yardsGained, playType, playText);
+    const explosiveness = calculateExplosiveness(yardsGained);
     
     // Extract player names
     const playerNames = extractPlayerNames(playText, playType);
@@ -243,7 +276,11 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
       ppa: play.ppa || 0,
       success,
       explosiveness,
-      quarter: play.quarter || play.period || 0,
+      quarter: (() => {
+        const rawQuarter = play.quarter || play.period || 0;
+        // Normalize all overtime periods (5, 6, 7, etc.) to 5
+        return rawQuarter > 4 ? 5 : rawQuarter;
+      })(),
       clock: play.clock || { minutes: 0, seconds: 0 },
       wallclock: play.wallclock || '',
       timeRemaining: play.time_remaining || play.timeRemaining || 0,
