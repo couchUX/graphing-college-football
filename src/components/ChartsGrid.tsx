@@ -1085,6 +1085,16 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
 
 
   const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor, winProbabilityData);
+
+  // Debug logging for win probability data
+  console.log('Win Probability Debug:', {
+    hasWinProbData: !!winProbabilityData,
+    winProbDataLength: winProbabilityData?.length,
+    chartDataKeys: Object.keys(chartData),
+    hasWinProbInChartData: 'winProbabilityData' in chartData,
+    winProbChartData: chartData.winProbabilityData
+  });
+
   const {
     team: selectedTeam,
     opponentTeam,
