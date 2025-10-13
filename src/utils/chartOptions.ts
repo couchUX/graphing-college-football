@@ -422,3 +422,91 @@ export const createPlayerOptions = (): ChartOptions<'bar'> => ({
     }
   }
 });
+
+// Win probability chart options with gradient color support
+export const createWinProbabilityOptions = (): ChartOptions<'line'> => ({
+  ...createBaseOptions(),
+  scales: {
+    x: {
+      type: 'linear' as const,
+      position: 'bottom' as const,
+      title: {
+        display: true,
+        text: 'Play Number'
+      },
+      min: 0,
+      ticks: {
+        stepSize: 10,
+        callback: (value: any) => Math.floor(value)
+      },
+      grid: {
+        display: false // Remove vertical grid lines, use quarter lines instead
+      }
+    },
+    y: {
+      max: 100,
+      min: 0,
+      title: {
+        display: true,
+        text: 'Win Probability'
+      },
+      ticks: {
+        callback: (value: any) => `${value}%`,
+        stepSize: 10
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)', // Darker gray to match quarter lines
+        lineWidth: 1
+      }
+    }
+  },
+  elements: {
+    line: {
+      tension: 0.15,
+      borderWidth: 2.2,
+      fill: false
+    },
+    point: {
+      pointRadius: 0, // Hide points by default
+      pointHoverRadius: 4
+    }
+  },
+  plugins: {
+    ...createBaseOptions().plugins,
+    datalabels: disabledDatalabelsConfig,
+    legend: {
+      display: false // Hide legend for win probability chart
+    },
+    tooltip: {
+      mode: 'index',
+      intersect: false,
+      callbacks: {
+        title: (tooltipItems: any[]) => {
+          if (tooltipItems && tooltipItems[0]) {
+            return `Play ${tooltipItems[0].dataIndex + 1}`;
+          }
+          return '';
+        },
+        label: (context: any) => {
+          const selectedTeamWinProb = context.parsed.y;
+          const opponentWinProb = 100 - selectedTeamWinProb;
+          return [
+            `${context.dataset.selectedTeam}: ${selectedTeamWinProb.toFixed(1)}%`,
+            `${context.dataset.opponentTeam}: ${opponentWinProb.toFixed(1)}%`
+          ];
+        },
+        afterLabel: (context: any) => {
+          if (context.dataset.playTexts && context.dataset.playTexts[context.dataIndex]) {
+            return `\n${context.dataset.playTexts[context.dataIndex]}`;
+          }
+          return '';
+        }
+      }
+    }
+  },
+  interaction: {
+    mode: 'index',
+    intersect: false
+  }
+});

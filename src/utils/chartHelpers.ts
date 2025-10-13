@@ -175,6 +175,27 @@ export const createReferenceArea = (maxX: number, referenceY: number, label: str
   }
 });
 
+// Helper function to create 50% reference line for win probability
+export const createFiftyPercentLine = (maxX: number) => ({
+  label: '50% Line',
+  data: [
+    { x: 0, y: 50 },
+    { x: maxX, y: 50 }
+  ],
+  borderColor: 'rgba(0,0,0,0.3)', // Darker gray line
+  borderWidth: 1.5,
+  borderDash: [5, 5], // Dashed line
+  backgroundColor: 'transparent',
+  pointRadius: 0,
+  showLine: true,
+  fill: false,
+  tension: 0,
+  order: 90, // Lower order so it appears behind the main line
+  datalabels: {
+    display: false
+  }
+});
+
 // Helper function to create filled area below zero for play maps
 export const createBelowZeroArea = (maxX: number, minY: number = -50) => ({
   label: '< 0',
@@ -501,5 +522,276 @@ export const createPlayerData = (players: any[], playType: string) => {
   return {
     labels: players.map(p => truncatePlayerName(p.name)),
     datasets: datasets
+  };
+};
+
+// Helper function to convert hex color to RGB
+const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+};
+
+// Helper function to interpolate between two colors based on win probability
+const interpolateColor = (homeColor: string, awayColor: string, homeWinProb: number): string => {
+  const home = hexToRgb(homeColor);
+  const away = hexToRgb(awayColor);
+
+  // Tighten gradient around 50% mark
+  // Only show color mixing in the 42.5-57.5% range (15% total)
+  const gradientRange = 0.075; // 7.5% on each side of 50%
+  const midpoint = 0.5;
+
+  let adjustedProb;
+  if (homeWinProb <= midpoint - gradientRange) {
+    // Below 42.5% - pure away team color
+    adjustedProb = 0;
+  } else if (homeWinProb >= midpoint + gradientRange) {
+    // Above 57.5% - pure home team color
+    adjustedProb = 1;
+  } else {
+    // In the 42.5-57.5% range - interpolate
+    const rangePosition = (homeWinProb - (midpoint - gradientRange)) / (2 * gradientRange);
+    adjustedProb = rangePosition;
+  }
+
+  const r = Math.round(away.r + (home.r - away.r) * adjustedProb);
+  const g = Math.round(away.g + (home.g - away.g) * adjustedProb);
+  const b = Math.round(away.b + (home.b - away.b) * adjustedProb);
+
+  return `rgb(${r}, ${g}, ${b})`;
+};
+
+// Create win probability chart data with gradient colors
+export const createWinProbabilityData = (
+  winProbData: any[],
+  selectedTeam: string,
+  opponentTeam: string,
+  selectedTeamColors: any,
+  opponentTeamColors: any,
+  plays: any[] = [] // Add plays data to determine actual home/away teams
+) => {
+  if (!winProbData || winProbData.length === 0) {
+    return {
+      labels: [],
+      datasets: []
+    };
+  }
+
+  // Determine if our selected team is the home team or away team
+  // The API provides homeWinProbability, so we need to adjust based on perspective
+  let isSelectedTeamHome = false;
+  let actualHomeTeam = '';
+  let actualAwayTeam = '';
+
+  // First, try to get home/away team info from the win probability data
+  const firstPoint = winProbData[0];
+  if (firstPoint && firstPoint.home && firstPoint.away) {
+    actualHomeTeam = firstPoint.home;
+    actualAwayTeam = firstPoint.away;
+    isSelectedTeamHome = firstPoint.home === selectedTeam;
+  } else if (plays && plays.length > 0) {
+    // Fallback: Use play data to determine home team
+    // Look for the first play that has home/away fields
+    const playWithHomeInfo = plays.find(p => p.home && p.away);
+    if (playWithHomeInfo) {
+      actualHomeTeam = playWithHomeInfo.home;
+      actualAwayTeam = playWithHomeInfo.away;
+      isSelectedTeamHome = playWithHomeInfo.home === selectedTeam;
+    } else {
+      // Last resort: Use a more sophisticated heuristic
+      // Check which team appears more often as "defense" in first quarter (home teams often receive first)
+      const firstQuarterPlays = plays.filter(p => p.quarter === 1).slice(0, 10);
+      const defenseCount = firstQuarterPlays.reduce((counts, play) => {
+        counts[play.defense] = (counts[play.defense] || 0) + 1;
+        return counts;
+      }, {} as Record<string, number>);
+
+      const mostCommonDefense = Object.entries(defenseCount).sort(([,a], [,b]) => b - a)[0];
+      if (mostCommonDefense) {
+        actualHomeTeam = mostCommonDefense[0]; // Team that defends more early is likely home
+        actualAwayTeam = selectedTeam === actualHomeTeam ? opponentTeam : selectedTeam;
+        isSelectedTeamHome = actualHomeTeam === selectedTeam;
+      } else {
+        // Ultimate fallback
+        isSelectedTeamHome = false; // Assume away team perspective
+        actualHomeTeam = opponentTeam;
+        actualAwayTeam = selectedTeam;
+      }
+    }
+  } else {
+    // No play data available, assume away team perspective
+    isSelectedTeamHome = false;
+    actualHomeTeam = opponentTeam;
+    actualAwayTeam = selectedTeam;
+  }
+
+  console.log(`=== WIN PROBABILITY DEBUG ===`);
+  console.log(`Selected Team: ${selectedTeam}`);
+  console.log(`Opponent Team: ${opponentTeam}`);
+  console.log(`Actual Home Team: ${actualHomeTeam}`);
+  console.log(`Actual Away Team: ${actualAwayTeam}`);
+  console.log(`Is Selected Team Home?: ${isSelectedTeamHome}`);
+  console.log(`First few win prob data points:`, winProbData.slice(0, 3));
+  if (firstPoint) {
+    console.log(`Raw homeWinProbability: ${firstPoint.homeWinProbability}`);
+    console.log(`Will be displayed as selected team prob: ${isSelectedTeamHome ? firstPoint.homeWinProbability : (1 - firstPoint.homeWinProbability)}`);
+  }
+  console.log(`============================`);
+
+  // Extract the primary colors for gradient calculation
+
+  // Helper function to extract hex color from rgba or return hex directly
+  const extractHexColor = (colorObj: any): string => {
+    // If we have a direct hex color (from custom color palette), use it
+    if (colorObj.color) return colorObj.color;
+    if (colorObj.colorDark) return colorObj.colorDark;
+
+    // Otherwise extract from rgba success color
+    if (colorObj.success) {
+      const match = colorObj.success.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (match) {
+        const r = parseInt(match[1]).toString(16).padStart(2, '0');
+        const g = parseInt(match[2]).toString(16).padStart(2, '0');
+        const b = parseInt(match[3]).toString(16).padStart(2, '0');
+        return `#${r}${g}${b}`;
+      }
+    }
+
+    // Fallback colors
+    return '#8B0000'; // Generic fallback
+  };
+
+  const selectedTeamHex = extractHexColor(selectedTeamColors);
+  const opponentTeamHex = extractHexColor(opponentTeamColors);
+
+  // Create data points for the line chart - always from selected team's perspective
+  const dataPoints = winProbData.map((point, index) => {
+    // Calculate selected team's win probability
+    const selectedTeamWinProb = isSelectedTeamHome
+      ? point.homeWinProbability
+      : (1 - point.homeWinProbability); // If selected team is away, invert probability
+
+    return {
+      x: index,
+      y: selectedTeamWinProb * 100 // Convert to percentage
+    };
+  });
+
+  // Create segment colors based on selected team's win probability
+  const segmentColors = winProbData.map((point) => {
+    const selectedTeamWinProb = isSelectedTeamHome
+      ? point.homeWinProbability
+      : (1 - point.homeWinProbability);
+
+    return interpolateColor(selectedTeamHex, opponentTeamHex, selectedTeamWinProb);
+  });
+
+  // Use Chart.js segment configuration for gradient effect
+  const datasets = [{
+    label: 'Win Probability',
+    data: dataPoints,
+    borderColor: selectedTeamHex, // Default border color
+    backgroundColor: 'transparent',
+    pointBackgroundColor: segmentColors,
+    pointBorderColor: segmentColors,
+    pointRadius: 0,
+    pointHoverRadius: 4,
+    tension: 0.15,
+    borderWidth: 2.2,
+    fill: false,
+    selectedTeam,
+    opponentTeam,
+    isSelectedTeamHome, // Store this for tooltip calculations
+    playTexts: winProbData.map(point => point.playText),
+    segment: {
+      borderColor: (ctx: any) => {
+        // Use p1DataIndex (ending point) so the line inherits the destination color
+        // This makes momentum shifts more visually intuitive
+        const index = ctx.p1DataIndex;
+        if (index !== undefined && segmentColors[index]) {
+          return segmentColors[index];
+        }
+        return selectedTeamHex;
+      }
+    }
+  }];
+
+  // Add the 50% reference line
+  const maxX = winProbData.length - 1;
+  const fiftyPercentLine = createFiftyPercentLine(maxX);
+  datasets.push(fiftyPercentLine);
+
+  // Add quarter grid lines
+  const quarterGridlines = createWinProbabilityQuarterGridlines(winProbData, maxX, 0, 100);
+  datasets.push(quarterGridlines);
+
+  return {
+    labels: winProbData.map((_, index) => index),
+    datasets
+  };
+};
+
+// Create quarter gridlines for win probability chart
+export const createWinProbabilityQuarterGridlines = (winProbData: any[], maxX: number, yMin: number = 0, yMax: number = 100) => {
+  if (!winProbData || winProbData.length === 0) {
+    return {
+      label: 'Quarters',
+      data: [],
+      borderColor: 'rgba(0,0,0,0.1)',
+      borderWidth: 1,
+      pointRadius: 0,
+      showLine: true,
+      fill: false,
+      tension: 0,
+      order: 100
+    };
+  }
+
+  // Create a mapping of play indices to quarter information
+  const quarterBreaks: { playIndex: number; quarter: number }[] = [];
+  let currentQuarter = 0;
+
+  winProbData.forEach((point, index) => {
+    // Extract quarter information from play text or other sources
+    // For now, we'll estimate quarters based on play progression
+    // In a real implementation, you'd want quarter data from the API
+    const estimatedQuarter = Math.floor(index / (winProbData.length / 4)) + 1;
+
+    if (estimatedQuarter !== currentQuarter && estimatedQuarter <= 4) {
+      quarterBreaks.push({ playIndex: index, quarter: estimatedQuarter });
+      currentQuarter = estimatedQuarter;
+    }
+  });
+
+  const quarterLines: any[] = [];
+
+  quarterBreaks.forEach(quarterBreak => {
+    if (quarterBreak.playIndex > 0) { // Don't draw line at the very beginning
+      quarterLines.push(
+        { x: quarterBreak.playIndex, y: yMin },
+        { x: quarterBreak.playIndex, y: yMax },
+        { x: maxX, y: yMax },
+        { x: maxX, y: yMin }
+      );
+    }
+  });
+
+  return {
+    label: 'Quarters',
+    data: quarterLines,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderWidth: 1,
+    pointRadius: 0,
+    showLine: true,
+    fill: false,
+    tension: 0,
+    order: 100,
+    datalabels: {
+      display: false
+    }
   };
 };

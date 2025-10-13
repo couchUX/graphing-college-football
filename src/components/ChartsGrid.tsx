@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, AlertCircle } from 'lucide-react';
 import { Line, Bar } from 'react-chartjs-2';
 import { PlayData } from '../types';
 import { useChartData } from '../hooks/useChartData';
@@ -10,7 +10,8 @@ import {
   createPlayMapOptions,
   createBarOptions,
   createDriveOptions,
-  createPlayerOptions
+  createPlayerOptions,
+  createWinProbabilityOptions
 } from '../utils/chartOptions';
 import { initializeChartDefaults } from '../utils/chartConfig';
 
@@ -29,9 +30,10 @@ interface ChartsGridProps {
     team: string;
     gameId?: string;
   } | null;
+  winProbabilityData?: any[];
 }
 
-const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor = 'default', selectedOpponentColor = 'default', currentParams = null }) => {
+const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor = 'default', selectedOpponentColor = 'default', currentParams = null, winProbabilityData = [] }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -139,6 +141,14 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
           '<strong>Drive Metrics:</strong> Success and explosiveness rates calculated per drive',
           '<strong>Play counts:</strong> Gray bars show number of plays in each drive'
         ];
+      } else if (title.includes('Win Probability')) {
+        // Win Probability charts
+        return [
+          '<strong>Win Probability:</strong> Likelihood of winning based on game situation',
+          '<strong>Line Color:</strong> Gradient reflects which team is favored',
+          '<strong>50% Line:</strong> Dashed line indicates even odds',
+          '<strong>Data Source:</strong> <a href="https://collegefootballdata.com/win-probability" target="_blank" style="color: #525252; text-decoration: underline;">CollegeFootballData.com</a> win probability models'
+        ];
       }
 
       // Default for other chart types
@@ -161,7 +171,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             formatter: undefined // Remove formatter function - we'll handle it in the embed template
           };
         }
-        
+
         // Special handling for Overall Team Performance chart - preserve play count data
         if (_chartId === 'overall-team-performance' && dataset.label === 'Success Rate (SR)') {
           // Store the play counts directly in the dataset for the embed
@@ -176,9 +186,29 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             }
           });
         }
-        
+
+        // Special handling for Win Probability chart - preserve segment colors
+        if (_chartId === 'win-probability' && dataset.label === 'Win Probability') {
+          // Extract segment colors from the segment function
+          // The segment.borderColor function uses p1DataIndex (ending point)
+          // We need to extract all the colors and store them as an array
+          if (dataset.segment && dataset.segment.borderColor) {
+            const segmentColors: string[] = [];
+            // Calculate colors for all data points (using p1DataIndex which is the ending point)
+            for (let i = 0; i < dataset.data.length; i++) {
+              // Create a mock context object that the segment function expects
+              const mockCtx = { p1DataIndex: i };
+              const color = dataset.segment.borderColor(mockCtx);
+              segmentColors.push(color);
+            }
+            cleanedDataset.segmentColors = segmentColors;
+          }
+          // Remove the segment function (it will be recreated in the embed)
+          delete cleanedDataset.segment;
+        }
+
         // Keep yAxisID for proper scaling, we'll handle axis visibility in the options
-        
+
         return cleanedDataset;
       })
     };
@@ -402,16 +432,26 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                             duration: 0 // Disable animations to prevent conflicts
                         },
                         elements: '${_chartType}' === 'line' ? '${_chartId}'.includes('play-map') ? {
-                            line: { 
-                                tension: 0, 
-                                borderWidth: 0 
+                            line: {
+                                tension: 0,
+                                borderWidth: 0
+                            }
+                        } : '${_chartId}' === 'win-probability' ? {
+                            line: {
+                                tension: 0.15,
+                                borderWidth: 2.2,
+                                fill: false
+                            },
+                            point: {
+                                pointRadius: 0,
+                                pointHoverRadius: 4
                             }
                         } : {
-                            line: { 
-                                tension: 0.25, 
-                                borderWidth: 2.2 
+                            line: {
+                                tension: 0.25,
+                                borderWidth: 2.2
                             },
-                            point: { 
+                            point: {
                                 pointRadius: '${_chartId}'.includes('team-lines') ? 0 : undefined
                             }
                         } : {},
@@ -493,7 +533,9 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                                 align: 'center',
                                 anchor: 'center'
                             },
-                            legend: '${_chartType}' === 'line' ? {
+                            legend: '${_chartId}' === 'win-probability' ? {
+                                display: false
+                            } : '${_chartType}' === 'line' ? {
                                 position: 'top',
                                 align: 'start',
                                 labels: '${_chartId}'.includes('play-map') ? {
@@ -606,15 +648,42 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                                     }
                                 }
                             },
-                            tooltip: {
+                            tooltip: '${_chartId}' === 'win-probability' ? {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    title: function(tooltipItems) {
+                                        if (tooltipItems && tooltipItems[0]) {
+                                            return 'Play ' + (tooltipItems[0].dataIndex + 1);
+                                        }
+                                        return '';
+                                    },
+                                    label: function(context) {
+                                        const selectedTeamWinProb = context.parsed.y;
+                                        const opponentWinProb = 100 - selectedTeamWinProb;
+                                        const selectedTeam = context.dataset.selectedTeam || 'Team';
+                                        const opponentTeam = context.dataset.opponentTeam || 'Opponent';
+                                        return [
+                                            selectedTeam + ': ' + selectedTeamWinProb.toFixed(1) + '%',
+                                            opponentTeam + ': ' + opponentWinProb.toFixed(1) + '%'
+                                        ];
+                                    },
+                                    afterLabel: function(context) {
+                                        if (context.dataset.playTexts && context.dataset.playTexts[context.dataIndex]) {
+                                            return '\\n' + context.dataset.playTexts[context.dataIndex];
+                                        }
+                                        return '';
+                                    }
+                                }
+                            } : {
                                 filter: function(tooltipItem) {
                                     if ('${_chartId}'.includes('play-map')) {
                                         return !tooltipItem.dataset.label.includes('< 0') &&
                                                !tooltipItem.dataset.label.includes('Quarters') &&
                                                !tooltipItem.dataset.label.includes('Drive');
                                     }
-                                    return !tooltipItem.dataset.label.includes('NCAA Avg SR') && 
-                                           !tooltipItem.dataset.label.includes('50/50') && 
+                                    return !tooltipItem.dataset.label.includes('NCAA Avg SR') &&
+                                           !tooltipItem.dataset.label.includes('50/50') &&
                                            !tooltipItem.dataset.label.includes('< 0') &&
                                            !tooltipItem.dataset.label.includes('Quarters');
                                 },
@@ -622,7 +691,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                                     label: function(context) {
                                         const label = context.dataset.label || '';
                                         let labelText;
-                                        
+
                                         // Play maps show yards instead of percentages
                                         if ('${_chartId}'.includes('play-map')) {
                                             labelText = label + ': ' + context.parsed.y + ' yards';
@@ -630,12 +699,12 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                                             const value = Math.round(context.parsed.y * 100);
                                             labelText = label + ': ' + value + '%';
                                         }
-                                        
+
                                         // For line charts, include play text if available
                                         if ('${_chartType}' === 'line' && context.raw && context.raw.text) {
                                             return [labelText, context.raw.text];
                                         }
-                                        
+
                                         return labelText;
                                     }
                                 }
@@ -667,6 +736,44 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                                 },
                                 min: chartData.minY,
                                 max: chartData.maxY
+                            }
+                        } : '${_chartId}' === 'win-probability' ? {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                title: {
+                                    display: true,
+                                    text: 'Play Number'
+                                },
+                                min: 0,
+                                ticks: {
+                                    stepSize: 10,
+                                    callback: function(value) {
+                                        return Math.floor(value);
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                max: 100,
+                                min: 0,
+                                title: {
+                                    display: true,
+                                    text: 'Win Probability'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    },
+                                    stepSize: 10
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.1)',
+                                    lineWidth: 1
+                                }
                             }
                         } : {
                             x: {
@@ -731,12 +838,38 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                             }
                         }
                     };
-                    
+
                     // Add indexAxis for player charts
                     if ('${_chartId}'.includes('top-rushers') || '${_chartId}'.includes('top-passers') || '${_chartId}'.includes('top-receivers')) {
                         chartOptions.indexAxis = 'y';
                     }
-                    
+
+                    // Add interaction mode for Win Probability
+                    if ('${_chartId}' === 'win-probability') {
+                        chartOptions.interaction = {
+                            mode: 'index',
+                            intersect: false
+                        };
+                    }
+
+                    // Recreate segment function for Win Probability gradient colors
+                    if ('${_chartId}' === 'win-probability') {
+                        const wpDataset = chartData.datasets.find(ds => ds.label === 'Win Probability');
+                        if (wpDataset && wpDataset.segmentColors) {
+                            wpDataset.segment = {
+                                borderColor: function(ctx) {
+                                    // Use p1DataIndex (ending point) so the line inherits the destination color
+                                    // This makes momentum shifts more visually intuitive
+                                    const index = ctx.p1DataIndex;
+                                    if (index !== undefined && wpDataset.segmentColors[index]) {
+                                        return wpDataset.segmentColors[index];
+                                    }
+                                    return wpDataset.borderColor || '#8B0000';
+                                }
+                            };
+                        }
+                    }
+
                     // Initialize the chart
                     const ctx = canvas.getContext('2d');
                     const chart = new Chart(ctx, {
@@ -783,6 +916,11 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     
     // Generate embed code based on chart ID
     switch (chartId) {
+      case 'win-probability': {
+        const enhancedData = { ...winProbChartData, currentParams: currentParams };
+        embedCode = generateEmbedCode(chartId, title, enhancedData, winProbabilityOptions, 'line');
+        break;
+      }
       case 'overall-team-performance': {
         const enhancedData = {
           ...overallTeamData,
@@ -946,7 +1084,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
   };
 
 
-  const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor);
+  const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor, winProbabilityData);
   const {
     team: selectedTeam,
     opponentTeam,
@@ -970,7 +1108,8 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     allPassers,
     allReceivers,
     createTeamVsOpponentBarData,
-    createPlayerData
+    createPlayerData,
+    winProbabilityData: winProbChartData
   } = chartData;
 
   // Create chart options
@@ -981,6 +1120,14 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
   const opponentPlayMapOptions = createPlayMapOptions(oppMinY, oppMaxY);
   const driveOptions = createDriveOptions(teamDriveData, opponentDriveData);
   const playerOptions = createPlayerOptions();
+  const winProbabilityOptions = createWinProbabilityOptions();
+
+  // Win probability chart (rendered separately, full-width)
+  const winProbabilityChart = {
+    id: 'win-probability',
+    title: 'Win Probability',
+    component: <Line data={winProbChartData as any} options={winProbabilityOptions} />
+  };
 
   const teamCharts = [
     {
@@ -1087,6 +1234,53 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
         onClose={() => setShowToast(false)}
       />
       <div className="space-y-8">
+        {/* Win Probability Chart - Full Width */}
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-900 mb-6">Win Probability</h2>
+          <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+              <div className="flex items-center space-x-3">
+                <h3 className="text-lg font-semibold text-neutral-900">
+                  {winProbabilityChart.title}
+                </h3>
+              </div>
+              {winProbChartData.datasets && winProbChartData.datasets.length > 0 && (
+                <button
+                  onClick={() => handleCopyEmbed(winProbabilityChart.id, winProbabilityChart.title)}
+                  className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
+                    copiedChart === winProbabilityChart.id
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-neutral-300 hover:bg-neutral-50'
+                  }`}
+                  title={copiedChart === winProbabilityChart.id ? "Copied!" : "Copy embed code"}
+                >
+                  {copiedChart === winProbabilityChart.id ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-neutral-600" />
+                  )}
+                </button>
+              )}
+            </div>
+
+            <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
+              <div className="h-80">
+                {winProbChartData.datasets && winProbChartData.datasets.length > 0 ? (
+                  winProbabilityChart.component
+                ) : (
+                  <div className="flex items-center justify-center h-full text-neutral-500">
+                    <div className="text-center">
+                      <AlertCircle className="h-12 w-12 mx-auto mb-3 text-neutral-400" />
+                      <p className="text-lg font-medium">Win probability unavailable for this game</p>
+                      <p className="text-sm mt-1">This data may not be available for all games</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Team Charts Section */}
         <div>
         <h2 className="text-2xl font-bold text-neutral-900 mb-6">Team charts</h2>
