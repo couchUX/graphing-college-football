@@ -128,6 +128,46 @@ export const fetchGamesForTeam = async (params: {
   }
 };
 
+export interface WinProbabilityData {
+  gameId: number;
+  homeId: number;
+  home: string;
+  awayId: number;
+  away: string;
+  playId: string;
+  playText: string;
+  homeScore: number;
+  awayScore: number;
+  down: number;
+  distance: number;
+  homeWinProbability: number;
+  spread: number;
+  yardLine: number;
+  homeBall: boolean;
+  playNumber: number;
+}
+
+export const fetchWinProbabilityData = async (gameId: string): Promise<WinProbabilityData[]> => {
+  try {
+    const url = `${API_BASE_URL}/metrics/wp?gameId=${gameId}`;
+    console.log('Fetching win probability from:', url);
+
+    const response = await fetch(url, { headers: getApiHeaders() });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Fetched win probability data:', data.length);
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching win probability data:', error);
+    throw error;
+  }
+};
+
 export const fetchPlayByPlayData = async (params: {
   year: number;
   week: number;

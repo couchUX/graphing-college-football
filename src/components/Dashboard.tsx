@@ -5,7 +5,7 @@ import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
 import Toast from './Toast';
 import { PlayData } from '../types';
-import { fetchPlayByPlayData } from '../services/api';
+import { fetchPlayByPlayData, fetchWinProbabilityData } from '../services/api';
 import { processPlayData } from '../utils/metrics';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { useBoxScore } from '../hooks/useBoxScore';
@@ -15,6 +15,7 @@ import logo from '../assets/graphing-cfb-logo-2.png';
 const Dashboard: React.FC = () => {
   const [plays, setPlays] = useState<PlayData[]>([]);
   const [rawApiData, setRawApiData] = useState<any[]>([]);
+  const [winProbabilityData, setWinProbabilityData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showAllPlays, setShowAllPlays] = useState<boolean>(false);
@@ -190,6 +191,7 @@ const Dashboard: React.FC = () => {
     // Clear existing data immediately to hide color selectors during team switch
     setPlays([]);
     setRawApiData([]);
+    setWinProbabilityData([]);
     
     // Get gameId from URL if available
     const urlParams = new URLSearchParams(window.location.search);
@@ -201,14 +203,21 @@ const Dashboard: React.FC = () => {
     });
     
     try {
-      const apiPlays = await fetchPlayByPlayData({
-        ...params,
-        gameId: gameId || undefined
-      });
+      // Fetch both play-by-play data and win probability data in parallel
+      const [apiPlays, winProbData] = await Promise.all([
+        fetchPlayByPlayData({
+          ...params,
+          gameId: gameId || undefined
+        }),
+        gameId ? fetchWinProbabilityData(gameId) : Promise.resolve([])
+      ]);
+
       setRawApiData(apiPlays); // Store raw API data for debugging
+      setWinProbabilityData(winProbData); // Store win probability data
       const processedPlays = processPlayData(apiPlays);
       setPlays(processedPlays);
       console.log('Raw API data:', apiPlays);
+      console.log('Win probability data:', winProbData);
       console.log('Processed plays:', processedPlays);
       
       // If no plays were returned, ensure we clear any lingering error state
@@ -219,7 +228,8 @@ const Dashboard: React.FC = () => {
       setError('Failed to load play data. Please check your parameters and try again.');
       setPlays([]); // Clear existing plays data on error
       setRawApiData([]); // Clear existing raw API data on error
-      console.error('Error loading play data:', err);
+      setWinProbabilityData([]); // Clear existing win probability data on error
+      console.error('Error loading data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -958,12 +968,13 @@ const Dashboard: React.FC = () => {
         {plays.length > 0 && currentParams && (
           <div className="space-y-8">
             {/* Charts Grid */}
-            <ChartsGrid 
-              plays={filteredPlays} 
-              team={currentParams.team} 
+            <ChartsGrid
+              plays={filteredPlays}
+              team={currentParams.team}
               selectedTeamColor={selectedTeamColor}
               selectedOpponentColor={selectedOpponentColor}
               currentParams={currentParams}
+              winProbabilityData={winProbabilityData}
             />
           </div>
         )}

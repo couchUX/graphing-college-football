@@ -2,19 +2,22 @@ import { useMemo } from 'react';
 import { PlayData } from '../types';
 import { getDisplayTeamColors, getDisplayTeamColorsForPlayerChart } from '../utils/displayTeamColors';
 import { calculatePlayerStats } from '../utils/metrics';
-import { 
-  getPointColors, 
-  createQuarterGridlines, 
-  createTeamQuarterGridlines, 
-  createReferenceArea, 
+import {
+  getPointColors,
+  createQuarterGridlines,
+  createTeamQuarterGridlines,
+  createReferenceArea,
   createBelowZeroArea,
   createTeamVsOpponentBarData,
   createPlayerData,
-  createDriveLines
+  createDriveLines,
+  createWinProbabilityData,
+  createWinProbabilityQuarterGridlines,
+  createFiftyPercentLine
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
 
-export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default') => {
+export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default', realWinProbabilityData: any[] = []) => {
   return useMemo(() => {
     // Get opponent team
     const opponentTeam = plays.find(p => p.offense !== team && p.defense !== team)?.offense || 
@@ -612,7 +615,17 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         createTeamVsOpponentBarData(category, teamPlays, opponentPlays, team, opponentTeam, teamColors, opponentColors),
       
       // Enhanced player data creator
-      createPlayerData
+      createPlayerData,
+
+      // Win probability data using real API data
+      winProbabilityData: createWinProbabilityData(
+        realWinProbabilityData,
+        team,
+        opponentTeam,
+        teamColors,
+        opponentColors,
+        plays // Pass play data to determine actual home/away teams
+      )
     };
-  }, [plays, team, selectedTeamColor, selectedOpponentColor]);
+  }, [plays, team, selectedTeamColor, selectedOpponentColor, realWinProbabilityData]);
 };
