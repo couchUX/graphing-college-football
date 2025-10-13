@@ -1244,7 +1244,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                   {winProbabilityChart.title}
                 </h3>
               </div>
-              {winProbChartData.datasets && winProbChartData.datasets.length > 0 && (
+              {winProbChartData && winProbChartData.datasets && winProbChartData.datasets.length > 0 && (
                 <button
                   onClick={() => handleCopyEmbed(winProbabilityChart.id, winProbabilityChart.title)}
                   className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
@@ -1265,7 +1265,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
 
             <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
               <div className="h-80">
-                {winProbChartData.datasets && winProbChartData.datasets.length > 0 ? (
+                {winProbChartData && winProbChartData.datasets && winProbChartData.datasets.length > 0 ? (
                   winProbabilityChart.component
                 ) : (
                   <div className="flex items-center justify-center h-full text-neutral-500">
