@@ -693,6 +693,7 @@ const Dashboard: React.FC = () => {
             selectedOpponentColor={selectedOpponentColor}
             onCopyEmbed={handleCopyEmbed}
             currentParams={currentParams}
+            plays={plays}
           />
         )}
 

@@ -72,6 +72,29 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     return enhanced;
   };
   const generateEmbedCode = (_chartId: string, title: string, chartData: any, _chartOptions: any, _chartType: 'bar' | 'line') => {
+    // Generate game context string for subtitle
+    const gameContext = (() => {
+      if (!chartData.currentParams) return '';
+
+      const { year } = chartData.currentParams;
+      const teams = `${selectedTeam} vs. ${opponentTeam}`;
+
+      // Try to get date from plays data
+      if (plays && plays.length > 0 && plays[0].wallclock) {
+        try {
+          const date = new Date(plays[0].wallclock);
+          const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          return `${teams} • ${dateStr}`;
+        } catch (e) {
+          // If date parsing fails, fall back to just year
+          return `${teams} • ${year}`;
+        }
+      }
+
+      // No date available, just use year
+      return `${teams} • ${year}`;
+    })();
+
     // Generate the game URL using chart data parameters - only include necessary params
     const gameUrl = chartData.currentParams ? (() => {
       const params = new URLSearchParams();
@@ -239,7 +262,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             overflow: hidden;
         }
         .chart-header {
-            padding: 18px 24px 16px;
+            padding: 18px 24px 14px;
             border-bottom: 1px solid #e5e5e5;
             background: white;
         }
@@ -248,6 +271,12 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             font-weight: 600;
             color: #171717;
             margin: 0;
+        }
+        .chart-subtitle {
+            font-size: 11px;
+            font-weight: 400;
+            color: #737373;
+            margin: 4px 0 0 0;
         }
         .chart-content {
             padding: 20px 24px 24px !important;
@@ -349,6 +378,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     <div class="chart-container">
         <div class="chart-header">
             <h3 class="chart-title">${title}</h3>
+            ${gameContext ? `<p class="chart-subtitle">${gameContext}</p>` : ''}
         </div>
         <div class="chart-content ${_chartId}">
             <canvas id="${uniqueId}"></canvas>

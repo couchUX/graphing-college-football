@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import BoxScoreTable from './BoxScoreTable';
 import { BoxScoreStat } from '../hooks/useBoxScore';
+import { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 
 // Generate box score embed HTML
@@ -11,10 +12,34 @@ const generateBoxScoreEmbed = (
   team2Name: string,
   selectedTeamColor: string,
   selectedOpponentColor: string,
-  currentParams?: any
+  currentParams?: any,
+  plays?: PlayData[]
 ): string => {
   const team1Colors = getDisplayTeamColors(team1Name, selectedTeamColor);
   const team2Colors = getDisplayTeamColors(team2Name, selectedOpponentColor);
+
+  // Generate game context string for subtitle
+  const gameContext = (() => {
+    if (!currentParams) return '';
+
+    const { year } = currentParams;
+    const teams = `${team1Name} vs. ${team2Name}`;
+
+    // Try to get date from plays data
+    if (plays && plays.length > 0 && plays[0].wallclock) {
+      try {
+        const date = new Date(plays[0].wallclock);
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return `${teams} • ${dateStr}`;
+      } catch (e) {
+        // If date parsing fails, fall back to just year
+        return `${teams} • ${year}`;
+      }
+    }
+
+    // No date available, just use year
+    return `${teams} • ${year}`;
+  })();
 
   // Generate game URL - only include necessary parameters
   const gameUrl = currentParams ? (() => {
@@ -70,7 +95,7 @@ const generateBoxScoreEmbed = (
             padding: 0;
         }
         .header {
-            padding: 18px 24px 16px;
+            padding: 18px 24px 14px;
             border-bottom: 1px solid #e5e5e5;
             background: white;
         }
@@ -79,6 +104,12 @@ const generateBoxScoreEmbed = (
             font-weight: 600;
             color: #171717;
             margin: 0;
+        }
+        .subtitle {
+            font-size: 11px;
+            font-weight: 400;
+            color: #737373;
+            margin: 4px 0 0 0;
         }
         .table-wrapper {
             padding: 0;
@@ -156,6 +187,7 @@ const generateBoxScoreEmbed = (
     <div class="embed-container">
         <div class="header">
             <h3 class="title">Box Score</h3>
+            ${gameContext ? `<p class="subtitle">${gameContext}</p>` : ''}
         </div>
         <div class="table-wrapper">
             <table>
@@ -195,6 +227,7 @@ interface BoxScoreContainerProps {
   selectedOpponentColor: string;
   onCopyEmbed?: (message: string) => void;
   currentParams?: any;
+  plays?: PlayData[];
 }
 
 const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
@@ -206,6 +239,7 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
   selectedOpponentColor,
   onCopyEmbed,
   currentParams,
+  plays,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -217,7 +251,8 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
       team2Name,
       selectedTeamColor,
       selectedOpponentColor,
-      currentParams
+      currentParams,
+      plays
     );
 
     try {
