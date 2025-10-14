@@ -299,18 +299,10 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                 padding: 12px !important;
             }
         }
-        .chart-content.top-receivers {
-            height: 624px;
-        }
-        .chart-content.top-passers {
-            height: 280px !important;
-        }
-        .chart-content.top-rushers {
-            height: 372px;
-        }
-        .chart-content:not(.top-receivers):not(.top-passers):not(.top-rushers) {
-            height: 372px;
-        }
+        ${_chartId === 'top-receivers' ? '.chart-content.top-receivers { height: 624px; }' : ''}
+        ${_chartId === 'top-passers' ? '.chart-content.top-passers { height: 280px !important; }' : ''}
+        ${_chartId === 'top-rushers' ? '.chart-content.top-rushers { height: 372px; }' : ''}
+        ${!['top-receivers', 'top-passers', 'top-rushers'].includes(_chartId) ? '.chart-content { height: 372px; }' : ''}
         .embed-footer {
             border-top: 1px solid #e5e5e5;
             font-size: 12px;
