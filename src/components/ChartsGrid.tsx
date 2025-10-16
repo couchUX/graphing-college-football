@@ -14,6 +14,7 @@ import {
   createWinProbabilityOptions
 } from '../utils/chartOptions';
 import { initializeChartDefaults } from '../utils/chartConfig';
+import { CHART_HEIGHTS } from '../constants/chartDimensions';
 
 // Initialize Chart.js defaults
 initializeChartDefaults();
@@ -239,91 +240,94 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     // Serialize chart data for embedding
     const serializedData = JSON.stringify(cleanedChartData, null, 2);
 
-    const embedCode = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>${title}</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    const embedCode = `<!-- CFB Analytics Chart Embed: ${title} -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+
+<div class="cfb-chart-embed-${uniqueId}">
     <style>
-        body {
+        .cfb-chart-embed-${uniqueId} {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
             margin: 0;
-            padding: 20px;
-            background: #f8fafc;
+            padding: 0;
         }
-        .chart-container {
+        .cfb-chart-embed-${uniqueId} .chart-container {
             background: white;
             border-radius: 12px;
             border: 1px solid #e5e5e5;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
-        .chart-header {
+        .cfb-chart-embed-${uniqueId} .chart-header {
             padding: 18px 24px 14px;
             border-bottom: 1px solid #e5e5e5;
             background: white;
         }
-        .chart-title {
+        .cfb-chart-embed-${uniqueId} .chart-title {
             font-size: 18px;
             font-weight: 600;
             color: #171717;
             margin: 0;
         }
-        .chart-subtitle {
+        .cfb-chart-embed-${uniqueId} .chart-subtitle {
             font-size: 11px;
             font-weight: 400;
             color: #737373;
             margin: 4px 0 0 0;
         }
-        .chart-content {
+        .cfb-chart-embed-${uniqueId} .chart-content {
             padding: 20px 24px 24px !important;
         }
-        
+        ${
+          _chartId === 'top-receivers'
+            ? `.cfb-chart-embed-${uniqueId} .chart-content.top-receivers { height: ${CHART_HEIGHTS.PLAYER_RECEIVERS}px; }`
+            : _chartId === 'top-passers'
+            ? `.cfb-chart-embed-${uniqueId} .chart-content.top-passers { height: ${CHART_HEIGHTS.PLAYER_PASSERS}px !important; }`
+            : _chartId === 'top-rushers'
+            ? `.cfb-chart-embed-${uniqueId} .chart-content.top-rushers { height: ${CHART_HEIGHTS.PLAYER_RUSHERS}px; }`
+            : `.cfb-chart-embed-${uniqueId} .chart-content { height: ${CHART_HEIGHTS.DEFAULT_DESKTOP}px; }`
+        }
+
         @media (max-width: 640px) {
-            .chart-content {
+            .cfb-chart-embed-${uniqueId} .chart-content {
                 padding: 12px 16px 20px !important;
+                ${
+                  !['top-receivers', 'top-passers', 'top-rushers'].includes(_chartId)
+                    ? `height: ${CHART_HEIGHTS.DEFAULT_MOBILE}px !important;`
+                    : ''
+                }
             }
-            .chart-header {
+            .cfb-chart-embed-${uniqueId} .chart-header {
                 padding: 12px 16px 12px !important;
             }
-            .embed-footer-top {
+            .cfb-chart-embed-${uniqueId} .embed-footer-top {
                 padding: 8px 12px !important;
             }
-            .data-definitions {
-                padding: 12px !important;
-            }
-            body {
+            .cfb-chart-embed-${uniqueId} .data-definitions {
                 padding: 12px !important;
             }
         }
-        ${_chartId === 'top-receivers' ? '.chart-content.top-receivers { height: 624px; }' : ''}
-        ${_chartId === 'top-passers' ? '.chart-content.top-passers { height: 280px !important; }' : ''}
-        ${_chartId === 'top-rushers' ? '.chart-content.top-rushers { height: 372px; }' : ''}
-        ${!['top-receivers', 'top-passers', 'top-rushers'].includes(_chartId) ? '.chart-content { height: 372px; }' : ''}
-        .embed-footer {
+        .cfb-chart-embed-${uniqueId} .embed-footer {
             border-top: 1px solid #e5e5e5;
             font-size: 12px;
             color: #737373;
         }
-        .embed-footer-top {
+        .cfb-chart-embed-${uniqueId} .embed-footer-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 12px 16px;
         }
-        .embed-footer-link {
+        .cfb-chart-embed-${uniqueId} .embed-footer-link {
             color: #737373;
             text-decoration: none;
             font-weight: 500;
         }
-        .embed-footer-link:hover {
+        .cfb-chart-embed-${uniqueId} .embed-footer-link:hover {
             color: #525252;
             text-decoration: underline;
         }
-        .data-definitions-toggle {
+        .cfb-chart-embed-${uniqueId} .data-definitions-toggle {
             background: none;
             border: none;
             color: #737373;
@@ -335,17 +339,17 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             gap: 4px;
             padding: 0;
         }
-        .data-definitions-toggle:hover {
+        .cfb-chart-embed-${uniqueId} .data-definitions-toggle:hover {
             color: #525252;
         }
-        .caret {
+        .cfb-chart-embed-${uniqueId} .caret {
             transition: transform 0.2s ease;
             font-size: 10px;
         }
-        .caret.expanded {
+        .cfb-chart-embed-${uniqueId} .caret.expanded {
             transform: rotate(180deg);
         }
-        .data-definitions {
+        .cfb-chart-embed-${uniqueId} .data-definitions {
             display: none;
             padding: 16px;
             background: #fafafa;
@@ -353,20 +357,19 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             font-size: 12px;
             line-height: 1.4;
         }
-        .data-definitions.expanded {
+        .cfb-chart-embed-${uniqueId} .data-definitions.expanded {
             display: block;
         }
-        .data-definitions ul {
+        .cfb-chart-embed-${uniqueId} .data-definitions ul {
             margin: 0;
             padding-left: 0;
             list-style: none;
         }
-        .data-definitions li {
+        .cfb-chart-embed-${uniqueId} .data-definitions li {
             margin-bottom: 4px;
         }
     </style>
-</head>
-<body>
+
     <div class="chart-container">
         <div class="chart-header">
             <h3 class="chart-title">${title}</h3>
@@ -924,11 +927,11 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             
             // Also try initialization after a short delay for WordPress compatibility
             setTimeout(initChart, 500);
-            
+
         })();
     </script>
-</body>
-</html>`;
+</div>
+<!-- End CFB Analytics Chart Embed -->`;
 
     return embedCode;
   };
@@ -1296,7 +1299,26 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             </div>
 
             <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
-              <div className="h-80">
+              <div
+                className="sm:hidden"
+                style={{ height: `${CHART_HEIGHTS.DEFAULT_MOBILE}px` }}
+              >
+                {winProbChartData && winProbChartData.datasets && winProbChartData.datasets.length > 0 ? (
+                  winProbabilityChart.component
+                ) : (
+                  <div className="flex items-center justify-center h-full text-neutral-500">
+                    <div className="text-center">
+                      <AlertCircle className="h-12 w-12 mx-auto mb-3 text-neutral-400" />
+                      <p className="text-lg font-medium">Win probability unavailable for this game</p>
+                      <p className="text-sm mt-1">This data may not be available for all games</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div
+                className="hidden sm:block"
+                style={{ height: `${CHART_HEIGHTS.DEFAULT_DESKTOP}px` }}
+              >
                 {winProbChartData && winProbChartData.datasets && winProbChartData.datasets.length > 0 ? (
                   winProbabilityChart.component
                 ) : (
@@ -1341,9 +1363,18 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                   )}
                 </button>
               </div>
-              
+
               <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
-                <div className="h-80">
+                <div
+                  className="sm:hidden"
+                  style={{ height: `${CHART_HEIGHTS.DEFAULT_MOBILE}px` }}
+                >
+                  {chart.component}
+                </div>
+                <div
+                  className="hidden sm:block"
+                  style={{ height: `${CHART_HEIGHTS.DEFAULT_DESKTOP}px` }}
+                >
                   {chart.component}
                 </div>
               </div>
