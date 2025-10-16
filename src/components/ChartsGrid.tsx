@@ -241,9 +241,6 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     const serializedData = JSON.stringify(cleanedChartData, null, 2);
 
     const embedCode = `<!-- CFB Analytics Chart Embed: ${title} -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-
 <div class="cfb-chart-embed-${uniqueId}">
     <style>
         .cfb-chart-embed-${uniqueId} {
@@ -408,22 +405,52 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                 caret.classList.add('expanded');
             }
         }
-        
-        // WordPress-safe chart initialization with defensive checks
+
+        // Sequential script loading for better reliability
         (function() {
             'use strict';
-            
+
+            let retryCount = 0;
+            const maxRetries = 50; // 5 seconds total
+
+            // Load scripts sequentially
+            function loadScript(url, callback) {
+                const script = document.createElement('script');
+                script.src = url;
+                script.onload = callback;
+                script.onerror = function() {
+                    console.error('Failed to load script:', url);
+                    showError('Failed to load required chart library');
+                };
+                document.head.appendChild(script);
+            }
+
+            function showError(message) {
+                const canvas = document.getElementById('${uniqueId}');
+                if (canvas && canvas.parentNode) {
+                    canvas.parentNode.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; font-size: 14px;">' + message + '</div>';
+                }
+            }
+
             function initChart() {
+                retryCount++;
+
                 // Check if Chart.js is available
                 if (typeof Chart === 'undefined') {
-                    console.warn('Chart.js not loaded yet, retrying...');
+                    if (retryCount >= maxRetries) {
+                        showError('Chart library failed to load. Please refresh the page.');
+                        return;
+                    }
                     setTimeout(initChart, 100);
                     return;
                 }
-                
+
                 // Check if datalabels plugin is available
                 if (typeof ChartDataLabels === 'undefined') {
-                    console.warn('ChartDataLabels plugin not loaded yet, retrying...');
+                    if (retryCount >= maxRetries) {
+                        showError('Chart plugin failed to load. Please refresh the page.');
+                        return;
+                    }
                     setTimeout(initChart, 100);
                     return;
                 }
@@ -917,16 +944,43 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                     }
                 }
             }
-            
+
+            // Start loading scripts sequentially
+            function startLoading() {
+                // First, check if scripts are already loaded (multiple embeds on same page)
+                if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+                    initChart();
+                    return;
+                }
+
+                // Load Chart.js first
+                if (typeof Chart === 'undefined') {
+                    loadScript('https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js', function() {
+                        // Then load ChartDataLabels
+                        if (typeof ChartDataLabels === 'undefined') {
+                            loadScript('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0', function() {
+                                initChart();
+                            });
+                        } else {
+                            initChart();
+                        }
+                    });
+                } else if (typeof ChartDataLabels === 'undefined') {
+                    // Chart.js loaded but not ChartDataLabels
+                    loadScript('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0', function() {
+                        initChart();
+                    });
+                } else {
+                    initChart();
+                }
+            }
+
             // Initialize when DOM is ready
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initChart);
+                document.addEventListener('DOMContentLoaded', startLoading);
             } else {
-                initChart();
+                startLoading();
             }
-            
-            // Also try initialization after a short delay for WordPress compatibility
-            setTimeout(initChart, 500);
 
         })();
     </script>
