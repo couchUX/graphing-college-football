@@ -272,7 +272,7 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
       {/* Desktop: Full card with header and tables together */}
 
       {/* Mobile-only header card */}
-      <div className="md:hidden bg-white rounded-t-2xl shadow-sm border border-neutral-200 border-b-0 pt-4 px-4 pb-4">
+      <div className="md:hidden bg-white rounded-t-2xl shadow-sm border border-neutral-200 border-b-0 pt-4 px-4 pb-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-neutral-900">Box Score</h2>
           <button

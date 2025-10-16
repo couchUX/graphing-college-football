@@ -27,8 +27,8 @@ const BoxScoreTable: React.FC<BoxScoreTableProps> = ({
   
   return (
     <div className={`bg-white overflow-hidden ${
-      isFirst 
-        ? 'rounded-t-lg md:rounded-lg border border-neutral-200' 
+      isFirst
+        ? 'rounded-none md:rounded-lg border border-neutral-200'
         : 'rounded-b-lg md:rounded-lg border-0 border-l border-r border-b border-neutral-200 md:border'
     }`}>
       <table className="min-w-full table-fixed">
