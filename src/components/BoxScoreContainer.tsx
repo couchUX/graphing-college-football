@@ -267,47 +267,78 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
 
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-neutral-900">Box Score</h2>
-        <button
-          onClick={handleCopyEmbed}
-          className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-            copied
-              ? 'border-green-300 bg-green-50'
-              : 'border-neutral-300 hover:bg-neutral-50'
-          }`}
-          title={copied ? "Copied!" : "Copy embed code"}
-        >
-          {copied ? (
-            <Check className="h-4 w-4 text-green-600" />
-          ) : (
-            <Copy className="h-4 w-4 text-neutral-600" />
-          )}
-        </button>
-      </div>
-      <div className="flex flex-col md:flex-row gap-0 md:gap-6">
-        <div className="flex-1">
-          <BoxScoreTable
-            stats={firstTableStats}
-            team1Name={team1Name}
-            team2Name={team2Name}
-            tableTitle="Stats"
-            selectedTeamColor={selectedTeamColor}
-            selectedOpponentColor={selectedOpponentColor}
-            isFirst={true}
-          />
+    <div className="mb-8">
+      {/* Mobile: Header card (white) separate from tables */}
+      {/* Desktop: Full card with header and tables together */}
+
+      {/* Mobile-only header card */}
+      <div className="md:hidden bg-white rounded-t-2xl shadow-sm border border-neutral-200 border-b-0 pt-4 px-4 pb-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-neutral-900">Box Score</h2>
+          <button
+            onClick={handleCopyEmbed}
+            className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
+              copied
+                ? 'border-green-300 bg-green-50'
+                : 'border-neutral-300 hover:bg-neutral-50'
+            }`}
+            title={copied ? "Copied!" : "Copy embed code"}
+          >
+            {copied ? (
+              <Check className="h-4 w-4 text-green-600" />
+            ) : (
+              <Copy className="h-4 w-4 text-neutral-600" />
+            )}
+          </button>
         </div>
-        <div className="flex-1">
-          <BoxScoreTable
-            stats={secondTableStats}
-            team1Name={team1Name}
-            team2Name={team2Name}
-            tableTitle="Stats (cont'd)"
-            selectedTeamColor={selectedTeamColor}
-            selectedOpponentColor={selectedOpponentColor}
-            isFirst={false}
-          />
+      </div>
+
+      {/* Desktop: Full card container */}
+      <div className="md:bg-white md:rounded-2xl md:shadow-sm md:border md:border-neutral-200 md:pt-5 md:px-6 md:pb-6">
+        {/* Desktop header */}
+        <div className="hidden md:flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-neutral-900">Box Score</h2>
+          <button
+            onClick={handleCopyEmbed}
+            className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
+              copied
+                ? 'border-green-300 bg-green-50'
+                : 'border-neutral-300 hover:bg-neutral-50'
+            }`}
+            title={copied ? "Copied!" : "Copy embed code"}
+          >
+            {copied ? (
+              <Check className="h-4 w-4 text-green-600" />
+            ) : (
+              <Copy className="h-4 w-4 text-neutral-600" />
+            )}
+          </button>
+        </div>
+
+        {/* Tables */}
+        <div className="flex flex-col md:flex-row gap-0 md:gap-6">
+          <div className="flex-1">
+            <BoxScoreTable
+              stats={firstTableStats}
+              team1Name={team1Name}
+              team2Name={team2Name}
+              tableTitle="Stats"
+              selectedTeamColor={selectedTeamColor}
+              selectedOpponentColor={selectedOpponentColor}
+              isFirst={true}
+            />
+          </div>
+          <div className="flex-1">
+            <BoxScoreTable
+              stats={secondTableStats}
+              team1Name={team1Name}
+              team2Name={team2Name}
+              tableTitle="Stats (cont'd)"
+              selectedTeamColor={selectedTeamColor}
+              selectedOpponentColor={selectedOpponentColor}
+              isFirst={false}
+            />
+          </div>
         </div>
       </div>
     </div>
