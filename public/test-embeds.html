@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFB Chart Embed Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f5f5;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .instructions {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #666;
+        }
+
+        .instructions code {
+            background: #e5e5e5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .controls {
+            margin-bottom: 30px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            margin-bottom: 12px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-render {
+            background: #4CAF50;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-render:hover {
+            background: #45a049;
+        }
+
+        .btn-clear {
+            background: #f44336;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-clear:hover {
+            background: #da190b;
+        }
+
+        .article-content {
+            background: white;
+            padding: 40px 0;
+            min-height: 200px;
+        }
+
+        .article-content:empty:before {
+            content: "Your embed will appear here...";
+            color: #999;
+            font-style: italic;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 40px 0;
+        }
+
+        .reload-info {
+            margin-top: 20px;
+            padding: 12px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            font-size: 13px;
+            color: #1976D2;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CFB Chart Embed Tester</h1>
+
+        <div class="instructions">
+            <strong>How to use:</strong><br>
+            1. Copy embed code from your local dashboard (http://localhost:5173)<br>
+            2. Paste it in the textarea below<br>
+            3. Click "Render Embed" to see how it looks<br>
+            4. Use <code>Cmd/Ctrl + R</code> to hard reload and test consistency<br>
+            5. Mimics 600px article width (like WordPress)
+        </div>
+
+        <div class="controls">
+            <textarea id="embedCode" placeholder="Paste your embed code here..."></textarea>
+            <div class="button-group">
+                <button class="btn-render" onclick="renderEmbed()">Render Embed</button>
+                <button class="btn-clear" onclick="clearEmbed()">Clear</button>
+            </div>
+            <div class="reload-info">
+                💡 Tip: After rendering, try hard reloading (Cmd+Shift+R / Ctrl+Shift+R) to test if labels stay in correct position
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="article-content" id="articleContent"></div>
+    </div>
+
+    <script>
+        function renderEmbed() {
+            const embedCode = document.getElementById('embedCode').value;
+            const articleContent = document.getElementById('articleContent');
+
+            if (!embedCode.trim()) {
+                alert('Please paste some embed code first!');
+                return;
+            }
+
+            // Clear previous content
+            articleContent.innerHTML = '';
+
+            // Create a temporary container
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = embedCode;
+
+            // Append to article content
+            articleContent.appendChild(tempDiv);
+
+            // Execute any scripts in the embed
+            const scripts = tempDiv.querySelectorAll('script');
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
+                } else {
+                    newScript.textContent = oldScript.textContent;
+                }
+                // Replace old script with new one to execute it
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+
+            console.log('Embed rendered. Check for script loading...');
+
+            // Scroll to the rendered content
+            articleContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function clearEmbed() {
+            document.getElementById('embedCode').value = '';
+            document.getElementById('articleContent').innerHTML = '';
+        }
+
+        // Allow Cmd/Ctrl + Enter to render
+        document.getElementById('embedCode').addEventListener('keydown', function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                renderEmbed();
+            }
+        });
+    </script>
+</body>
+</html>

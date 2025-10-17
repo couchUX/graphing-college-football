@@ -98,32 +98,32 @@ const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, play
   let team1Name: string;
   let team2Name: string;
   
-  const selectedTeamData = rawData.find(team => 
-    team.team && (
-      team.team.toLowerCase().includes(selectedTeam.toLowerCase()) ||
-      selectedTeam.toLowerCase().includes(team.team.toLowerCase())
+  const selectedTeamData = rawData.find(team =>
+    team.school && (
+      team.school.toLowerCase().includes(selectedTeam.toLowerCase()) ||
+      selectedTeam.toLowerCase().includes(team.school.toLowerCase())
     )
   );
-  
+
   if (selectedTeamData) {
     // Use the matched team as team1 (main team)
     team1 = selectedTeamData;
-    team1Name = selectedTeamData.team;
+    team1Name = selectedTeamData.school;
     // Use the other team as team2 (opponent)
     const opponentTeamData = rawData.find(team => team !== selectedTeamData);
     if (opponentTeamData) {
       team2 = opponentTeamData;
-      team2Name = opponentTeamData.team;
+      team2Name = opponentTeamData.school;
     } else {
       team2 = rawData[1];
-      team2Name = rawData[1].team || (opponentTeam || 'Opponent');
+      team2Name = rawData[1].school || (opponentTeam || 'Opponent');
     }
   } else {
     // Fallback to original order if no match found
     team1 = rawData[0];
     team2 = rawData[1];
-    team1Name = rawData[0].team || selectedTeam;
-    team2Name = rawData[1].team || (opponentTeam || 'Opponent');
+    team1Name = rawData[0].school || selectedTeam;
+    team2Name = rawData[1].school || (opponentTeam || 'Opponent');
   }
 
   // Helper function to get stat value

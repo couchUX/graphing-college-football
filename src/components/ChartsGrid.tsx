@@ -481,7 +481,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: {
-                            duration: 0 // Disable animations to prevent conflicts
+                            duration: 1 // Minimal animation to trigger layout calculation (fixes label positioning)
                         },
                         elements: '${_chartType}' === 'line' ? '${_chartId}'.includes('play-map') ? {
                             line: {

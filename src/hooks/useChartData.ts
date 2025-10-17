@@ -12,7 +12,6 @@ import {
   createPlayerData,
   createDriveLines,
   createWinProbabilityData,
-  createWinProbabilityQuarterGridlines,
   createFiftyPercentLine
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
