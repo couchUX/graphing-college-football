@@ -209,7 +209,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   });
 
 
-  // Filter to only rush, pass, and two-point conversion plays (including sacks) AFTER sorting
+  // Filter to only rush, pass, and two-point conversion plays (including sacks and interceptions) AFTER sorting
   const rushPassPlays = sortedPlays.filter(play => {
     const playType = play.play_type || play.playType || '';
     const lowerPlayType = playType.toLowerCase();
@@ -219,6 +219,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
            lowerPlayType.includes('completion') ||
            lowerPlayType.includes('incompletion') ||
            lowerPlayType.includes('sack') || // Include sacks as pass plays
+           lowerPlayType.includes('interception') || // Include interceptions as unsuccessful pass plays
            lowerPlayType.includes('conversion') ||
            lowerPlayType.includes('two point') ||
            lowerPlayType.includes('2pt');

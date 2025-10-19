@@ -736,6 +736,8 @@ export const createWinProbabilityData = (
 };
 
 // Create quarter gridlines for win probability chart
+// This function extracts quarter information directly from the winProbData playText field
+// by parsing patterns like "1st and 10 at" or "(Q2 08:45)" or similar quarter indicators
 export const createWinProbabilityQuarterGridlines = (winProbData: any[], maxX: number, yMin: number = 0, yMax: number = 100) => {
   if (!winProbData || winProbData.length === 0) {
     return {
@@ -751,19 +753,39 @@ export const createWinProbabilityQuarterGridlines = (winProbData: any[], maxX: n
     };
   }
 
-  // Create a mapping of play indices to quarter information
+  // Function to extract quarter from play text patterns
+  const extractQuarter = (playText: string): number | null => {
+    if (!playText) return null;
+
+    // Look for patterns like "(1st Quarter)" or "(Q1" or "1st Qtr" etc
+    const quarterPatterns = [
+      /\(Q(\d)\s/i,                    // (Q1 12:45)
+      /\((\d)(?:st|nd|rd|th)?\s+Quarter/i,  // (1st Quarter)
+      /\((\d)(?:st|nd|rd|th)?\s+Qtr/i       // (1st Qtr)
+    ];
+
+    for (const pattern of quarterPatterns) {
+      const match = playText.match(pattern);
+      if (match) {
+        const quarter = parseInt(match[1]);
+        // Normalize overtime (5+) to 5
+        return quarter > 4 ? 5 : quarter;
+      }
+    }
+
+    return null;
+  };
+
+  // Track quarter changes
   const quarterBreaks: { playIndex: number; quarter: number }[] = [];
   let currentQuarter = 0;
 
   winProbData.forEach((point, index) => {
-    // Extract quarter information from play text or other sources
-    // For now, we'll estimate quarters based on play progression
-    // In a real implementation, you'd want quarter data from the API
-    const estimatedQuarter = Math.floor(index / (winProbData.length / 4)) + 1;
+    const detectedQuarter = extractQuarter(point.playText);
 
-    if (estimatedQuarter !== currentQuarter && estimatedQuarter <= 4) {
-      quarterBreaks.push({ playIndex: index, quarter: estimatedQuarter });
-      currentQuarter = estimatedQuarter;
+    if (detectedQuarter !== null && detectedQuarter !== currentQuarter) {
+      quarterBreaks.push({ playIndex: index, quarter: detectedQuarter });
+      currentQuarter = detectedQuarter;
     }
   });
 
