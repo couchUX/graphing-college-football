@@ -333,8 +333,8 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
       if (play.explosiveness) explosiveCount++;
       
       const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
-      const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack');
-      
+      const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
+
       if (isRush) {
         rushCount++;
         rushPlayCount++;
