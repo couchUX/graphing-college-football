@@ -200,14 +200,14 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           label: `${team} Pass SR`,
           borderColor: teamColors.explosive,
           backgroundColor: teamPlays.map(play => {
-            const isPass = play.playType?.toLowerCase().includes('pass');
+            const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
             if (!isPass) return 'rgba(255,255,255,0.9)';
             return getPointColors([play], teamColors)[0];
           }),
           borderWidth: 2,
           pointStyle: 'triangle',
           pointRadius: teamPlays.map(play => {
-            const isPass = play.playType?.toLowerCase().includes('pass');
+            const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
             return isPass ? 6 : 0;
           }),
           pointBorderWidth: 1,
@@ -257,14 +257,14 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           label: `${opponentTeam} Pass SR`,
           borderColor: opponentColors.explosive,
           backgroundColor: opponentPlays.map(play => {
-            const isPass = play.playType?.toLowerCase().includes('pass');
+            const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
             if (!isPass) return 'rgba(255,255,255,0.9)';
             return getPointColors([play], opponentColors)[0];
           }),
           borderWidth: 2,
           pointStyle: 'triangle',
           pointRadius: opponentPlays.map(play => {
-            const isPass = play.playType?.toLowerCase().includes('pass');
+            const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
             return isPass ? 6 : 0;
           }),
           pointBorderWidth: 1,
@@ -349,9 +349,9 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
 
     // 7 & 8. Play Maps - plays are already sorted properly from data processing
     const teamRushPlays = teamPlays.filter(p => p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run'));
-    const teamPassPlays = teamPlays.filter(p => p.playType?.toLowerCase().includes('pass'));
+    const teamPassPlays = teamPlays.filter(p => p.playType?.toLowerCase().includes('pass') || p.playType?.toLowerCase().includes('sack') || p.playType?.toLowerCase().includes('interception'));
     const oppRushPlays = opponentPlays.filter(p => p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run'));
-    const oppPassPlays = opponentPlays.filter(p => p.playType?.toLowerCase().includes('pass'));
+    const oppPassPlays = opponentPlays.filter(p => p.playType?.toLowerCase().includes('pass') || p.playType?.toLowerCase().includes('sack') || p.playType?.toLowerCase().includes('interception'));
 
     // Calculate Y-axis bounds with defaults
     const teamYardsGained = teamPlays.map(p => p.yardsGained);
