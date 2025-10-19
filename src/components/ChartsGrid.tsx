@@ -32,9 +32,10 @@ interface ChartsGridProps {
     gameId?: string;
   } | null;
   winProbabilityData?: any[];
+  rawApiData?: any[];
 }
 
-const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor = 'default', selectedOpponentColor = 'default', currentParams = null, winProbabilityData = [] }) => {
+const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor = 'default', selectedOpponentColor = 'default', currentParams = null, winProbabilityData = [], rawApiData = [] }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -1163,7 +1164,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
   };
 
 
-  const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor, winProbabilityData);
+  const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor, winProbabilityData, rawApiData);
 
   // Debug logging for win probability data
   console.log('Win Probability Debug:', {

@@ -16,7 +16,7 @@ import {
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
 
-export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default', realWinProbabilityData: any[] = []) => {
+export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default', realWinProbabilityData: any[] = [], rawApiData: any[] = []) => {
   return useMemo(() => {
     // Get opponent team
     const opponentTeam = plays.find(p => p.offense !== team && p.defense !== team)?.offense || 
@@ -623,8 +623,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         opponentTeam,
         teamColors,
         opponentColors,
-        plays // Pass play data to determine actual home/away teams
+        rawApiData // Pass raw API data with playId and quarter info for quarter gridlines
       )
     };
-  }, [plays, team, selectedTeamColor, selectedOpponentColor, realWinProbabilityData]);
+  }, [plays, team, selectedTeamColor, selectedOpponentColor, realWinProbabilityData, rawApiData]);
 };

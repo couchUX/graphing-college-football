@@ -725,8 +725,8 @@ export const createWinProbabilityData = (
   const fiftyPercentLine = createFiftyPercentLine(maxX);
   datasets.push(fiftyPercentLine);
 
-  // Add quarter grid lines
-  const quarterGridlines = createWinProbabilityQuarterGridlines(winProbData, maxX, 0, 100);
+  // Add quarter grid lines - pass plays data to match playIds with quarters
+  const quarterGridlines = createWinProbabilityQuarterGridlines(winProbData, plays, maxX, 0, 100);
   datasets.push(quarterGridlines);
 
   return {
@@ -736,9 +736,8 @@ export const createWinProbabilityData = (
 };
 
 // Create quarter gridlines for win probability chart
-// This function extracts quarter information directly from the winProbData playText field
-// by parsing patterns like "1st and 10 at" or "(Q2 08:45)" or similar quarter indicators
-export const createWinProbabilityQuarterGridlines = (winProbData: any[], maxX: number, yMin: number = 0, yMax: number = 100) => {
+// This function matches Win Probability data with raw play data by playId to get quarter information
+export const createWinProbabilityQuarterGridlines = (winProbData: any[], rawPlays: any[], maxX: number, yMin: number = 0, yMax: number = 100) => {
   if (!winProbData || winProbData.length === 0) {
     return {
       label: 'Quarters',
@@ -753,47 +752,36 @@ export const createWinProbabilityQuarterGridlines = (winProbData: any[], maxX: n
     };
   }
 
-  // Function to extract quarter from play text patterns
-  const extractQuarter = (playText: string): number | null => {
-    if (!playText) return null;
+  // Create a map of playId -> quarter from raw plays data
+  const playIdToQuarter = new Map();
+  if (rawPlays && rawPlays.length > 0) {
+    rawPlays.forEach(play => {
+      const playId = play.id;
+      const quarter = play.quarter || play.period || 0;
+      // Normalize overtime (5+) to 5
+      const normalizedQuarter = quarter > 4 ? 5 : quarter;
+      playIdToQuarter.set(playId, normalizedQuarter);
+    });
+  }
 
-    // Look for patterns in the playText - try multiple patterns
-    const quarterPatterns = [
-      /\(Q(\d)/i,                              // (Q1 or (Q1)
-      /\((\d)(?:st|nd|rd|th)?\s+Quarter/i,    // (1st Quarter)
-      /\((\d)(?:st|nd|rd|th)?\s+Qtr/i,        // (1st Qtr)
-      /Quarter\s+(\d)/i,                       // Quarter 1
-      /^(\d)(?:st|nd|rd|th)\s+Quarter/i,      // 1st Quarter at start
-      /^(\d)(?:st|nd|rd|th)\s+Qtr/i           // 1st Qtr at start
-    ];
+  console.log('=== WIN PROBABILITY QUARTER DETECTION ===');
+  console.log(`Raw plays available: ${rawPlays?.length || 0}`);
+  console.log(`Play ID to Quarter map size: ${playIdToQuarter.size}`);
+  console.log('Sample Win Prob data with playId:');
+  winProbData.slice(0, 5).forEach((point, i) => {
+    const quarter = playIdToQuarter.get(point.playId);
+    console.log(`[${i}] playId: ${point.playId}, mapped quarter: ${quarter}, playText: "${point.playText}"`);
+  });
 
-    for (const pattern of quarterPatterns) {
-      const match = playText.match(pattern);
-      if (match) {
-        const quarter = parseInt(match[1]);
-        // Normalize overtime (5+) to 5
-        return quarter > 4 ? 5 : quarter;
-      }
-    }
-
-    return null;
-  };
-
-  // Track quarter changes
+  // Track quarter changes by matching playId
   const quarterBreaks: { playIndex: number; quarter: number }[] = [];
   let currentQuarter = 0;
 
-  console.log('=== WIN PROBABILITY QUARTER DETECTION ===');
-  console.log('Sample playText values from winProbData:');
-  winProbData.slice(0, 5).forEach((point, i) => {
-    console.log(`[${i}] playText: "${point.playText}"`);
-  });
-
   winProbData.forEach((point, index) => {
-    const detectedQuarter = extractQuarter(point.playText);
+    const detectedQuarter = playIdToQuarter.get(point.playId);
 
-    if (detectedQuarter !== null && detectedQuarter !== currentQuarter) {
-      console.log(`Quarter change detected at index ${index}: Q${currentQuarter} -> Q${detectedQuarter}, playText: "${point.playText}"`);
+    if (detectedQuarter !== undefined && detectedQuarter !== currentQuarter) {
+      console.log(`Quarter change detected at index ${index}: Q${currentQuarter} -> Q${detectedQuarter}, playId: ${point.playId}`);
       quarterBreaks.push({ playIndex: index, quarter: detectedQuarter });
       currentQuarter = detectedQuarter;
     }

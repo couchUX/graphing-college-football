@@ -976,6 +976,7 @@ const Dashboard: React.FC = () => {
               selectedOpponentColor={selectedOpponentColor}
               currentParams={currentParams}
               winProbabilityData={winProbabilityData}
+              rawApiData={rawApiData}
             />
           </div>
         )}
