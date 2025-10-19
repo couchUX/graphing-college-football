@@ -757,11 +757,14 @@ export const createWinProbabilityQuarterGridlines = (winProbData: any[], maxX: n
   const extractQuarter = (playText: string): number | null => {
     if (!playText) return null;
 
-    // Look for patterns like "(1st Quarter)" or "(Q1" or "1st Qtr" etc
+    // Look for patterns in the playText - try multiple patterns
     const quarterPatterns = [
-      /\(Q(\d)\s/i,                    // (Q1 12:45)
-      /\((\d)(?:st|nd|rd|th)?\s+Quarter/i,  // (1st Quarter)
-      /\((\d)(?:st|nd|rd|th)?\s+Qtr/i       // (1st Qtr)
+      /\(Q(\d)/i,                              // (Q1 or (Q1)
+      /\((\d)(?:st|nd|rd|th)?\s+Quarter/i,    // (1st Quarter)
+      /\((\d)(?:st|nd|rd|th)?\s+Qtr/i,        // (1st Qtr)
+      /Quarter\s+(\d)/i,                       // Quarter 1
+      /^(\d)(?:st|nd|rd|th)\s+Quarter/i,      // 1st Quarter at start
+      /^(\d)(?:st|nd|rd|th)\s+Qtr/i           // 1st Qtr at start
     ];
 
     for (const pattern of quarterPatterns) {
@@ -780,14 +783,24 @@ export const createWinProbabilityQuarterGridlines = (winProbData: any[], maxX: n
   const quarterBreaks: { playIndex: number; quarter: number }[] = [];
   let currentQuarter = 0;
 
+  console.log('=== WIN PROBABILITY QUARTER DETECTION ===');
+  console.log('Sample playText values from winProbData:');
+  winProbData.slice(0, 5).forEach((point, i) => {
+    console.log(`[${i}] playText: "${point.playText}"`);
+  });
+
   winProbData.forEach((point, index) => {
     const detectedQuarter = extractQuarter(point.playText);
 
     if (detectedQuarter !== null && detectedQuarter !== currentQuarter) {
+      console.log(`Quarter change detected at index ${index}: Q${currentQuarter} -> Q${detectedQuarter}, playText: "${point.playText}"`);
       quarterBreaks.push({ playIndex: index, quarter: detectedQuarter });
       currentQuarter = detectedQuarter;
     }
   });
+
+  console.log(`Total quarter breaks found: ${quarterBreaks.length}`, quarterBreaks);
+  console.log('======================================');
 
   const quarterLines: any[] = [];
 

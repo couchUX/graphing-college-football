@@ -240,9 +240,16 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   // Process each rush/pass play and add cumulative calculations
   // The playNumber is now assigned sequentially to the filtered plays in chronological order
   const processedPlays = rushPassPlays.map((play, index) => {
-    const yardsGained = play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 0);
     const playType = play.play_type || play.playType || '';
     const playText = play.play_text || play.playText || '';
+
+    // For interceptions, set yards to 0 (defensive return yards don't count for offense)
+    let yardsGained = play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 0);
+    const lowerPlayType = playType.toLowerCase();
+    if (lowerPlayType.includes('interception') || lowerPlayType.includes('intercepted')) {
+      yardsGained = 0;
+    }
+
     const success = calculateSuccess(play.down, play.distance, yardsGained, playType, playText);
     const explosiveness = calculateExplosiveness(yardsGained);
     

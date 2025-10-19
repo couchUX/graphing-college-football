@@ -235,12 +235,12 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Helper function to determine if a play is rush or pass - UPDATED TO INCLUDE SACKS AS PASS
+  // Helper function to determine if a play is rush or pass - UPDATED TO INCLUDE SACKS AND INTERCEPTIONS AS PASS
   const getPlayType = (playType: string): string => {
     const lowerPlayType = playType.toLowerCase();
     if (lowerPlayType.includes('rush') || lowerPlayType.includes('run')) {
       return 'Rush';
-    } else if (lowerPlayType.includes('pass') || lowerPlayType.includes('completion') || lowerPlayType.includes('incompletion') || lowerPlayType.includes('sack')) {
+    } else if (lowerPlayType.includes('pass') || lowerPlayType.includes('completion') || lowerPlayType.includes('incompletion') || lowerPlayType.includes('sack') || lowerPlayType.includes('interception')) {
       return 'Pass';
     }
     return 'Other';
