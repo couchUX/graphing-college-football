@@ -1,7 +1,8 @@
 import { API_BASE_URL, getApiHeaders } from '../config/api';
 
 export interface BoxScoreTeam {
-  school: string;
+  school?: string;  // Optional - sometimes not provided
+  team?: string;    // Alternative field name used by API
   conference: string;
   homeAway: string;
   points: number;

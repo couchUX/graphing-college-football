@@ -91,47 +91,130 @@ const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, play
     };
   }
 
+  // Helper to get team name from either 'school' or 'team' field
+  const getTeamName = (team: BoxScoreTeam): string | null => {
+    return team.school || team.team || null;
+  };
+
+
   // Assign teams based on logical order (selected team first, opponent second)
   // instead of raw API order which might be home/away
   let team1: BoxScoreTeam;
   let team2: BoxScoreTeam;
   let team1Name: string;
   let team2Name: string;
-  
-  const selectedTeamData = rawData.find(team =>
-    team.school && (
-      team.school.toLowerCase().includes(selectedTeam.toLowerCase()) ||
-      selectedTeam.toLowerCase().includes(team.school.toLowerCase())
-    )
-  );
+
+  // Try multiple strategies to find the selected team
+  const selectedTeamData = rawData.find(team => {
+    const teamName = getTeamName(team);
+    if (!teamName) return false;
+
+    const teamNameLower = teamName.toLowerCase().trim();
+    const selectedTeamLower = selectedTeam.toLowerCase().trim();
+
+    // Normalize team names by removing common suffixes
+    const normalizeTeamName = (name: string) => {
+      return name
+        .replace(/\s+(crimson\s+tide|bulldogs|tigers|gators|volunteers|wildcats|rebels|aggies|gamecocks)/gi, '')
+        .trim();
+    };
+
+    const normalizedTeamName = normalizeTeamName(teamNameLower);
+    const normalizedSelected = normalizeTeamName(selectedTeamLower);
+
+    // Try multiple matching strategies
+    return (
+      // Exact match
+      teamNameLower === selectedTeamLower ||
+      // Substring match
+      teamNameLower.includes(selectedTeamLower) ||
+      selectedTeamLower.includes(teamNameLower) ||
+      // Normalized match (without mascot names)
+      normalizedTeamName === normalizedSelected ||
+      normalizedTeamName.includes(normalizedSelected) ||
+      normalizedSelected.includes(normalizedTeamName)
+    );
+  });
 
   if (selectedTeamData) {
     // Use the matched team as team1 (main team)
     team1 = selectedTeamData;
-    team1Name = selectedTeamData.school;
+    team1Name = getTeamName(selectedTeamData) || selectedTeam;
     // Use the other team as team2 (opponent)
     const opponentTeamData = rawData.find(team => team !== selectedTeamData);
     if (opponentTeamData) {
       team2 = opponentTeamData;
-      team2Name = opponentTeamData.school;
+      team2Name = getTeamName(opponentTeamData) || (opponentTeam || 'Opponent');
     } else {
       team2 = rawData[1];
-      team2Name = rawData[1].school || (opponentTeam || 'Opponent');
+      team2Name = getTeamName(rawData[1]) || (opponentTeam || 'Opponent');
     }
   } else {
-    // Fallback to original order if no match found
-    team1 = rawData[0];
-    team2 = rawData[1];
-    team1Name = rawData[0].school || selectedTeam;
-    team2Name = rawData[1].school || (opponentTeam || 'Opponent');
+    // Fallback: Try to use opponent team name to determine order
+
+    if (opponentTeam) {
+      const normalizeTeamName = (name: string) => {
+        return name
+          .replace(/\s+(crimson\s+tide|bulldogs|tigers|gators|volunteers|wildcats|rebels|aggies|gamecocks)/gi, '')
+          .trim();
+      };
+
+      const opponentTeamData = rawData.find(team => {
+        const teamName = getTeamName(team);
+        if (!teamName) return false;
+
+        const teamNameLower = teamName.toLowerCase().trim();
+        const opponentTeamLower = opponentTeam.toLowerCase().trim();
+
+        const normalizedTeamName = normalizeTeamName(teamNameLower);
+        const normalizedOpponent = normalizeTeamName(opponentTeamLower);
+
+        return (
+          teamNameLower === opponentTeamLower ||
+          teamNameLower.includes(opponentTeamLower) ||
+          opponentTeamLower.includes(teamNameLower) ||
+          normalizedTeamName === normalizedOpponent ||
+          normalizedTeamName.includes(normalizedOpponent) ||
+          normalizedOpponent.includes(normalizedTeamName)
+        );
+      });
+
+      if (opponentTeamData) {
+        // Found opponent, so use the other team as selected team
+        const selectedTeamData = rawData.find(team => team !== opponentTeamData);
+        if (selectedTeamData) {
+          team1 = selectedTeamData;
+          team1Name = getTeamName(selectedTeamData) || selectedTeam;
+          team2 = opponentTeamData;
+          team2Name = getTeamName(opponentTeamData) || opponentTeam;
+        } else {
+          // Still couldn't find it, use original order
+          team1 = rawData[0];
+          team2 = rawData[1];
+          team1Name = getTeamName(rawData[0]) || selectedTeam;
+          team2Name = getTeamName(rawData[1]) || (opponentTeam || 'Opponent');
+        }
+      } else {
+        // Couldn't find opponent either, use original order
+        team1 = rawData[0];
+        team2 = rawData[1];
+        team1Name = getTeamName(rawData[0]) || selectedTeam;
+        team2Name = getTeamName(rawData[1]) || (opponentTeam || 'Opponent');
+      }
+    } else {
+      // No opponent team provided, use original order
+      team1 = rawData[0];
+      team2 = rawData[1];
+      team1Name = getTeamName(rawData[0]) || selectedTeam;
+      team2Name = getTeamName(rawData[1]) || (opponentTeam || 'Opponent');
+    }
   }
+
 
   // Helper function to get stat value
   const getStat = (team: BoxScoreTeam, category: string): string => {
     const stat = team.stats.find(s => s.category === category);
-    const value = stat ? stat.stat : '0';
-    console.log(`getStat for category "${category}":`, value);
-    return value;
+    return stat ? stat.stat : '0';
   };
 
   // Helper function to get stat value with fallback category names
