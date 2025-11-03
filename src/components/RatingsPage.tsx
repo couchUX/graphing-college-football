@@ -357,12 +357,12 @@ const RatingsPage: React.FC = () => {
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-[1120px]">
+          <table className="min-w-[1120px] min-[1180px]:min-w-full">
             <colgroup>
               <col style={{ minWidth: '20px' }} /> {/* Index */}
-              <col style={{ minWidth: '225px' }} /> {/* Team */}
-              <col style={{ minWidth: '200px' }} /> {/* Conference */}
-              <col style={{ minWidth: '120px' }} /> {/* SP+ Rank */}
+              <col style={{ minWidth: '160px' }} /> {/* Team */}
+              <col style={{ minWidth: '160px' }} /> {/* Conference */}
+              <col style={{ minWidth: '100px' }} /> {/* SP+ Rank */}
               <col style={{ minWidth: '200px' }} /> {/* Overall SP+ */}
               <col style={{ minWidth: '200px' }} /> {/* Off Rating */}
               <col style={{ minWidth: '200px' }} /> {/* Def Rating */}
