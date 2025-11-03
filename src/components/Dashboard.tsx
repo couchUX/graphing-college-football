@@ -292,14 +292,24 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             
-            {/* Info Button */}
-            <button
-              onClick={() => setShowInfoModal(true)}
-              className="flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
-              title="About this project"
-            >
-              <Info className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Navigation Link */}
+              <a
+                href="/ratings"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-all duration-200 text-sm font-medium"
+              >
+                SP+ Ratings
+              </a>
+
+              {/* Info Button */}
+              <button
+                onClick={() => setShowInfoModal(true)}
+                className="flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
+                title="About this project"
+              >
+                <Info className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
