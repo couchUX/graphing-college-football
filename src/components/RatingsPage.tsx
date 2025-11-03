@@ -12,8 +12,8 @@ const RatingsPage: React.FC = () => {
   const [ratings, setRatings] = useState<SPRating[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>('ranking');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [sortField, setSortField] = useState<SortField>('rating');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedConference, setSelectedConference] = useState<string>('all');
   const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
@@ -219,6 +219,13 @@ const RatingsPage: React.FC = () => {
       : <ChevronDown className="h-4 w-4 text-white" />;
   };
 
+  const getHeaderCellClass = (field: SortField, paddingClass = 'px-4') => {
+    const baseClasses = `${paddingClass} py-3 text-left text-sm font-semibold cursor-pointer transition-colors text-white`;
+    return sortField === field
+      ? `${baseClasses} bg-neutral-700`
+      : `${baseClasses} hover:bg-neutral-700`;
+  };
+
   // Render a top 25 table for a specific rating type
   const renderTop25Table = (
     title: string,
@@ -255,13 +262,13 @@ const RatingsPage: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <colgroup>
-              <col style={{ width: '40px' }} /> {/* Rank */}
+              <col style={{ width: '40px' }} /> {/* Index */}
               <col style={{ width: '140px' }} /> {/* Team */}
               <col style={{ width: 'auto' }} /> {/* Rating - takes remaining space */}
             </colgroup>
             <thead className="bg-neutral-100">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-700">Rk</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-700">#</th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-700">Team</th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-700">{columnLabel}</th>
               </tr>
@@ -286,7 +293,7 @@ const RatingsPage: React.FC = () => {
                     key={rating.team}
                     className={index % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}
                   >
-                    <td className="px-3 py-2 text-xs font-semibold text-neutral-900">
+                    <td className="px-3 py-2 text-xs text-neutral-500">
                       {index + 1}
                     </td>
                     <td className="px-3 py-2 text-xs">
@@ -350,28 +357,26 @@ const RatingsPage: React.FC = () => {
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="min-w-[1120px]">
             <colgroup>
-              <col style={{ width: '60px' }} /> {/* Rank */}
-              <col style={{ width: 'auto' }} /> {/* Team */}
-              <col style={{ width: '180px' }} /> {/* Conference */}
-              <col style={{ width: '180px' }} /> {/* Overall Rating */}
-              <col style={{ width: '180px' }} /> {/* Off Rating */}
-              <col style={{ width: '180px' }} /> {/* Def Rating */}
+              <col style={{ minWidth: '20px' }} /> {/* Index */}
+              <col style={{ minWidth: '225px' }} /> {/* Team */}
+              <col style={{ minWidth: '200px' }} /> {/* Conference */}
+              <col style={{ minWidth: '120px' }} /> {/* SP+ Rank */}
+              <col style={{ minWidth: '200px' }} /> {/* Overall SP+ */}
+              <col style={{ minWidth: '200px' }} /> {/* Off Rating */}
+              <col style={{ minWidth: '200px' }} /> {/* Def Rating */}
             </colgroup>
             <thead className="bg-neutral-600 text-white">
               <tr>
                 <th
-                  className="px-3 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-neutral-700 transition-colors"
-                  onClick={() => handleSort('ranking')}
+                  className="px-3 py-3 text-left text-sm font-semibold"
+                  scope="col"
                 >
-                  <div className="flex items-center gap-1">
-                    <span>Rk</span>
-                    {renderSortIcon('ranking')}
-                  </div>
+                  #
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-neutral-700 transition-colors"
+                  className={getHeaderCellClass('team')}
                   onClick={() => handleSort('team')}
                 >
                   <div className="flex items-center gap-2">
@@ -380,7 +385,7 @@ const RatingsPage: React.FC = () => {
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-neutral-700 transition-colors"
+                  className={getHeaderCellClass('conference')}
                   onClick={() => handleSort('conference')}
                 >
                   <div className="flex items-center gap-2">
@@ -388,17 +393,20 @@ const RatingsPage: React.FC = () => {
                     {renderSortIcon('conference')}
                   </div>
                 </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-white">
+                  <span>SP+ rank</span>
+                </th>
                 <th
-                  className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-neutral-700 transition-colors"
+                  className={getHeaderCellClass('rating')}
                   onClick={() => handleSort('rating')}
                 >
                   <div className="flex items-center gap-2">
-                    <span>Overall</span>
+                    <span>Overall SP+</span>
                     {renderSortIcon('rating')}
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-neutral-700 transition-colors"
+                  className={getHeaderCellClass('offense')}
                   onClick={() => handleSort('offense')}
                 >
                   <div className="flex items-center gap-2">
@@ -407,7 +415,7 @@ const RatingsPage: React.FC = () => {
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-neutral-700 transition-colors"
+                  className={getHeaderCellClass('defense')}
                   onClick={() => handleSort('defense')}
                 >
                   <div className="flex items-center gap-2">
@@ -449,8 +457,8 @@ const RatingsPage: React.FC = () => {
                     key={rating.team}
                     className={index % 2 === 0 ? 'bg-white hover:bg-neutral-50' : 'bg-neutral-50 hover:bg-neutral-100'}
                   >
-                    <td className="px-3 py-3 text-sm font-semibold text-neutral-900">
-                      {rating.ranking}
+                    <td className="px-3 py-3 text-sm text-neutral-500">
+                      {index + 1}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex items-center gap-2">
@@ -463,6 +471,9 @@ const RatingsPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-600">
                       {rating.conference || 'N/A'}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-neutral-900">
+                      {rating.ranking}
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-neutral-900">
                       <div className="flex items-center gap-3">
