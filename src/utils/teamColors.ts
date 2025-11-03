@@ -143,7 +143,7 @@ const teamColorsData: { [key: string]: TeamColor } = {
   "Illinois": { success: "rgba(244, 120, 37, 0.8)", explosive: "rgba(128, 51, 0, 0.8)", light: "rgba(255, 240, 230, 0.8)" },
   "Illinois State": { success: "rgba(244, 37, 37, 0.8)", explosive: "rgba(128, 0, 0, 0.8)", light: "rgba(255, 230, 230, 0.8)" },
   "Illinois-Chicago (UIC)": { success: "rgba(209, 71, 86, 0.8)", explosive: "rgba(109, 19, 28, 0.8)", light: "rgba(251, 233, 235, 0.8)" },
-  "Indiana": { success: "rgba(244, 244, 37, 0.8)", explosive: "rgba(128, 128, 0, 0.8)", light: "rgba(255, 255, 230, 0.8)" },
+  "Indiana": { success: "rgba(153, 0, 0, 0.8)", explosive: "rgba(102, 0, 0, 0.8)", light: "rgba(255, 230, 230, 0.8)" },
   "Indiana State": { success: "rgba(58, 136, 222, 0.8)", explosive: "rgba(12, 61, 116, 0.8)", light: "rgba(232, 242, 253, 0.8)" },
   "Iona": { success: "rgba(178, 102, 124, 0.8)", explosive: "rgba(91, 36, 52, 0.8)", light: "rgba(248, 237, 240, 0.8)" },
   "Iowa": { success: "rgba(140, 140, 140, 0.8)", explosive: "rgba(64, 64, 64, 0.8)", light: "rgba(242, 242, 242, 0.8)" },
