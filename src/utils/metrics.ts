@@ -52,10 +52,43 @@ const calculateExplosiveness = (yardsGained: number): boolean => {
   return yardsGained >= 15;
 };
 
+// Helper function to remove timestamp and formation prefixes from play text
+const stripTimestamp = (playText: string): string => {
+  if (!playText) return '';
+
+  // Strategy: Find player number marker (#\d+) that appears BEFORE action words (rush/pass/etc)
+  // and remove everything before it (including the marker)
+  // Example: "(03:59) Shotgun #15 T.Simpson pass..." -> "T.Simpson pass..."
+  // Important: Don't match player numbers in parentheses like "(#42 D.Keys)" at the end
+
+  // First, check if there's a timestamp at the start
+  const hasTimestamp = playText.match(/^\s*\(\d{1,2}:\d{2}\)/);
+
+  if (hasTimestamp) {
+    // If there's a timestamp, look for the first #\d+ that's NOT in parentheses
+    // Strategy: Remove timestamp, then find first standalone #\d+ (not preceded by opening paren)
+    let afterTimestamp = playText.replace(/^\s*\(\d{1,2}:\d{2}\)\s*/, '');
+
+    // Find first # that's not inside parentheses
+    // Look for #\d+ followed by space and then capture everything after it
+    // Use negative lookbehind to avoid matching (#\d+ inside parens
+    const playerNumberMatch = afterTimestamp.match(/(?<!\()#\d+\s+(.+)$/);
+    if (playerNumberMatch) {
+      return playerNumberMatch[1].trim();
+    }
+
+    // If no player number found, return with just timestamp removed
+    return afterTimestamp.trim();
+  }
+
+  // No timestamp - return as-is (already clean format like "K.Riley rush middle...")
+  return playText.trim();
+};
+
 // Helper function to clean player names
 const cleanPlayerName = (name: string): string => {
   if (!name) return '';
-  
+
   // Additional safeguards for malformed names
   let cleaned = name
     .replace(/\d+/g, '') // Remove all numbers
@@ -68,8 +101,8 @@ const cleanPlayerName = (name: string): string => {
     .replace(/\s*pass\s*/gi, '') // Remove "pass"
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
     .trim();
-  
-  // Final safeguard: if the cleaned name is still too long or contains suspicious patterns, 
+
+  // Final safeguard: if the cleaned name is still too long or contains suspicious patterns,
   // try to extract just the first and last name
   if (cleaned.length > 25 || cleaned.includes('down') || cleaned.includes('penalty')) {
     const nameMatch = cleaned.match(/^([A-Za-z]+(?:\s+[A-Za-z]+){0,2})/i);
@@ -84,7 +117,7 @@ const cleanPlayerName = (name: string): string => {
       }
     }
   }
-  
+
   return cleaned;
 };
 
@@ -93,34 +126,39 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
   const lowerPlayType = playType.toLowerCase();
   const result: { rusher?: string; passer?: string; receiver?: string } = {};
 
+  // Strip timestamp from beginning of play text if present
+  const cleanedPlayText = stripTimestamp(playText);
+
   if (lowerPlayType.includes('rush') || lowerPlayType.includes('run')) {
     // RUSH PLAYS: Extract rusher
-    const rushMatch = playText.match(/^([^,]+(?:,\s*[^,]+)?)\s+(?:run|rush)/i);
+    // Match name at start, limit to reasonable length to avoid matching too much
+    // Pattern: [Name] rush/run (where name is limited to ~40 chars)
+    const rushMatch = cleanedPlayText.match(/^([A-Za-z\s.',-]{2,40}?)\s+(?:run|rush)/i);
     if (rushMatch) {
       result.rusher = cleanPlayerName(rushMatch[1]);
     }
   } else if (lowerPlayType.includes('pass') || lowerPlayType.includes('completion') || lowerPlayType.includes('incompletion')) {
     // PASS PLAYS: Skip sacks (no passer/receiver for sacks)
-    if (playText.toLowerCase().includes('sacked')) {
+    if (cleanedPlayText.toLowerCase().includes('sacked')) {
       return result; // Return empty for sacks
     }
 
     // Extract Passer - improved logic to handle complex play texts
     let passer = '';
-    
+
     // Check for scoring format first: "pass from [passer]"
-    const passFromMatch = playText.match(/pass from ([^(,]+)/i);
+    const passFromMatch = cleanedPlayText.match(/pass from ([^(,]+)/i);
     if (passFromMatch) {
       passer = passFromMatch[1].trim();
     } else {
       // Standard format: "[passer] pass" - be more restrictive to avoid long matches
       // Look for a name pattern followed by "pass" - limit to reasonable name length
-      const standardPassMatch = playText.match(/^([A-Za-z\s.',-]{2,40}?)\s+pass(?:\s+(?:complete|incomplete))/i);
+      const standardPassMatch = cleanedPlayText.match(/^([A-Za-z\s.',-]{2,40}?)\s+pass(?:\s+(?:complete|incomplete))/i);
       if (standardPassMatch) {
         passer = standardPassMatch[1].trim();
       } else {
         // Fallback: try to find just "[name] pass" at the start, but limit length
-        const simplePassMatch = playText.match(/^([A-Za-z\s.',-]{2,40}?)\s+pass/i);
+        const simplePassMatch = cleanedPlayText.match(/^([A-Za-z\s.',-]{2,40}?)\s+pass/i);
         if (simplePassMatch) {
           passer = simplePassMatch[1].trim();
           // Additional safeguard: if the extracted name seems too long, truncate at first reasonable break
@@ -140,38 +178,34 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
         }
       }
     }
-    
+
     if (passer) {
       result.passer = cleanPlayerName(passer);
     }
 
     // Extract Receiver
     let receiver = '';
-    
-    if (playText.includes('pass from')) {
+
+    if (cleanedPlayText.includes('pass from')) {
       // Scoring format: "[receiver] [yards] Yd pass from [passer]"
-      const scoringMatch = playText.match(/^([^0-9]+)/);
+      const scoringMatch = cleanedPlayText.match(/^([^0-9]+)/);
       if (scoringMatch) {
         receiver = scoringMatch[1].trim();
       }
-    } else if (playText.includes('complete to')) {
-      // Standard completion: "complete to [receiver] for" - FIXED REGEX TO CAPTURE ALL NAMES
-      const completeMatch = playText.match(/complete to\s+(.*?)(?:\s+for\s*|$)/i);
-      if (completeMatch) {
-        receiver = completeMatch[1].trim();
+    } else if (cleanedPlayText.includes(' to ') && !cleanedPlayText.includes('intercepted')) {
+      // Standard completion/incompletion: "pass complete short middle to #5 [receiver]"
+      // Pattern: ... to #\d+ [receiver] OR ... to [receiver]
+      // Need to handle optional player number and direction/distance words between "complete/incomplete" and "to"
+      const receiverMatch = cleanedPlayText.match(/\s+to\s+(?:#\d+\s+)?([A-Z][\w\s.'-]+?)(?:\s+caught|\s+thrown|\s+for\s*|$)/i);
+      if (receiverMatch) {
+        receiver = receiverMatch[1].trim();
       }
-    } else if (playText.includes('incomplete to')) {
-      // Incomplete with target: "incomplete to [receiver]"
-      const incompleteMatch = playText.match(/incomplete to (.+)/i);
-      if (incompleteMatch) {
-        receiver = incompleteMatch[1].trim();
-      }
-    } else if (playText.includes('intercepted')) {
+    } else if (cleanedPlayText.includes('intercepted')) {
       // Interception: Don't extract receiver - the person who intercepted is a defensive back, not an offensive receiver
       // Leave receiver blank for interceptions
     }
     // If just "incomplete" with no "to", leave receiver blank
-    
+
     if (receiver) {
       result.receiver = cleanPlayerName(receiver);
     }
@@ -203,12 +237,6 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
     return a.id.localeCompare(b.id);
   });
 
-  console.log('Play sorting verification - first 10 plays (sorted by drive, play-in-drive, then ID):');
-  sortedPlays.slice(0, 10).forEach((play, index) => {
-    console.log(`${index + 1}: ID ${play.id} - Q${play.quarter || play.period} D${play.drive_number || play.driveNumber} P${play.play_number || play.playNumber}`);
-  });
-
-
   // Filter to only rush, pass, and two-point conversion plays (including sacks and interceptions) AFTER sorting
   const rushPassPlays = sortedPlays.filter(play => {
     const playType = play.play_type || play.playType || '';
@@ -228,12 +256,6 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
     return isIncluded;
   });
 
-  console.log('Filtered rush/pass plays - first 10 (should be in chronological order):');
-  rushPassPlays.slice(0, 10).forEach((play, index) => {
-    console.log(`${index + 1}: ID ${play.id} - Q${play.quarter || play.period} D${play.drive_number || play.driveNumber} P${play.play_number || play.playNumber} - ${play.play_type || play.playType}`);
-  });
-
-
   // Calculate drive-based play numbers for rush/pass plays only
   const drivePlayCounts: { [key: string]: number } = {};
 
@@ -241,7 +263,9 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   // The playNumber is now assigned sequentially to the filtered plays in chronological order
   const processedPlays = rushPassPlays.map((play, index) => {
     const playType = play.play_type || play.playType || '';
-    const playText = play.play_text || play.playText || '';
+    const rawPlayText = play.play_text || play.playText || '';
+    // Strip timestamp from play text for cleaner display and processing
+    const playText = stripTimestamp(rawPlayText);
 
     // For interceptions, set yards to 0 (defensive return yards don't count for offense)
     let yardsGained = play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 0);
@@ -252,8 +276,8 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
 
     const success = calculateSuccess(play.down, play.distance, yardsGained, playType, playText);
     const explosiveness = calculateExplosiveness(yardsGained);
-    
-    // Extract player names
+
+    // Extract player names (using cleaned playText)
     const playerNames = extractPlayerNames(playText, playType);
     
     // Calculate drive-based play number for rush/pass plays only
@@ -304,14 +328,6 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
       teamRushCumulativeSR: 0,
       teamPassCumulativeSR: 0,
     };
-  });
-
-  console.log('Final processed plays verification - first 10:');
-  processedPlays.slice(0, 10).forEach(play => {
-    console.log(`Play #${play.playNumber}: ID ${play.id} - Q${play.quarter} D${play.driveNumber} P${play.playInDrive} - ${play.playType} - ${play.playText.substring(0, 50)}...`);
-    if (play.rusher) console.log(`  Rusher: ${play.rusher}`);
-    if (play.passer) console.log(`  Passer: ${play.passer}`);
-    if (play.receiver) console.log(`  Receiver: ${play.receiver}`);
   });
 
   // Calculate cumulative metrics for each team
@@ -451,10 +467,6 @@ export const calculatePlayerStats = (plays: PlayData[], playType: 'rush' | 'pass
     playerField = 'receiver';
   }
 
-  console.log(`calculatePlayerStats for ${playType}:`, {
-    totalPlays: relevantPlays.length,
-    samplePlay: relevantPlays[0]
-  });
   // Group plays by player
   const playerGroups = relevantPlays.reduce((acc, play) => {
     const playerName = play[playerField];
@@ -520,14 +532,6 @@ export const calculatePlayerStats = (plays: PlayData[], playType: 'rush' | 'pass
         });
       }
 
-      console.log(`Player ${name} (${playType}):`, {
-        explosive,
-        successful,
-        unsuccessful,
-        uns_catches,
-        int,
-        total: playerPlays.length
-      });
       return {
         name,
         explosive,

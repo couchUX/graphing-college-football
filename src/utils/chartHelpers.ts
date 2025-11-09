@@ -629,19 +629,6 @@ export const createWinProbabilityData = (
     actualAwayTeam = selectedTeam;
   }
 
-  console.log(`=== WIN PROBABILITY DEBUG ===`);
-  console.log(`Selected Team: ${selectedTeam}`);
-  console.log(`Opponent Team: ${opponentTeam}`);
-  console.log(`Actual Home Team: ${actualHomeTeam}`);
-  console.log(`Actual Away Team: ${actualAwayTeam}`);
-  console.log(`Is Selected Team Home?: ${isSelectedTeamHome}`);
-  console.log(`First few win prob data points:`, winProbData.slice(0, 3));
-  if (firstPoint) {
-    console.log(`Raw homeWinProbability: ${firstPoint.homeWinProbability}`);
-    console.log(`Will be displayed as selected team prob: ${isSelectedTeamHome ? firstPoint.homeWinProbability : (1 - firstPoint.homeWinProbability)}`);
-  }
-  console.log(`============================`);
-
   // Extract the primary colors for gradient calculation
 
   // Helper function to extract hex color from rgba or return hex directly
@@ -764,15 +751,6 @@ export const createWinProbabilityQuarterGridlines = (winProbData: any[], rawPlay
     });
   }
 
-  console.log('=== WIN PROBABILITY QUARTER DETECTION ===');
-  console.log(`Raw plays available: ${rawPlays?.length || 0}`);
-  console.log(`Play ID to Quarter map size: ${playIdToQuarter.size}`);
-  console.log('Sample Win Prob data with playId:');
-  winProbData.slice(0, 5).forEach((point, i) => {
-    const quarter = playIdToQuarter.get(point.playId);
-    console.log(`[${i}] playId: ${point.playId}, mapped quarter: ${quarter}, playText: "${point.playText}"`);
-  });
-
   // Track quarter changes by matching playId
   const quarterBreaks: { playIndex: number; quarter: number }[] = [];
   let currentQuarter = 0;
@@ -781,14 +759,10 @@ export const createWinProbabilityQuarterGridlines = (winProbData: any[], rawPlay
     const detectedQuarter = playIdToQuarter.get(point.playId);
 
     if (detectedQuarter !== undefined && detectedQuarter !== currentQuarter) {
-      console.log(`Quarter change detected at index ${index}: Q${currentQuarter} -> Q${detectedQuarter}, playId: ${point.playId}`);
       quarterBreaks.push({ playIndex: index, quarter: detectedQuarter });
       currentQuarter = detectedQuarter;
     }
   });
-
-  console.log(`Total quarter breaks found: ${quarterBreaks.length}`, quarterBreaks);
-  console.log('======================================');
 
   const quarterLines: any[] = [];
 

@@ -216,14 +216,6 @@ const Dashboard: React.FC = () => {
       setWinProbabilityData(winProbData); // Store win probability data
       const processedPlays = processPlayData(apiPlays);
       setPlays(processedPlays);
-      console.log('Raw API data:', apiPlays);
-      console.log('Win probability data:', winProbData);
-      console.log('Processed plays:', processedPlays);
-      
-      // If no plays were returned, ensure we clear any lingering error state
-      if (!apiPlays || apiPlays.length === 0) {
-        console.log('No play data returned for these parameters');
-      }
     } catch (err) {
       setError('Failed to load play data. Please check your parameters and try again.');
       setPlays([]); // Clear existing plays data on error

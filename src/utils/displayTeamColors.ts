@@ -70,13 +70,6 @@ const calculateExplosiveColor = (primaryColor: string, isPlayerChart: boolean = 
   try {
     const [h, s, l] = hexToHsl(primaryColor);
 
-    // Debug logging for issues
-    if (primaryColor.includes('65001') || primaryColor.includes('#650014')) {
-      console.log(`Processing Alabama color: ${primaryColor}`);
-      console.log(`HSL values: h=${h}, s=${s}, l=${l}`);
-      console.log(`Is player chart: ${isPlayerChart}`);
-    }
-
     // Much more conservative darkening for player charts
     if (isPlayerChart) {
       if (l < 25) {
@@ -205,26 +198,11 @@ export const getDisplayTeamColorsForPlayerChart = (teamName: string, customColor
   // For default team colors, enhance the existing explosive color instead of recalculating
   const teamColors = getTeamColors(teamName);
 
-  // Debug logging for Alabama
-  if (teamName === 'Alabama') {
-    console.log('Alabama team colors:', teamColors);
-    console.log('Original explosive:', teamColors.explosive);
-  }
-
   // Convert the existing explosive rgba color to hex for processing
   const existingExplosiveHex = rgbaToHex(teamColors.explosive);
 
-  if (teamName === 'Alabama') {
-    console.log('Converted to hex:', existingExplosiveHex);
-  }
-
   // Apply additional darkening to the existing explosive color
   const enhancedExplosive = calculateExplosiveColor(existingExplosiveHex, true);
-
-  if (teamName === 'Alabama') {
-    console.log('Enhanced explosive:', enhancedExplosive);
-    console.log('Final explosive with alpha:', enhancedExplosive + 'CC');
-  }
 
   return {
     ...teamColors,
