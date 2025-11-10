@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check } from 'lucide-react';
+import Toast from './Toast';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense';
@@ -25,6 +26,9 @@ const RatingsPage: React.FC = () => {
     message: ''
   });
   const [isSubmittingContact, setIsSubmittingContact] = useState<boolean>(false);
+  const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string>('');
 
   // Generate year options (2005-2025)
   const yearOptions = Array.from({ length: 21 }, (_, i) => 2025 - i);
@@ -64,6 +68,343 @@ const RatingsPage: React.FC = () => {
 
     loadRatings();
   }, [year]);
+
+  useEffect(() => {
+    if (!copiedEmbedKey) return;
+
+    const timer = window.setTimeout(() => setCopiedEmbedKey(null), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copiedEmbedKey]);
+
+  const escapeHtml = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const generateTop25EmbedCode = (
+    title: string,
+    rows: SPRating[],
+    columnLabel: string,
+    ratingType: 'overall' | 'offense' | 'defense'
+  ): string => {
+    const uniqueId = `sp-ratings-${ratingType}-${Math.random().toString(36).slice(2, 10)}`;
+
+    const contextParts = [`Season ${year}`];
+    if (selectedConference === 'power4') {
+      contextParts.push('Power 4 conferences');
+    } else if (selectedConference !== 'all') {
+      contextParts.push(`${selectedConference} only`);
+    }
+    const subtitle = contextParts.join(' • ');
+
+    const urlParams = new URLSearchParams();
+    urlParams.set('year', year.toString());
+    if (selectedConference !== 'all') {
+      urlParams.set('conference', selectedConference);
+    }
+    const ratingsUrl = `https://graphingcollegefootball.com/ratings${urlParams.toString() ? `?${urlParams.toString()}` : ''}`;
+
+    const maxRating = 40;
+
+    const tableRows = rows.slice(0, 25).map((rating, index) => {
+      let ratingValue: number | null = null;
+
+      if (ratingType === 'overall') {
+        ratingValue = typeof rating.rating === 'number' ? rating.rating : null;
+      } else if (ratingType === 'offense') {
+        ratingValue = rating.offense?.rating ?? null;
+      } else {
+        ratingValue = rating.defense?.rating ?? null;
+      }
+
+      const ratingDisplay = ratingValue !== null && !Number.isNaN(ratingValue)
+        ? ratingValue.toFixed(1)
+        : 'N/A';
+
+      const teamColors = getDisplayTeamColors(rating.team, 'default');
+      const teamColor = teamColors.success || '#1f2937';
+      const colorDot = teamColor;
+      const barColor = teamColor;
+
+      // Calculate bar properties (matching app logic)
+      let barPercent = 0;
+      let barPosition = 'left'; // 'left' or 'right'
+
+      if (ratingValue !== null && !Number.isNaN(ratingValue)) {
+        if (ratingValue >= 0) {
+          barPercent = Math.min(100, (ratingValue / maxRating) * 100);
+          barPosition = 'left';
+        } else {
+          barPercent = Math.min(100, (Math.abs(ratingValue) / maxRating) * 100);
+          barPosition = 'right';
+        }
+        // Ensure minimum 3% width for visibility
+        barPercent = Math.max(barPercent, 3);
+      }
+
+      return `
+        <tr class="${index % 2 === 0 ? `${uniqueId}-row-even` : `${uniqueId}-row-odd`}">
+          <td class="${uniqueId}-cell-rank">${index + 1}</td>
+          <td class="${uniqueId}-cell-team">
+            <span class="${uniqueId}-team-dot" style="background-color: ${colorDot};"></span>
+            <span class="${uniqueId}-team-name">${escapeHtml(rating.team)}</span>
+          </td>
+          <td class="${uniqueId}-cell-value">
+            <div class="${uniqueId}-value-container">
+              <span class="${uniqueId}-value-text">${escapeHtml(ratingDisplay)}</span>
+              <div class="${uniqueId}-bar-track">
+                <div class="${uniqueId}-bar-fill" style="width: ${barPercent}%; background-color: ${barColor}; ${barPosition}: 0;"></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)} - SP+ Ratings</title>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #f4f4f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      color: #0f172a;
+    }
+
+    .${uniqueId}-container {
+      max-width: 520px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      overflow: hidden;
+    }
+
+    .${uniqueId}-header {
+      padding: 20px 24px 16px;
+      background: linear-gradient(135deg, #0f172a, #1f2937);
+      color: #ffffff;
+    }
+
+    .${uniqueId}-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .${uniqueId}-subtitle {
+      margin: 6px 0 0 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+    }
+
+    thead {
+      background: #111827;
+      color: #ffffff;
+    }
+
+    thead th {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: left;
+    }
+
+    col.${uniqueId}-col-rank { width: 48px; }
+    col.${uniqueId}-col-team { width: 35%; }
+    col.${uniqueId}-col-value { width: auto; }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .${uniqueId}-row-even { background: #ffffff; }
+    .${uniqueId}-row-odd { background: #f8fafc; }
+
+    td {
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #0f172a;
+    }
+
+    .${uniqueId}-cell-rank {
+      font-weight: 600;
+      color: #475569;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .${uniqueId}-cell-team {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .${uniqueId}-team-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 9999px;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+    }
+
+    .${uniqueId}-team-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .${uniqueId}-cell-value {
+      padding: 12px 16px;
+    }
+
+    .${uniqueId}-value-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .${uniqueId}-value-text {
+      width: 48px;
+      text-align: left;
+      flex-shrink: 0;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #0f172a;
+    }
+
+    .${uniqueId}-bar-track {
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+      min-width: 100px;
+    }
+
+    .${uniqueId}-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      position: absolute;
+    }
+
+    .${uniqueId}-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #ffffff;
+      border-top: 1px solid #e5e7eb;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .${uniqueId}-footer a {
+      color: #6b7280;
+      font-weight: 400;
+      text-decoration: none;
+    }
+
+    .${uniqueId}-footer a:hover {
+      color: #374151;
+      text-decoration: none;
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 12px; }
+      .${uniqueId}-header { padding: 16px 18px 12px; }
+      thead th, td { padding: 10px 12px; font-size: 13px; }
+      col.${uniqueId}-col-rank { width: 40px; }
+      col.${uniqueId}-col-team { width: 38%; }
+      col.${uniqueId}-col-value { width: auto; }
+      .${uniqueId}-cell-value { padding: 10px 12px; }
+      .${uniqueId}-value-text { width: 36px; font-size: 13px; }
+      .${uniqueId}-bar-track { min-width: 60px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="${uniqueId}-container">
+    <div class="${uniqueId}-header">
+      <h2 class="${uniqueId}-title">${escapeHtml(title)}</h2>
+      ${subtitle ? `<div class="${uniqueId}-subtitle">${escapeHtml(subtitle)}</div>` : ''}
+    </div>
+    <table>
+      <colgroup>
+        <col class="${uniqueId}-col-rank" />
+        <col class="${uniqueId}-col-team" />
+        <col class="${uniqueId}-col-value" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Team</th>
+          <th>${escapeHtml(columnLabel)}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+      </tbody>
+    </table>
+    <div class="${uniqueId}-footer">
+      <a href="${ratingsUrl}" target="_blank" rel="noopener noreferrer">See all ratings</a>
+      <span>Data: SP+ ratings</span>
+    </div>
+  </div>
+</body>
+</html>`;
+  };
+
+  const copyTop25EmbedToClipboard = async (embedKey: string, embedHTML: string, toastLabel: string) => {
+    if (!embedHTML) return;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(embedHTML);
+        setCopiedEmbedKey(embedKey);
+        setToastMessage(`Embed code copied for ${toastLabel}`);
+        setShowToast(true);
+      } else {
+        console.warn('Clipboard API not available in this browser.');
+        setToastMessage('Clipboard not available in this browser');
+        setShowToast(true);
+      }
+    } catch (err) {
+      console.error('Failed to copy embed code:', err);
+      setToastMessage('Failed to copy embed code. Please try again.');
+      setShowToast(true);
+    }
+  };
 
   // Contact form handlers
   const handleContactFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -236,6 +577,16 @@ const RatingsPage: React.FC = () => {
     onToggle: () => void,
     isConferenceFiltered: boolean
   ) => {
+    const embedKey = `${ratingType}-${selectedConference}-${year}`;
+    const embedDisabled = data.length === 0;
+    const isEmbedCopied = copiedEmbedKey === embedKey;
+
+    const handleCopyEmbed = async () => {
+      if (embedDisabled) return;
+      const embedHTML = generateTop25EmbedCode(title, data, columnLabel, ratingType);
+      await copyTop25EmbedToClipboard(embedKey, embedHTML, title);
+    };
+
     const maxRating = 40;
     // If conference filtered, show all teams. Otherwise, show 12 or 25 based on expanded state
     const displayData = isConferenceFiltered ? data : (isExpanded ? data : data.slice(0, 12));
@@ -256,8 +607,35 @@ const RatingsPage: React.FC = () => {
 
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-        <div className="bg-neutral-600 px-4 py-3">
+        <div className="bg-neutral-600 px-4 py-3 flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-white">{title}</h3>
+          <button
+            type="button"
+            onClick={handleCopyEmbed}
+            disabled={embedDisabled}
+            aria-label={
+              embedDisabled
+                ? 'Embed unavailable until data loads'
+                : isEmbedCopied
+                  ? 'Embed copied'
+                  : `Copy embed code for ${title}`
+            }
+            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 ${
+              embedDisabled
+                ? 'border-white/20 text-white/50 cursor-not-allowed'
+                : isEmbedCopied
+                  ? 'border-emerald-300 bg-emerald-500/90 text-white shadow-sm'
+                  : 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+            }`}
+            title={embedDisabled ? 'No data to embed yet' : isEmbedCopied ? 'Copied!' : 'Copy embed code'}
+          >
+            {isEmbedCopied ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+            <span className="sr-only">{isEmbedCopied ? 'Copied!' : 'Copy embed'}</span>
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">
@@ -357,12 +735,12 @@ const RatingsPage: React.FC = () => {
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-[1120px] min-[1180px]:min-w-full">
+          <table className="min-w-[1120px] w-full">
             <colgroup>
               <col style={{ minWidth: '20px' }} /> {/* Index */}
-              <col style={{ minWidth: '160px' }} /> {/* Team */}
-              <col style={{ minWidth: '160px' }} /> {/* Conference */}
-              <col style={{ minWidth: '100px' }} /> {/* SP+ Rank */}
+              <col style={{ minWidth: '225px' }} /> {/* Team */}
+              <col style={{ minWidth: '200px' }} /> {/* Conference */}
+              <col style={{ minWidth: '120px' }} /> {/* SP+ Rank */}
               <col style={{ minWidth: '200px' }} /> {/* Overall SP+ */}
               <col style={{ minWidth: '200px' }} /> {/* Off Rating */}
               <col style={{ minWidth: '200px' }} /> {/* Def Rating */}
@@ -982,6 +1360,13 @@ const RatingsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Toast
+        message={toastMessage}
+        type="success"
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </div>
   );
 };
