@@ -288,7 +288,7 @@ const Dashboard: React.FC = () => {
               {/* Navigation Link */}
               <a
                 href="/ratings"
-                className="hidden sm:flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-all duration-200 text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-all duration-200 text-sm font-medium"
               >
                 SP+ Ratings
               </a>
