@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check, BarChart3 } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check, BarChart3 } from 'lucide-react';
 import Toast from './Toast';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
@@ -947,6 +948,8 @@ const RatingsPage: React.FC = () => {
                 className="flex items-center justify-center sm:justify-start gap-2 px-3 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-all duration-200 text-sm font-medium"
                 title="Games"
               >
+                <BarChart3 className="h-5 w-5" />
+                <span className="hidden sm:inline">Games</span>
                 <BarChart3 className="h-5 w-5" />
                 <span className="hidden sm:inline">Games</span>
               </a>
