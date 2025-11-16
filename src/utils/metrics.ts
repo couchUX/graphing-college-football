@@ -137,7 +137,7 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
     if (rushMatch) {
       result.rusher = cleanPlayerName(rushMatch[1]);
     }
-  } else if (lowerPlayType.includes('pass') || lowerPlayType.includes('completion') || lowerPlayType.includes('incompletion')) {
+  } else if (lowerPlayType.includes('pass') || lowerPlayType.includes('completion') || lowerPlayType.includes('incompletion') || lowerPlayType.includes('interception')) {
     // PASS PLAYS: Skip sacks (no passer/receiver for sacks)
     if (cleanedPlayText.toLowerCase().includes('sacked')) {
       return result; // Return empty for sacks
