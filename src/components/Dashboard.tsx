@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle, Link } from 'lucide-react';
+import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle, Link, Award } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -288,9 +288,11 @@ const Dashboard: React.FC = () => {
               {/* Navigation Link */}
               <a
                 href="/ratings"
-                className="hidden sm:flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-all duration-200 text-sm font-medium"
+                className="flex items-center justify-center sm:justify-start gap-2 px-3 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-all duration-200 text-sm font-medium"
+                title="SP+ Ratings"
               >
-                SP+ Ratings
+                <Award className="h-5 w-5" />
+                <span className="hidden sm:inline">SP+ Ratings</span>
               </a>
 
               {/* Info Button */}
