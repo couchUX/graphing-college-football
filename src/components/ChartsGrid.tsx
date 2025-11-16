@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Copy, Check, AlertCircle } from 'lucide-react';
 import { Line, Bar } from 'react-chartjs-2';
 import { PlayData } from '../types';
@@ -39,6 +39,63 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Team filter state for each player chart ('both', team name, or opponent name)
+  // Initialize from URL parameter if present
+  const getInitialTeamFilter = () => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const playerTeam = urlParams.get('playerTeam');
+      return playerTeam || 'both';
+    }
+    return 'both';
+  };
+
+  const [rushersTeamFilter, setRushersTeamFilter] = useState<string>(getInitialTeamFilter());
+  const [passersTeamFilter, setPassersTeamFilter] = useState<string>(getInitialTeamFilter());
+  const [receiversTeamFilter, setReceiversTeamFilter] = useState<string>(getInitialTeamFilter());
+
+  // Update URL when team filters change
+  useEffect(() => {
+    // Only update if all filters are the same (unified filter state)
+    if (rushersTeamFilter === passersTeamFilter && passersTeamFilter === receiversTeamFilter) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (rushersTeamFilter === 'both') {
+        urlParams.delete('playerTeam');
+      } else {
+        urlParams.set('playerTeam', rushersTeamFilter);
+      }
+      const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [rushersTeamFilter, passersTeamFilter, receiversTeamFilter]);
+
+  // Helper function to filter players by team
+  const filterPlayersByTeam = (players: any[], teamFilter: string) => {
+    if (teamFilter === 'both') {
+      return players;
+    }
+    return players.filter(p => p.team === teamFilter);
+  };
+
+  // Helper function to render team filter dropdown
+  const TeamFilterDropdown: React.FC<{
+    value: string;
+    onChange: (value: string) => void;
+    teamName: string;
+    opponentName: string;
+  }> = ({ value, onChange, teamName, opponentName }) => (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat"
+      style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, paddingRight: '2rem' }}
+    >
+      <option value="both">Both teams</option>
+      <option value={teamName}>{teamName}</option>
+      <option value={opponentName}>{opponentName}</option>
+    </select>
+  );
 
   // Helper function to extract count data from bar chart datasets
   const enhanceBarDataWithCounts = (barData: any) => {
@@ -107,7 +164,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
         params.set('gameId', chartData.currentParams.gameId.toString());
       }
       // Note: Do NOT include week, seasonType as they're not needed for the main app URL
-      
+
       // Add color parameters if they're not default
       if (selectedTeamColor !== 'default') {
         params.set('teamColor', selectedTeamColor);
@@ -115,7 +172,12 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
       if (selectedOpponentColor !== 'default') {
         params.set('opponentColor', selectedOpponentColor);
       }
-      
+
+      // Add team filter for player charts (if not 'both')
+      if (chartData.teamFilter && chartData.teamFilter !== 'both') {
+        params.set('playerTeam', chartData.teamFilter);
+      }
+
       return `https://graphingcollegefootball.com/?${params.toString()}`;
     })() : 'https://graphingcollegefootball.com';
     
@@ -1104,20 +1166,20 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
         break;
       }
       case 'top-rushers': {
-        const playerData = createPlayerData(allRushers, 'rush');
-        const enhancedData = { ...playerData, currentParams: currentParams };
+        const playerData = createPlayerData(filteredRushers, 'rush');
+        const enhancedData = { ...playerData, currentParams: currentParams, teamFilter: rushersTeamFilter };
         embedCode = generateEmbedCode(chartId, title, enhancedData, playerOptions, 'bar');
         break;
       }
       case 'top-passers': {
-        const playerData = createPlayerData(allPassers, 'pass');
-        const enhancedData = { ...playerData, currentParams: currentParams };
+        const playerData = createPlayerData(filteredPassers, 'pass');
+        const enhancedData = { ...playerData, currentParams: currentParams, teamFilter: passersTeamFilter };
         embedCode = generateEmbedCode(chartId, title, enhancedData, playerOptions, 'bar');
         break;
       }
       case 'top-receivers': {
-        const playerData = createPlayerData(allReceivers, 'receive');
-        const enhancedData = { ...playerData, currentParams: currentParams };
+        const playerData = createPlayerData(filteredReceivers, 'receive');
+        const enhancedData = { ...playerData, currentParams: currentParams, teamFilter: receiversTeamFilter };
         embedCode = generateEmbedCode(chartId, title, enhancedData, playerOptions, 'bar');
         break;
       }
@@ -1288,21 +1350,29 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     }
   ];
 
+  // Filter player data based on team filters
+  const filteredRushers = filterPlayersByTeam(allRushers, rushersTeamFilter);
+  const filteredPassers = filterPlayersByTeam(allPassers, passersTeamFilter);
+  const filteredReceivers = filterPlayersByTeam(allReceivers, receiversTeamFilter);
+
   const playerCharts = [
     {
       id: 'top-rushers',
       title: 'Top rushers',
-      component: <Bar data={createPlayerData(allRushers, 'rush') as any} options={playerOptions} />
+      component: <Bar data={createPlayerData(filteredRushers, 'rush') as any} options={playerOptions} />,
+      teamFilter: rushersTeamFilter
     },
     {
       id: 'top-passers',
       title: 'Top passers',
-      component: <Bar data={createPlayerData(allPassers, 'pass') as any} options={playerOptions} />
+      component: <Bar data={createPlayerData(filteredPassers, 'pass') as any} options={playerOptions} />,
+      teamFilter: passersTeamFilter
     },
     {
       id: 'top-receivers',
       title: 'Top receivers',
-      component: <Bar data={createPlayerData(allReceivers, 'receive') as any} options={playerOptions} />
+      component: <Bar data={createPlayerData(filteredReceivers, 'receive') as any} options={playerOptions} />,
+      teamFilter: receiversTeamFilter
     }
   ];
 
@@ -1438,10 +1508,16 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             {/* Top Rushers */}
             <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
               <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center gap-3">
                   <h3 className="text-lg font-semibold text-neutral-900">
                     {playerCharts[0].title}
                   </h3>
+                  <TeamFilterDropdown
+                    value={rushersTeamFilter}
+                    onChange={setRushersTeamFilter}
+                    teamName={selectedTeam}
+                    opponentName={opponentTeam}
+                  />
                 </div>
                 <button
                   onClick={() => handleCopyEmbed(playerCharts[0].id, playerCharts[0].title)}
@@ -1470,10 +1546,16 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
             {/* Top Passers */}
             <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
               <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center gap-3">
                   <h3 className="text-lg font-semibold text-neutral-900">
                     {playerCharts[1].title}
                   </h3>
+                  <TeamFilterDropdown
+                    value={passersTeamFilter}
+                    onChange={setPassersTeamFilter}
+                    teamName={selectedTeam}
+                    opponentName={opponentTeam}
+                  />
                 </div>
                 <button
                   onClick={() => handleCopyEmbed(playerCharts[1].id, playerCharts[1].title)}
@@ -1503,10 +1585,16 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
           {/* Right column - Receivers spanning full height */}
           <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
             <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-3">
                 <h3 className="text-lg font-semibold text-neutral-900">
                   {playerCharts[2].title}
                 </h3>
+                <TeamFilterDropdown
+                  value={receiversTeamFilter}
+                  onChange={setReceiversTeamFilter}
+                  teamName={selectedTeam}
+                  opponentName={opponentTeam}
+                />
               </div>
               <button
                 onClick={() => handleCopyEmbed(playerCharts[2].id, playerCharts[2].title)}
