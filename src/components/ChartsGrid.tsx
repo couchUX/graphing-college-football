@@ -1263,7 +1263,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
     },
     {
       id: 'play-type-bars',
-      title: 'SR and XR by Play Type (Bar Chart)',
+      title: 'SR and XR by Play Type',
       component: <Bar data={createTeamVsOpponentBarData('playType') as any} options={barOptions} />
     },
     {
