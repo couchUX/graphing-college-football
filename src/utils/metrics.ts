@@ -85,6 +85,32 @@ const stripTimestamp = (playText: string): string => {
   return playText.trim();
 };
 
+// Helper function to standardize player names to abbreviated format (First Initial + Last Name)
+const standardizePlayerName = (name: string): string => {
+  if (!name) return '';
+
+  // Split into parts
+  const parts = name.trim().split(/\s+/);
+
+  // If only one part, return as-is
+  if (parts.length === 1) return name;
+
+  // Get first name and last name
+  const firstName = parts[0];
+  const lastName = parts[parts.length - 1];
+
+  // Check if first name is already abbreviated (single letter followed by optional period)
+  const isAlreadyAbbreviated = /^[A-Z]\.?$/.test(firstName);
+
+  if (isAlreadyAbbreviated) {
+    // Already abbreviated - just ensure format is "X.LastName"
+    return `${firstName.replace('.', '')}.${lastName}`;
+  } else {
+    // Full first name - abbreviate it
+    return `${firstName.charAt(0)}.${lastName}`;
+  }
+};
+
 // Helper function to clean player names
 const cleanPlayerName = (name: string): string => {
   if (!name) return '';
@@ -118,7 +144,8 @@ const cleanPlayerName = (name: string): string => {
     }
   }
 
-  return cleaned;
+  // Standardize to abbreviated format (First Initial + Last Name)
+  return standardizePlayerName(cleaned);
 };
 
 // Extract player names from play text
