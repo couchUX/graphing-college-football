@@ -152,18 +152,21 @@ const cleanPlayerName = (name: string): string => {
     .replace(/\s*complete\s*/gi, '') // Remove "complete"
     .replace(/\s*incomplete\s*/gi, '') // Remove "incomplete"
     .replace(/\s*pass\s*/gi, '') // Remove "pass"
+    .replace(/\s*thrown\s*/gi, '') // Remove "thrown"
+    .replace(/\s*caught\s*/gi, '') // Remove "caught"
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
     .trim();
 
   // Final safeguard: if the cleaned name is still too long or contains suspicious patterns,
-  // try to extract just the first and last name
-  if (cleaned.length > 25 || cleaned.includes('down') || cleaned.includes('penalty')) {
-    const nameMatch = cleaned.match(/^([A-Za-z]+(?:\s+[A-Za-z]+){0,2})/i);
+  // try to extract just the first and last name (and suffix like Jr., Sr., III, IV, V)
+  if (cleaned.length > 30 || cleaned.includes('down') || cleaned.includes('penalty')) {
+    // Allow up to 3 words to accommodate suffixes: "X.LastName Jr." or "FirstName LastName Jr."
+    const nameMatch = cleaned.match(/^([A-Za-z.]+(?:\s+[A-Za-z.]+){1,2})/i);
     if (nameMatch) {
       cleaned = nameMatch[1].trim();
     } else {
-      // Last resort: take first 20 characters and find the last space
-      cleaned = cleaned.substring(0, 20);
+      // Last resort: take first 25 characters and find the last space
+      cleaned = cleaned.substring(0, 25);
       const lastSpace = cleaned.lastIndexOf(' ');
       if (lastSpace > 5) {
         cleaned = cleaned.substring(0, lastSpace);

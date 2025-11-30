@@ -567,7 +567,7 @@ const Dashboard: React.FC = () => {
                                       <td className="px-3 py-2 whitespace-nowrap text-sm text-neutral-900">
                                         {play.yards_gained !== undefined ? play.yards_gained : (play.yardsGained !== undefined ? play.yardsGained : 'N/A')}
                                       </td>
-                                      <td className="px-3 py-2 text-sm text-neutral-900 max-w-xs truncate" title={play.play_text || play.playText || ''}>
+                                      <td className="px-3 py-2 text-sm text-neutral-900 max-w-2xl truncate" title={play.play_text || play.playText || ''}>
                                         {play.play_text || play.playText || 'N/A'}
                                       </td>
                                     </tr>
@@ -669,7 +669,7 @@ const Dashboard: React.FC = () => {
                                 <td className="px-3 py-2 whitespace-nowrap text-sm text-neutral-900">
                                   {(play.teamPassCumulativeSR * 100).toFixed(1)}%
                                 </td>
-                                <td className="px-3 py-2 text-sm text-neutral-900 max-w-xs truncate" title={play.playText}>
+                                <td className="px-3 py-2 text-sm text-neutral-900 max-w-2xl truncate" title={play.playText}>
                                   {play.playText}
                                 </td>
                               </tr>
