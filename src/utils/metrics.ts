@@ -89,32 +89,52 @@ const stripTimestamp = (playText: string): string => {
 const standardizePlayerName = (name: string): string => {
   if (!name) return '';
 
-  // Check if already in abbreviated format with period-space pattern (e.g., "E. Singleton Jr.")
-  const abbreviatedMatch = name.match(/^([A-Z])\.\s+(.+)$/);
+  // Check if already in abbreviated format: "X.LastName" or "X. LastName" or "X.LastName Suffix"
+  const abbreviatedMatch = name.match(/^([A-Z])\.?\s*(.+)$/);
   if (abbreviatedMatch) {
-    // Already abbreviated - return as-is
-    return name;
+    const initial = abbreviatedMatch[1];
+    const rest = abbreviatedMatch[2];
+
+    // Check if first part is a single letter (already abbreviated)
+    if (name.match(/^[A-Z]\.?\s/)) {
+      // Already has abbreviated first name
+      const nameParts = rest.trim().split(/\s+/);
+      const lastName = nameParts[0];
+      const suffix = nameParts.slice(1).join(' '); // e.g., "Jr.", "III"
+
+      if (suffix) {
+        return `${initial}.${lastName} ${suffix}`;
+      } else {
+        return `${initial}.${lastName}`;
+      }
+    }
   }
 
-  // Split into parts
+  // Split into parts for full names
   const parts = name.trim().split(/\s+/);
 
   // If only one part, return as-is
   if (parts.length === 1) return name;
 
-  // Get first name and everything after it
   const firstName = parts[0];
-  const restOfName = parts.slice(1).join(' '); // Keep suffixes like "Jr.", "III", etc.
+  const lastName = parts[1];
+  const suffix = parts.slice(2).join(' '); // Everything after lastName (Jr., Sr., III, etc.)
 
-  // Check if first name is already abbreviated (single letter, with or without period, no space after)
-  const isAlreadyAbbreviated = /^[A-Z]\.?$/.test(firstName);
-
-  if (isAlreadyAbbreviated) {
-    // Already abbreviated - format as "X. RestOfName"
-    return `${firstName.replace('.', '')}. ${restOfName}`;
+  // Check if first name is a full name (more than one letter)
+  if (firstName.length > 2 || !firstName.includes('.')) {
+    // Full first name - abbreviate it
+    if (suffix) {
+      return `${firstName.charAt(0)}.${lastName} ${suffix}`;
+    } else {
+      return `${firstName.charAt(0)}.${lastName}`;
+    }
   } else {
-    // Full first name - abbreviate it to "X. RestOfName"
-    return `${firstName.charAt(0)}. ${restOfName}`;
+    // Already abbreviated
+    if (suffix) {
+      return `${firstName.replace('.', '')}.${lastName} ${suffix}`;
+    } else {
+      return `${firstName.replace('.', '')}.${lastName}`;
+    }
   }
 };
 
