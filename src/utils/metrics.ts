@@ -89,25 +89,32 @@ const stripTimestamp = (playText: string): string => {
 const standardizePlayerName = (name: string): string => {
   if (!name) return '';
 
+  // Check if already in abbreviated format with period-space pattern (e.g., "E. Singleton Jr.")
+  const abbreviatedMatch = name.match(/^([A-Z])\.\s+(.+)$/);
+  if (abbreviatedMatch) {
+    // Already abbreviated - return as-is
+    return name;
+  }
+
   // Split into parts
   const parts = name.trim().split(/\s+/);
 
   // If only one part, return as-is
   if (parts.length === 1) return name;
 
-  // Get first name and last name
+  // Get first name and everything after it
   const firstName = parts[0];
-  const lastName = parts[parts.length - 1];
+  const restOfName = parts.slice(1).join(' '); // Keep suffixes like "Jr.", "III", etc.
 
-  // Check if first name is already abbreviated (single letter followed by optional period)
+  // Check if first name is already abbreviated (single letter, with or without period, no space after)
   const isAlreadyAbbreviated = /^[A-Z]\.?$/.test(firstName);
 
   if (isAlreadyAbbreviated) {
-    // Already abbreviated - just ensure format is "X.LastName"
-    return `${firstName.replace('.', '')}.${lastName}`;
+    // Already abbreviated - format as "X. RestOfName"
+    return `${firstName.replace('.', '')}. ${restOfName}`;
   } else {
-    // Full first name - abbreviate it
-    return `${firstName.charAt(0)}.${lastName}`;
+    // Full first name - abbreviate it to "X. RestOfName"
+    return `${firstName.charAt(0)}. ${restOfName}`;
   }
 };
 
