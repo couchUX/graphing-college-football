@@ -89,52 +89,36 @@ const stripTimestamp = (playText: string): string => {
 const standardizePlayerName = (name: string): string => {
   if (!name) return '';
 
-  // Check if already in abbreviated format: "X.LastName" or "X. LastName" or "X.LastName Suffix"
-  const abbreviatedMatch = name.match(/^([A-Z])\.?\s*(.+)$/);
-  if (abbreviatedMatch) {
-    const initial = abbreviatedMatch[1];
-    const rest = abbreviatedMatch[2];
+  // Remove common suffixes
+  let cleaned = name
+    .replace(/\s+Jr\.?$/i, '')
+    .replace(/\s+Sr\.?$/i, '')
+    .replace(/\s+III$/i, '')
+    .replace(/\s+IV$/i, '')
+    .replace(/\s+V$/i, '')
+    .replace(/\s+II$/i, '')
+    .trim();
 
-    // Check if first part is a single letter (already abbreviated)
-    if (name.match(/^[A-Z]\.?\s/)) {
-      // Already has abbreviated first name
-      const nameParts = rest.trim().split(/\s+/);
-      const lastName = nameParts[0];
-      const suffix = nameParts.slice(1).join(' '); // e.g., "Jr.", "III"
-
-      if (suffix) {
-        return `${initial}.${lastName} ${suffix}`;
-      } else {
-        return `${initial}.${lastName}`;
-      }
-    }
-  }
-
-  // Split into parts for full names
-  const parts = name.trim().split(/\s+/);
+  // Split into parts
+  const parts = cleaned.split(/\s+/);
 
   // If only one part, return as-is
-  if (parts.length === 1) return name;
+  if (parts.length === 0 || cleaned.length === 0) return name;
+  if (parts.length === 1) return cleaned;
 
   const firstName = parts[0];
   const lastName = parts[1];
-  const suffix = parts.slice(2).join(' '); // Everything after lastName (Jr., Sr., III, etc.)
 
-  // Check if first name is a full name (more than one letter)
-  if (firstName.length > 2 || !firstName.includes('.')) {
-    // Full first name - abbreviate it
-    if (suffix) {
-      return `${firstName.charAt(0)}.${lastName} ${suffix}`;
-    } else {
-      return `${firstName.charAt(0)}.${lastName}`;
-    }
+  // Check if first name is already abbreviated (single letter with optional period)
+  if (firstName.length <= 2 && firstName.includes('.')) {
+    // Already abbreviated like "E." or "E"
+    return `${firstName.replace('.', '')}.${lastName}`;
+  } else if (firstName.length === 1) {
+    // Single letter without period
+    return `${firstName}.${lastName}`;
   } else {
-    // Already abbreviated
-    if (suffix) {
-      return `${firstName.replace('.', '')}.${lastName} ${suffix}`;
-    } else {
-      return `${firstName.replace('.', '')}.${lastName}`;
-    }
+    // Full first name - abbreviate it
+    return `${firstName.charAt(0)}.${lastName}`;
   }
 };
 
@@ -158,15 +142,15 @@ const cleanPlayerName = (name: string): string => {
     .trim();
 
   // Final safeguard: if the cleaned name is still too long or contains suspicious patterns,
-  // try to extract just the first and last name (and suffix like Jr., Sr., III, IV, V)
-  if (cleaned.length > 30 || cleaned.includes('down') || cleaned.includes('penalty')) {
-    // Allow up to 3 words to accommodate suffixes: "X.LastName Jr." or "FirstName LastName Jr."
-    const nameMatch = cleaned.match(/^([A-Za-z.]+(?:\s+[A-Za-z.]+){1,2})/i);
+  // try to extract just the first and last name
+  if (cleaned.length > 25 || cleaned.includes('down') || cleaned.includes('penalty')) {
+    // Extract first two words (first name and last name)
+    const nameMatch = cleaned.match(/^([A-Za-z.]+(?:\s+[A-Za-z.]+){1})/i);
     if (nameMatch) {
       cleaned = nameMatch[1].trim();
     } else {
-      // Last resort: take first 25 characters and find the last space
-      cleaned = cleaned.substring(0, 25);
+      // Last resort: take first 20 characters and find the last space
+      cleaned = cleaned.substring(0, 20);
       const lastSpace = cleaned.lastIndexOf(' ');
       if (lastSpace > 5) {
         cleaned = cleaned.substring(0, lastSpace);
