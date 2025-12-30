@@ -44,6 +44,29 @@ const RatingsPage: React.FC = () => {
   // Power 4 conferences
   const power4Conferences = ['ACC', 'SEC', 'Big 12', 'Big Ten'];
 
+  // Conference abbreviation mapping
+  const getConferenceAbbreviation = (conference: string | undefined): string => {
+    if (!conference) return 'N/A';
+
+    const abbreviations: Record<string, string> = {
+      'Mountain West': 'MWC',
+      'American Athletic': 'AAC',
+      'American': 'AAC',
+      'FBS Independents': 'N/A',
+      'Independents': 'N/A',
+      'Mid-American': 'MAC',
+      'Conference USA': 'CUSA',
+      'Sun Belt': 'Sun Belt',
+      'ACC': 'ACC',
+      'SEC': 'SEC',
+      'Big 12': 'Big 12',
+      'Big Ten': 'Big Ten',
+      'Pac-12': 'Pac-12'
+    };
+
+    return abbreviations[conference] || conference;
+  };
+
   useEffect(() => {
     const loadRatings = async () => {
       setLoading(true);
@@ -863,7 +886,7 @@ const RatingsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-600">
-                      {rating.conference || 'N/A'}
+                      {getConferenceAbbreviation(rating.conference)}
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-neutral-900">
                       {rating.ranking}
