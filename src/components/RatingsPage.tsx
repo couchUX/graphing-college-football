@@ -5,7 +5,7 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check,
 import Toast from './Toast';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
-type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense';
+type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
 type SortDirection = 'asc' | 'desc';
 
 const RatingsPage: React.FC = () => {
@@ -500,6 +500,10 @@ const RatingsPage: React.FC = () => {
           aValue = a.defense?.rating || -999;
           bValue = b.defense?.rating || -999;
           break;
+        case 'specialTeams':
+          aValue = a.specialTeams?.rating || -999;
+          bValue = b.specialTeams?.rating || -999;
+          break;
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -735,7 +739,7 @@ const RatingsPage: React.FC = () => {
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-[1120px] w-full">
+          <table className="min-w-[1320px] w-full">
             <colgroup>
               <col style={{ minWidth: '20px' }} /> {/* Index */}
               <col style={{ minWidth: '225px' }} /> {/* Team */}
@@ -744,6 +748,7 @@ const RatingsPage: React.FC = () => {
               <col style={{ minWidth: '200px' }} /> {/* Overall SP+ */}
               <col style={{ minWidth: '200px' }} /> {/* Off Rating */}
               <col style={{ minWidth: '200px' }} /> {/* Def Rating */}
+              <col style={{ minWidth: '200px' }} /> {/* Special Teams */}
             </colgroup>
             <thead className="bg-neutral-600 text-white">
               <tr>
@@ -801,6 +806,15 @@ const RatingsPage: React.FC = () => {
                     {renderSortIcon('defense')}
                   </div>
                 </th>
+                <th
+                  className={getHeaderCellClass('specialTeams')}
+                  onClick={() => handleSort('specialTeams')}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>Special Teams</span>
+                    {renderSortIcon('specialTeams')}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
@@ -829,6 +843,7 @@ const RatingsPage: React.FC = () => {
                 const overall = getBarProperties(rating.rating);
                 const offense = rating.offense?.rating ? getBarProperties(rating.offense.rating) : { percent: 0, isNegative: false };
                 const defense = rating.defense?.rating ? getBarProperties(rating.defense.rating) : { percent: 0, isNegative: false };
+                const specialTeams = rating.specialTeams?.rating ? getBarProperties(rating.specialTeams.rating) : { percent: 0, isNegative: false };
 
                 return (
                   <tr
@@ -898,6 +913,25 @@ const RatingsPage: React.FC = () => {
                                 width: `${defense.percent}%`,
                                 backgroundColor: teamColors.success,
                                 [defense.isNegative ? 'right' : 'left']: 0
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-right block">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-neutral-900">
+                      {rating.specialTeams?.rating ? (
+                        <div className="flex items-center gap-3">
+                          <span className="w-9 text-right">{rating.specialTeams.rating.toFixed(1)}</span>
+                          <div className="flex-1 h-5 bg-neutral-200 rounded-sm overflow-hidden relative">
+                            <div
+                              className="h-full rounded-sm transition-all absolute"
+                              style={{
+                                width: `${specialTeams.percent}%`,
+                                backgroundColor: teamColors.success,
+                                [specialTeams.isNegative ? 'right' : 'left']: 0
                               }}
                             />
                           </div>
