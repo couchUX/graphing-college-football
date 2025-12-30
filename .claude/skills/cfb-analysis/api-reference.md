@@ -265,11 +265,10 @@ for (const game of games) {
 // (Use player extraction logic from metrics.ts)
 ```
 
-## Rate Limiting
+## API Notes
 
-- Free tier: 200 requests per hour
-- Be mindful of rate limits when fetching multiple games
-- Consider caching results when possible
+- API supports high request volumes on paid tiers
+- Consider caching results for frequently accessed data when appropriate
 
 ## Common Filters
 

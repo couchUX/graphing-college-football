@@ -379,9 +379,6 @@ async function fetchSeasonData(team, year) {
     // Filter to just this team's plays
     const teamPlays = plays.filter(p => p.offense === team);
     allPlays = allPlays.concat(teamPlays);
-
-    // Be nice to the API - small delay between requests
-    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   return allPlays;

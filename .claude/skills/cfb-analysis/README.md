@@ -120,9 +120,9 @@ Colors are fetched from the CollegeFootballData API and processed to create:
 - Explosive color (darker, full opacity)
 - Light color (very light, 0.2 alpha)
 
-### Rate Limiting
+### API Performance
 
-The skill includes 100ms delays between API calls to respect rate limits (200 requests/hour on free tier).
+The skill makes API calls efficiently without artificial delays, suitable for paid API tiers with higher rate limits.
 
 ## Example Outputs
 
@@ -155,7 +155,7 @@ The skill includes 100ms delays between API calls to respect rate limits (200 re
 ### "Failed to fetch data"
 - Check API endpoint in `api-reference.md`
 - Verify team name spelling matches API
-- Check rate limits (max 200 requests/hour)
+- Check API credentials/tier if applicable
 
 ### "Chart not rendering"
 - Ensure Chart.js CDN links are included

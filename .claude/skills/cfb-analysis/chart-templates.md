@@ -476,8 +476,6 @@ async function createSeasonTrendChart(teamName, year, metric = 'SR') {
     // Label: Opponent name
     const opponent = game.homeTeam === teamName ? game.awayTeam : game.homeTeam;
     labels.push(`vs ${opponent}`);
-
-    await new Promise(resolve => setTimeout(resolve, 100)); // Rate limit
   }
 
   const colors = await getTeamColors(teamName);
@@ -604,9 +602,6 @@ async function fetchSeasonData(team, year) {
     );
     const plays = await playsResponse.json();
     allPlays = allPlays.concat(plays);
-
-    // Rate limiting
-    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   return allPlays;
@@ -619,7 +614,6 @@ async function fetchSeasonData(team, year) {
 - Use team colors from `getTeamColors()` function
 - For multi-game analysis, aggregate both team offense AND opponent offense (defensive performance)
 - Include loading states and error handling
-- Add rate limiting (100ms delay) between API calls
 - Format percentages to 1 decimal place
 - Use stacked bars for player charts
 - Use grouped bars for team comparisons
