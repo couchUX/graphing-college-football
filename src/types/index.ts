@@ -30,6 +30,7 @@ export interface PlayData {
   ppa: number;
   success: boolean;
   explosiveness: boolean;
+  extraYards: number;
   quarter: number;
   clock: {
     minutes: number;

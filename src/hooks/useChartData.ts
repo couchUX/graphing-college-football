@@ -12,7 +12,8 @@ import {
   createPlayerData,
   createDriveLines,
   createWinProbabilityData,
-  createFiftyPercentLine
+  createFiftyPercentLine,
+  createAvgExtraYardsLine
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
 
@@ -396,6 +397,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           showLine: false,
           order: 2, // Ensure points are drawn above lines
         },
+        createAvgExtraYardsLine(teamPlays, teamColors),
         createQuarterGridlines(plays, maxPlayNumber, teamMinY, teamMaxY)
       ],
     };
@@ -434,6 +436,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           showLine: false,
           order: 2, // Ensure points are drawn above lines
         },
+        createAvgExtraYardsLine(opponentPlays, opponentColors),
         createQuarterGridlines(plays, maxPlayNumber, oppMinY, oppMaxY)
       ],
     };

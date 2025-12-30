@@ -52,6 +52,30 @@ const calculateExplosiveness = (yardsGained: number): boolean => {
   return yardsGained >= 15;
 };
 
+const calculateExtraYards = (down: number, distance: number, yardsGained: number): number => {
+  if (!down || !distance || yardsGained === undefined || yardsGained === null) {
+    return 0;
+  }
+
+  let yardsNeeded: number;
+  switch (down) {
+    case 1:
+      yardsNeeded = distance * 0.5;
+      break;
+    case 2:
+      yardsNeeded = distance * 0.7;
+      break;
+    case 3:
+    case 4:
+      yardsNeeded = distance;
+      break;
+    default:
+      return 0;
+  }
+
+  return yardsGained - yardsNeeded;
+};
+
 // Helper function to remove timestamp and formation prefixes from play text
 const stripTimestamp = (playText: string): string => {
   if (!playText) return '';
@@ -317,6 +341,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
 
     const success = calculateSuccess(play.down, play.distance, yardsGained, playType, playText);
     const explosiveness = calculateExplosiveness(yardsGained);
+    const extraYards = calculateExtraYards(play.down, play.distance, yardsGained);
 
     // Extract player names (using cleaned playText)
     const playerNames = extractPlayerNames(playText, playType);
@@ -349,6 +374,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
       ppa: play.ppa || 0,
       success,
       explosiveness,
+      extraYards,
       quarter: (() => {
         const rawQuarter = play.quarter || play.period || 0;
         // Normalize all overtime periods (5, 6, 7, etc.) to 5

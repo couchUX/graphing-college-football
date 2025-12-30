@@ -792,3 +792,34 @@ export const createWinProbabilityQuarterGridlines = (winProbData: any[], rawPlay
     }
   };
 };
+
+// Create cumulative average extra yards line
+export const createAvgExtraYardsLine = (plays: PlayData[], teamColors: any) => {
+  const data = plays.map((play, index) => {
+    // Calculate cumulative average up to this point
+    const playsUpToHere = plays.slice(0, index + 1);
+    const totalExtraYards = playsUpToHere.reduce((sum, p) => sum + p.extraYards, 0);
+    const avgExtraYards = totalExtraYards / playsUpToHere.length;
+
+    return {
+      x: play.playNumber,
+      y: avgExtraYards
+    };
+  });
+
+  return {
+    label: 'Avg Extra Yards',
+    data,
+    borderColor: teamColors.success,
+    borderWidth: 2.2,
+    borderDash: [4, 2],
+    pointRadius: 0,
+    showLine: true,
+    fill: false,
+    tension: 0.25,
+    order: 3, // Above drives but below points
+    datalabels: {
+      display: false
+    }
+  };
+};
