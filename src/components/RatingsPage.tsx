@@ -739,16 +739,16 @@ const RatingsPage: React.FC = () => {
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-[1320px] w-full">
+          <table className="w-full">
             <colgroup>
-              <col style={{ minWidth: '20px' }} /> {/* Index */}
-              <col style={{ minWidth: '225px' }} /> {/* Team */}
-              <col style={{ minWidth: '200px' }} /> {/* Conference */}
-              <col style={{ minWidth: '120px' }} /> {/* SP+ Rank */}
-              <col style={{ minWidth: '200px' }} /> {/* Overall SP+ */}
-              <col style={{ minWidth: '200px' }} /> {/* Off Rating */}
-              <col style={{ minWidth: '200px' }} /> {/* Def Rating */}
-              <col style={{ minWidth: '200px' }} /> {/* Special Teams */}
+              <col style={{ width: '40px' }} /> {/* Index */}
+              <col style={{ width: '180px' }} /> {/* Team */}
+              <col style={{ width: '140px' }} /> {/* Conference */}
+              <col style={{ width: '90px' }} /> {/* SP+ Rank */}
+              <col style={{ minWidth: '160px' }} /> {/* Overall SP+ */}
+              <col style={{ minWidth: '160px' }} /> {/* Off Rating */}
+              <col style={{ minWidth: '160px' }} /> {/* Def Rating */}
+              <col style={{ minWidth: '160px' }} /> {/* Special Teams */}
             </colgroup>
             <thead className="bg-neutral-600 text-white">
               <tr>
