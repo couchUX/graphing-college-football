@@ -450,8 +450,14 @@ Track performance across individual games in a season.
 
 ```javascript
 async function createSeasonTrendChart(teamName, year, metric = 'SR') {
+  const headers = {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  };
+
   const gamesResponse = await fetch(
-    `https://api.collegefootballdata.com/games?year=${year}&team=${encodeURIComponent(teamName)}`
+    `https://api.collegefootballdata.com/games?year=${year}&team=${encodeURIComponent(teamName)}`,
+    { headers }
   );
   const games = await gamesResponse.json();
 
@@ -460,7 +466,8 @@ async function createSeasonTrendChart(teamName, year, metric = 'SR') {
 
   for (const game of games) {
     const playsResponse = await fetch(
-      `https://api.collegefootballdata.com/plays?gameId=${game.id}`
+      `https://api.collegefootballdata.com/plays?gameId=${game.id}`,
+      { headers }
     );
     const plays = await playsResponse.json();
     const teamPlays = plays.filter(p => p.offense === teamName);
@@ -590,15 +597,22 @@ function groupByCategory(plays, category) {
 
 // Aggregate multi-game data
 async function fetchSeasonData(team, year) {
+  const headers = {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  };
+
   const gamesResponse = await fetch(
-    `https://api.collegefootballdata.com/games?year=${year}&team=${encodeURIComponent(team)}`
+    `https://api.collegefootballdata.com/games?year=${year}&team=${encodeURIComponent(team)}`,
+    { headers }
   );
   const games = await gamesResponse.json();
 
   let allPlays = [];
   for (const game of games) {
     const playsResponse = await fetch(
-      `https://api.collegefootballdata.com/plays?gameId=${game.id}`
+      `https://api.collegefootballdata.com/plays?gameId=${game.id}`,
+      { headers }
     );
     const plays = await playsResponse.json();
     allPlays = allPlays.concat(plays);

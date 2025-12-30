@@ -362,9 +362,15 @@ When analyzing multiple games (e.g., full season):
 
 ```javascript
 async function fetchSeasonData(team, year) {
+  const headers = {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  };
+
   // 1. Get all games for team
   const gamesResponse = await fetch(
-    `https://api.collegefootballdata.com/games?year=${year}&team=${encodeURIComponent(team)}`
+    `https://api.collegefootballdata.com/games?year=${year}&team=${encodeURIComponent(team)}`,
+    { headers }
   );
   const games = await gamesResponse.json();
 
@@ -372,7 +378,8 @@ async function fetchSeasonData(team, year) {
   let allPlays = [];
   for (const game of games) {
     const playsResponse = await fetch(
-      `https://api.collegefootballdata.com/plays?gameId=${game.id}`
+      `https://api.collegefootballdata.com/plays?gameId=${game.id}`,
+      { headers }
     );
     const plays = await playsResponse.json();
 

@@ -203,7 +203,8 @@ When a user requests an analysis:
 ## Important Notes
 
 - Always attribute data to CollegeFootballData.com
-- Use CORS-friendly API calls (include proper headers)
+- Use CORS-friendly API calls (include proper headers with API key authentication)
+- **API Key**: Replace `YOUR_API_KEY_HERE` with actual API key from https://collegefootballdata.com/key
 - Handle loading states and errors gracefully
 - Format percentages to 1 decimal place
 - Use team colors consistently

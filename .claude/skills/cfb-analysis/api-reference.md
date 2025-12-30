@@ -6,9 +6,12 @@ All API calls should include headers:
 ```javascript
 {
   'Accept': 'application/json',
-  'Content-Type': 'application/json'
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer YOUR_API_KEY_HERE'
 }
 ```
+
+**Important**: Replace `YOUR_API_KEY_HERE` with your actual API key from https://collegefootballdata.com/key
 
 ## Core Endpoints
 
@@ -27,10 +30,20 @@ All API calls should include headers:
 **Example**:
 ```javascript
 // Get all Alabama plays from Week 1, 2024
-fetch('https://api.collegefootballdata.com/plays?year=2024&week=1&team=Alabama&seasonType=regular')
+fetch('https://api.collegefootballdata.com/plays?year=2024&week=1&team=Alabama&seasonType=regular', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  }
+})
 
 // Get plays from specific game
-fetch('https://api.collegefootballdata.com/plays?gameId=401752738')
+fetch('https://api.collegefootballdata.com/plays?gameId=401752738', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  }
+})
 ```
 
 **Response Fields**:
@@ -74,7 +87,12 @@ fetch('https://api.collegefootballdata.com/plays?gameId=401752738')
 
 **Example**:
 ```javascript
-fetch('https://api.collegefootballdata.com/teams')
+fetch('https://api.collegefootballdata.com/teams', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  }
+})
 ```
 
 **Response Fields**:
@@ -108,10 +126,20 @@ fetch('https://api.collegefootballdata.com/teams')
 **Example**:
 ```javascript
 // Get all Alabama games in 2024
-fetch('https://api.collegefootballdata.com/games?year=2024&team=Alabama')
+fetch('https://api.collegefootballdata.com/games?year=2024&team=Alabama', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  }
+})
 
 // Get specific game info
-fetch('https://api.collegefootballdata.com/games?id=401752738')
+fetch('https://api.collegefootballdata.com/games?id=401752738', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  }
+})
 ```
 
 **Response Fields**:
@@ -148,7 +176,12 @@ fetch('https://api.collegefootballdata.com/games?id=401752738')
 
 **Example**:
 ```javascript
-fetch('https://api.collegefootballdata.com/metrics/wp?gameId=401752738')
+fetch('https://api.collegefootballdata.com/metrics/wp?gameId=401752738', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  }
+})
 ```
 
 **Response Fields**:
@@ -185,10 +218,20 @@ fetch('https://api.collegefootballdata.com/metrics/wp?gameId=401752738')
 **Example**:
 ```javascript
 // Get all SP+ ratings for 2024
-fetch('https://api.collegefootballdata.com/ratings/sp?year=2024')
+fetch('https://api.collegefootballdata.com/ratings/sp?year=2024', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  }
+})
 
 // Get Alabama's SP+ rating
-fetch('https://api.collegefootballdata.com/ratings/sp?year=2024&team=Alabama')
+fetch('https://api.collegefootballdata.com/ratings/sp?year=2024&team=Alabama', {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY_HERE'
+  }
+})
 ```
 
 **Response Fields**:
@@ -219,15 +262,22 @@ fetch('https://api.collegefootballdata.com/ratings/sp?year=2024&team=Alabama')
 
 ### Get Full Season Data for a Team
 ```javascript
+const headers = {
+  'Accept': 'application/json',
+  'Authorization': 'Bearer YOUR_API_KEY_HERE'
+};
+
 // 1. Get all games
 const games = await fetch(
-  'https://api.collegefootballdata.com/games?year=2024&team=Alabama'
+  'https://api.collegefootballdata.com/games?year=2024&team=Alabama',
+  { headers }
 ).then(r => r.json());
 
 // 2. For each game, get plays
 for (const game of games) {
   const plays = await fetch(
-    `https://api.collegefootballdata.com/plays?gameId=${game.id}`
+    `https://api.collegefootballdata.com/plays?gameId=${game.id}`,
+    { headers }
   ).then(r => r.json());
   // Process plays...
 }
@@ -235,9 +285,15 @@ for (const game of games) {
 
 ### Compare Two Teams
 ```javascript
+const headers = {
+  'Accept': 'application/json',
+  'Authorization': 'Bearer YOUR_API_KEY_HERE'
+};
+
 // Get plays for both teams in their matchup
 const plays = await fetch(
-  'https://api.collegefootballdata.com/plays?year=2024&week=3&team=Alabama'
+  'https://api.collegefootballdata.com/plays?year=2024&week=3&team=Alabama',
+  { headers }
 ).then(r => r.json());
 
 // Filter by offense to separate teams
@@ -247,16 +303,23 @@ const opponentPlays = plays.filter(p => p.offense !== 'Alabama');
 
 ### Get Player Stats Across Season
 ```javascript
+const headers = {
+  'Accept': 'application/json',
+  'Authorization': 'Bearer YOUR_API_KEY_HERE'
+};
+
 // 1. Get all games for team
 const games = await fetch(
-  'https://api.collegefootballdata.com/games?year=2024&team=Alabama'
+  'https://api.collegefootballdata.com/games?year=2024&team=Alabama',
+  { headers }
 ).then(r => r.json());
 
 // 2. Collect all plays
 let allPlays = [];
 for (const game of games) {
   const plays = await fetch(
-    `https://api.collegefootballdata.com/plays?gameId=${game.id}`
+    `https://api.collegefootballdata.com/plays?gameId=${game.id}`,
+    { headers }
   ).then(r => r.json());
   allPlays = allPlays.concat(plays);
 }
