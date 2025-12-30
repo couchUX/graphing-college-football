@@ -305,7 +305,11 @@ export const createPlayMapOptions = (minY: number, maxY: number): ChartOptions<'
       },
       callbacks: {
         label: (context: any) => {
-          const label = `${context.dataset.label}: ${context.parsed.y} yards`;
+          // Format Average Extra Yards to 2 decimal places
+          const yValue = context.dataset.label === 'Avg Extra Yards'
+            ? context.parsed.y.toFixed(2)
+            : context.parsed.y;
+          const label = `${context.dataset.label}: ${yValue} yards`;
           const text = context.raw.text;
           return text ? [label, text] : label;
         }

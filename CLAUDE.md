@@ -66,3 +66,14 @@ npm run lint
 - Types: `src/types/index.ts`
 - Utilities: `src/utils/` (expanded with chart utilities)
 - Hooks: `src/hooks/` (added useChartData.ts)
+
+## Git Workflow
+
+**IMPORTANT**: Do NOT push changes to the main branch (production) without explicit user approval.
+
+- **Always commit changes locally** when work is complete
+- **Ask for confirmation before pushing** - e.g., "Ready to push this to production?" or "Should I deploy these changes?"
+- **Wait for user approval** before running `git push`
+- User will review changes before they go live on production
+
+This ensures the user maintains control over what gets deployed and when.
