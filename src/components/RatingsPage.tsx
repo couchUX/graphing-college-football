@@ -767,11 +767,11 @@ const RatingsPage: React.FC = () => {
               <col style={{ width: '40px' }} /> {/* Index */}
               <col style={{ width: '180px' }} /> {/* Team */}
               <col style={{ width: '140px' }} /> {/* Conference */}
-              <col style={{ width: '90px' }} /> {/* SP+ Rank */}
+              <col style={{ width: '110px' }} /> {/* SP+ Rank */}
               <col style={{ minWidth: '160px' }} /> {/* Overall SP+ */}
-              <col style={{ minWidth: '160px' }} /> {/* Off Rating */}
-              <col style={{ minWidth: '160px' }} /> {/* Def Rating */}
-              <col style={{ minWidth: '160px' }} /> {/* Special Teams */}
+              <col style={{ minWidth: '140px' }} /> {/* Off Rating */}
+              <col style={{ minWidth: '140px' }} /> {/* Def Rating */}
+              <col style={{ minWidth: '140px' }} /> {/* Special Teams */}
             </colgroup>
             <thead className="bg-neutral-600 text-white">
               <tr>
