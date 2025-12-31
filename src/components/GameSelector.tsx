@@ -420,7 +420,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
             </label>
             <Listbox value={year} onChange={setYear}>
               <div className="relative">
-                <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-3 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors cursor-default">
+                <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors cursor-default">
                   <span className="block truncate">{year}</span>
                   <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                     <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
@@ -464,7 +464,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
             <Combobox value={selectedTeam} onChange={setSelectedTeam}>
               <div className="relative">
                 <Combobox.Input
-                  className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 pr-16 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 pr-16 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                   displayValue={(team: Team | null) => team?.school || ''}
                   onChange={(event) => setTeamQuery(event.target.value)}
                   placeholder="e.g., Alabama"
@@ -597,7 +597,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         </label>
         <Listbox value={selectedGame} onChange={setSelectedGame} disabled={!selectedTeam || loadingGames}>
           <div className="relative">
-            <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-3 pr-16 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors cursor-default disabled:bg-neutral-100 disabled:cursor-not-allowed">
+            <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 pr-16 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors cursor-default disabled:bg-neutral-100 disabled:cursor-not-allowed">
               <span className="block truncate">
                 {!selectedTeam ? 'Select a team first' : 
                  loadingGames ? 'Loading games...' : 
@@ -730,7 +730,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         <button
           onClick={handleFetchData}
           disabled={isLoading || !selectedGame || !selectedTeam}
-          className="w-full sm:w-auto flex items-center justify-center sm:justify-start space-x-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
+          className="w-full sm:w-auto flex items-center justify-center sm:justify-start space-x-2 px-6 py-3 bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
         >
           <span>{isLoading ? 'Loading...' : 'Fetch Data'}</span>
           <Play className="h-5 w-5" />

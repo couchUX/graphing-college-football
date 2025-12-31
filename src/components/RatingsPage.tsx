@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check, BarChart3 } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check, BarChart3, TrendingUp, Award } from 'lucide-react';
 import Toast from './Toast';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
@@ -978,40 +978,64 @@ const RatingsPage: React.FC = () => {
       {/* Header - matching Games page */}
       <header className="bg-white shadow-sm border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-start md:items-center sm:space-x-3">
-              <div className="hidden sm:flex items-center justify-center w-15 h-15">
-                <img
-                  src={logo}
-                  alt="Graphing College Football Logo"
-                  className="h-14 w-14 object-contain"
-                />
-              </div>
+          {/* Mobile: Two rows (Title/Info, then Nav) */}
+          {/* Desktop: One row (Title/Subtitle on left, Nav + Info on right) */}
+          <div className="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+            {/* Row 1 on mobile, Left side on desktop: Title/Subtitle + Info Button (mobile only) */}
+            <div className="flex items-center justify-between sm:justify-start">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 mt-0.5 sm:mt-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">
                   Graphing College Football
                 </h1>
                 <p className="text-sm sm:text-base text-neutral-500 mt-0">
                   Advanced play-by-play metrics<span className="hidden sm:inline"> and visualizations</span>
                 </p>
               </div>
-            </div>
 
-            <div className="flex items-center gap-3">
-              {/* Games Button */}
-              <a
-                href="/"
-                className="flex items-center justify-center sm:justify-start gap-2 px-3 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-all duration-200 text-sm font-medium"
-                title="Games"
-              >
-                <BarChart3 className="h-5 w-5" />
-                <span className="hidden sm:inline">Games</span>
-              </a>
-
-              {/* Info Button */}
+              {/* Info Button - visible on mobile only */}
               <button
                 onClick={() => setShowInfoModal(true)}
-                className="flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
+                className="sm:hidden flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
+                title="About this project"
+              >
+                <Info className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Row 2 on mobile, Right side on desktop: Navigation Toggle + Info Button (desktop only) */}
+            <div className="flex items-center gap-3">
+              {/* Navigation Toggle */}
+              <div className="flex w-full sm:w-auto border border-neutral-300 rounded-lg overflow-hidden h-10">
+                <a
+                  href="/games"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors bg-white text-neutral-700 hover:bg-neutral-50"
+                  title="Games"
+                >
+                  <BarChart3 className="h-5 w-5" />
+                  <span>Games</span>
+                </a>
+                <a
+                  href="/ratings"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-neutral-200 text-neutral-600 cursor-default"
+                  title="SP+ Ratings"
+                >
+                  <Award className="h-5 w-5" />
+                  <span>Ratings</span>
+                </a>
+                <a
+                  href="/trends"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                  title="Team Trends"
+                >
+                  <TrendingUp className="h-5 w-5" />
+                  <span>Trends</span>
+                </a>
+              </div>
+
+              {/* Info Button - visible on desktop only */}
+              <button
+                onClick={() => setShowInfoModal(true)}
+                className="hidden sm:flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
                 title="About this project"
               >
                 <Info className="h-5 w-5" />
@@ -1025,7 +1049,7 @@ const RatingsPage: React.FC = () => {
       <main className="flex-grow py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Filters - matching Games page style */}
-          <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow-sm sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+          <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
@@ -1036,7 +1060,7 @@ const RatingsPage: React.FC = () => {
                     id="year-select"
                     value={year}
                     onChange={(e) => setYear(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 appearance-none bg-[length:1.5em_1.5em] bg-[position:calc(100%-0.75rem)_center] bg-no-repeat"
+                    className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg shadow-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 appearance-none bg-[length:1.5em_1.5em] bg-[position:calc(100%-0.75rem)_center] bg-no-repeat"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
                   >
                     {yearOptions.map((y) => (
@@ -1055,7 +1079,7 @@ const RatingsPage: React.FC = () => {
                     id="conference-select"
                     value={selectedConference}
                     onChange={(e) => setSelectedConference(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 appearance-none bg-[length:1.5em_1.5em] bg-[position:calc(100%-0.75rem)_center] bg-no-repeat"
+                    className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg shadow-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 appearance-none bg-[length:1.5em_1.5em] bg-[position:calc(100%-0.75rem)_center] bg-no-repeat"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
                   >
                     {conferences.map((conf) => (
@@ -1122,7 +1146,7 @@ const RatingsPage: React.FC = () => {
                       </li>
                       <li className="flex items-start">
                         <span className="font-semibold mr-2">•</span>
-                        <span><strong>Defensive Rating:</strong> Points above/below average a team's defense would allow against an average offense. Higher is better (fewer points allowed).</span>
+                        <span><strong>Defensive Rating:</strong> Points above/below average a team's defense would allow against an average offense. Lower is better (fewer points allowed).</span>
                       </li>
                     </ul>
                   </div>
@@ -1237,7 +1261,7 @@ const RatingsPage: React.FC = () => {
                   href="https://buymeacoffee.com/alexcouch"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-neutral-800 hover:bg-neutral-900 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   ☕ Support this project
                 </a>
@@ -1309,7 +1333,7 @@ const RatingsPage: React.FC = () => {
                   href="https://buymeacoffee.com/alexcouch"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-neutral-800 hover:bg-neutral-900 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   ☕ Support this project
                 </a>
@@ -1409,7 +1433,7 @@ const RatingsPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmittingContact}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed rounded-md transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 disabled:cursor-not-allowed rounded-md transition-colors"
                   >
                     {isSubmittingContact ? 'Sending...' : 'Send Message'}
                   </button>

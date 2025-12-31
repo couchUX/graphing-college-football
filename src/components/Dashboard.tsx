@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle, Link, Award } from 'lucide-react';
+import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle, Link, Award, TrendingUp } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -265,40 +265,64 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-start md:items-center sm:space-x-3">
-              <div className="hidden sm:flex items-center justify-center w-15 h-15">
-                <img 
-                  src={logo} 
-                  alt="Graphing College Football Logo" 
-                  className="h-14 w-14 object-contain"
-                />
-              </div>
+          {/* Mobile: Two rows (Title/Info, then Nav) */}
+          {/* Desktop: One row (Title/Subtitle on left, Nav + Info on right) */}
+          <div className="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+            {/* Row 1 on mobile, Left side on desktop: Title/Subtitle + Info Button (mobile only) */}
+            <div className="flex items-center justify-between sm:justify-start">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 mt-0.5 sm:mt-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">
                   Graphing College Football
                 </h1>
                 <p className="text-sm sm:text-base text-neutral-500 mt-0">
                   Advanced play-by-play metrics<span className="hidden sm:inline"> and visualizations</span>
                 </p>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {/* Navigation Link */}
-              <a
-                href="/ratings"
-                className="flex items-center justify-center sm:justify-start gap-2 px-3 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-all duration-200 text-sm font-medium"
-                title="SP+ Ratings"
-              >
-                <Award className="h-5 w-5" />
-                <span className="hidden sm:inline">SP+ Ratings</span>
-              </a>
 
-              {/* Info Button */}
+              {/* Info Button - visible on mobile only */}
               <button
                 onClick={() => setShowInfoModal(true)}
-                className="flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
+                className="sm:hidden flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
+                title="About this project"
+              >
+                <Info className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Row 2 on mobile, Right side on desktop: Navigation Toggle + Info Button (desktop only) */}
+            <div className="flex items-center gap-3">
+              {/* Navigation Toggle */}
+              <div className="flex w-full sm:w-auto border border-neutral-300 rounded-lg overflow-hidden h-10">
+                <a
+                  href="/games"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors bg-neutral-200 text-neutral-600 cursor-default"
+                  title="Games"
+                >
+                  <BarChart3 className="h-5 w-5" />
+                  <span>Games</span>
+                </a>
+                <a
+                  href="/ratings"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                  title="SP+ Ratings"
+                >
+                  <Award className="h-5 w-5" />
+                  <span>Ratings</span>
+                </a>
+                <a
+                  href="/trends"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                  title="Team Trends"
+                >
+                  <TrendingUp className="h-5 w-5" />
+                  <span>Trends</span>
+                </a>
+              </div>
+
+              {/* Info Button - visible on desktop only */}
+              <button
+                onClick={() => setShowInfoModal(true)}
+                className="hidden sm:flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
                 title="About this project"
               >
                 <Info className="h-5 w-5" />
@@ -312,7 +336,7 @@ const Dashboard: React.FC = () => {
       <main className="flex-grow py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Data Input */}
-          <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow-sm sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+          <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
           <GameSelector
             onFetchData={handleFetchData}
             isLoading={isLoading}
@@ -988,7 +1012,7 @@ const Dashboard: React.FC = () => {
         {/* Empty State */}
         {plays.length === 0 && !isLoading && (
           <div className="text-center py-8">
-            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-12">
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
               {currentParams ? (
                 // Game was selected but no data returned
                 <>
@@ -1061,11 +1085,11 @@ const Dashboard: React.FC = () => {
                 </p>
                 
                 <div className="pt-2 space-y-3">
-                  <a 
-                    href="https://buymeacoffee.com/alexcouch" 
+                  <a
+                    href="https://buymeacoffee.com/alexcouch"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="inline-flex items-center px-4 py-2 bg-neutral-800 hover:bg-neutral-900 text-white text-sm font-medium rounded-lg transition-colors"
                   >
                     ☕ Support this project
                   </a>
@@ -1164,7 +1188,7 @@ const Dashboard: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmittingContact}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed rounded-md transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 disabled:cursor-not-allowed rounded-md transition-colors"
                   >
                     {isSubmittingContact ? 'Sending...' : 'Send Message'}
                   </button>
@@ -1191,11 +1215,11 @@ const Dashboard: React.FC = () => {
                 If you find this useful, feel free to buy me a coffee to support continued development!
               </p>
               <div className="space-y-3">
-                <a 
-                  href="https://buymeacoffee.com/alexcouch" 
+                <a
+                  href="https://buymeacoffee.com/alexcouch"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-neutral-800 hover:bg-neutral-900 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   ☕ Support this project
                 </a>

@@ -79,3 +79,34 @@ export interface PlayerStats {
   int?: number; // For passers: interceptions
   total: number;
 }
+
+// Season-level types for Team Trends page
+export interface SeasonMetrics {
+  totalPlays: number;
+  successRate: number;
+  explosivenessRate: number;
+  avgYardsPerPlay: number;
+}
+
+export interface PerGameMetric {
+  gameId: number;
+  week: number;
+  seasonType: string;
+  opponent: string;
+  isHome: boolean;
+  teamSR: number;
+  teamXR: number;
+  oppSR: number;
+  oppXR: number;
+  teamPlays: number;
+  oppPlays: number;
+  teamScore: number;
+  oppScore: number;
+}
+
+export interface SeasonDataFetchResult {
+  games: import('../services/api').TeamGame[];
+  allPlays: import('../services/api').ApiPlayData[];
+  perGamePlays: Map<number, import('../services/api').ApiPlayData[]>;
+  failedGames: number[];
+}
