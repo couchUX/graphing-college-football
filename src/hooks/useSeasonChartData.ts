@@ -158,6 +158,21 @@ export const useSeasonChartData = (
     const srxrByGame = {
       labels,
       datasets: [
+        // NCAA Average reference area (must be first to appear behind other data)
+        {
+          type: 'line' as const,
+          label: 'NCAA Avg SR',
+          data: Array(perGameMetrics.length).fill(NCAA_AVERAGE_SR * 100),
+          backgroundColor: 'rgba(0,0,0,0.03)',
+          borderColor: 'transparent',
+          pointRadius: 0,
+          fill: 'origin',
+          tension: 0,
+          datalabels: {
+            display: false
+          },
+          order: 10
+        },
         {
           label: `${team} SR`,
           data: perGameMetrics.map(g => g.teamSR * 100),
@@ -169,7 +184,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
+          },
+          order: 1
         },
         {
           label: `${team} XR`,
@@ -183,7 +199,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
+          },
+          order: 2
         },
         {
           label: 'Opp SR',
@@ -195,7 +212,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
+          },
+          order: 3
         },
         {
           label: 'Opp XR',
@@ -208,19 +226,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
-        },
-        {
-          type: 'line' as const,
-          label: 'NCAA Avg SR',
-          data: Array(perGameMetrics.length).fill(NCAA_AVERAGE_SR * 100),
-          borderColor: '#757575',
-          borderWidth: 1.5,
-          borderDash: [3, 3],
-          pointRadius: 0,
-          datalabels: {
-            display: false
-          }
+          },
+          order: 4
         }
       ]
     };
@@ -229,6 +236,21 @@ export const useSeasonChartData = (
     const rushRateByGame = {
       labels,
       datasets: [
+        // 50% reference line (must be first to appear behind other data)
+        {
+          type: 'line' as const,
+          label: '50% Line',
+          data: Array(perGameMetrics.length).fill(50),
+          borderColor: 'rgba(0,0,0,0.15)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          tension: 0,
+          datalabels: {
+            display: false
+          },
+          order: 10
+        },
         {
           label: `${team} Rush Rate`,
           data: perGameMetrics.map(g => {
@@ -246,7 +268,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
+          },
+          order: 1
         },
         {
           label: 'Opp Rush Rate',
@@ -258,14 +281,15 @@ export const useSeasonChartData = (
             return gameOppPlays.length > 0 ? (rushPlays.length / gameOppPlays.length) * 100 : 0;
           }),
           borderColor: '#9CA3AF',
-          backgroundColor: '#F3F4F6',
+          backgroundColor: 'rgba(243, 244, 246, 0.65)',
           borderWidth: 2,
           pointRadius: 3,
           fill: true,
           tension: 0.15,
           datalabels: {
             display: false
-          }
+          },
+          order: 2
         }
       ]
     };
@@ -274,6 +298,21 @@ export const useSeasonChartData = (
     const rushPassByGame = {
       labels,
       datasets: [
+        // NCAA Average reference area (must be first to appear behind other data)
+        {
+          type: 'line' as const,
+          label: 'NCAA Avg SR',
+          data: Array(perGameMetrics.length).fill(NCAA_AVERAGE_SR * 100),
+          backgroundColor: 'rgba(0,0,0,0.03)',
+          borderColor: 'transparent',
+          pointRadius: 0,
+          fill: 'origin',
+          tension: 0,
+          datalabels: {
+            display: false
+          },
+          order: 10
+        },
         {
           label: `${team} Rush SR`,
           data: perGameMetrics.map(g => {
@@ -292,7 +331,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
+          },
+          order: 1
         },
         {
           label: `${team} Pass SR`,
@@ -315,7 +355,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
+          },
+          order: 2
         },
         {
           label: 'Opp Rush SR',
@@ -335,7 +376,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
+          },
+          order: 3
         },
         {
           label: 'Opp Pass SR',
@@ -358,19 +400,8 @@ export const useSeasonChartData = (
           tension: 0.15,
           datalabels: {
             display: false
-          }
-        },
-        {
-          type: 'line' as const,
-          label: 'NCAA Avg SR',
-          data: Array(perGameMetrics.length).fill(NCAA_AVERAGE_SR * 100),
-          borderColor: '#757575',
-          borderWidth: 1.5,
-          borderDash: [3, 3],
-          pointRadius: 0,
-          datalabels: {
-            display: false
-          }
+          },
+          order: 4
         }
       ]
     };
