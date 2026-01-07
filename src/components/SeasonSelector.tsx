@@ -132,9 +132,10 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 						// Select all games
 						selectedIds = sortedGames.map((g) => g.id);
 					} else {
-						// Parse indices and select those games
+						// Parse indices and select those games (support both hyphen and comma for backwards compatibility)
+						const separator = urlGamesToRestore.includes('-') ? '-' : ',';
 						const indices = urlGamesToRestore
-							.split(",")
+							.split(separator)
 							.map((i) => parseInt(i))
 							.filter((i) => !isNaN(i));
 						selectedIds = indices
@@ -390,7 +391,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 
 			// Only include games parameter when specific games are selected (not all)
 			if (selectedIndices.length !== availableGames.length) {
-				params.set("games", selectedIndices.join(","));
+				params.set("games", selectedIndices.join("-"));
 			}
 		}
 
