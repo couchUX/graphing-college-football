@@ -87,6 +87,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 	);
 	const [isLoadingFromURL, setIsLoadingFromURL] = useState<boolean>(false);
 	const [shouldAutoFetch, setShouldAutoFetch] = useState<boolean>(false);
+	const [hasRestoredFromURL, setHasRestoredFromURL] = useState<boolean>(false);
 
 	// Load games when team or year changes
 	useEffect(() => {
@@ -94,7 +95,13 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 			if (!selectedTeam) {
 				setAvailableGames([]);
 				setSelectedGameIds([]);
+				setHasRestoredFromURL(false); // Reset when team is cleared
 				return;
+			}
+
+			// Reset hasRestoredFromURL when manually changing team/year (not during URL load)
+			if (!isLoadingFromURL && hasRestoredFromURL) {
+				setHasRestoredFromURL(false);
 			}
 
 			setLoadingGames(true);
@@ -140,15 +147,17 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 
 					setSelectedGameIds(selectedIds);
 					setUrlGamesToRestore(null); // Clear the restore flag
+					setHasRestoredFromURL(true); // Mark that we've restored
 
 					// Auto-fetch if we loaded from URL
 					if (isLoadingFromURL && selectedIds.length > 0) {
 						setShouldAutoFetch(true);
 					}
-				} else if (!isLoadingFromURL) {
-					// Only reset to all games if we're not loading from URL
+				} else if (!isLoadingFromURL && !hasRestoredFromURL) {
+					// Only reset to all games if we're not loading from URL AND haven't already restored
 					setSelectedGameIds(sortedGames.map((g) => g.id));
 				}
+				// else: We're either loading from URL or have already restored - don't change selection
 			} catch (error) {
 				console.error("Error loading games:", error);
 				setAvailableGames([]);
@@ -241,7 +250,8 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 					selectedGameIds,
 				});
 				setShouldAutoFetch(false);
-				setIsLoadingFromURL(false);
+				// Clear the loading flag after a brief delay to ensure fetch has started
+				setTimeout(() => setIsLoadingFromURL(false), 200);
 			}, 100);
 
 			return () => clearTimeout(timeoutId);
@@ -396,8 +406,9 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 
 	// Update URL when selections change
 	useEffect(() => {
-		if (teams.length > 0 && availableGames.length > 0) {
-			// Only update URL after teams and games have loaded
+		if (teams.length > 0 && availableGames.length > 0 && !isLoadingFromURL) {
+			// Only update URL after teams and games have loaded AND we're not loading from URL
+			// This prevents overwriting URL params during initial page load
 			updateURL();
 		}
 	}, [
@@ -407,6 +418,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 		selectedTeamColor,
 		teams.length,
 		availableGames.length,
+		isLoadingFromURL,
 	]);
 
 	return (
