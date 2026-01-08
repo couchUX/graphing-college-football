@@ -13,18 +13,17 @@ interface TrendsChartsGridProps {
   selectedTeamColor?: string;
 }
 
-// Chart options for bar charts (XR overlaps SR within same stack)
+// Chart options for bar charts (XR overlaps SR, matching Games page)
 const barChartOptions = {
   ...createBaseOptions(),
   scales: {
     x: {
-      stacked: true,
       grid: {
         display: false
       }
     },
     y: {
-      stacked: true,
+      stacked: false,
       max: 1,
       min: 0,
       ticks: { callback: percentCallback }
