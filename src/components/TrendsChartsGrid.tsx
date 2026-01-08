@@ -13,18 +13,18 @@ interface TrendsChartsGridProps {
   selectedTeamColor?: string;
 }
 
-// Chart options for bar charts
+// Chart options for bar charts (not stacked - XR overlaps SR)
 const barChartOptions = {
   ...createBaseOptions(),
   scales: {
     x: {
-      stacked: true,
+      stacked: false,
       grid: {
         display: false
       }
     },
     y: {
-      stacked: true,
+      stacked: false,
       max: 1,
       min: 0,
       ticks: { callback: percentCallback }
@@ -57,6 +57,24 @@ const lineChartOptionsWithRotatedLabels = {
   elements: {
     line: { tension: 0.15, borderWidth: 2.5 },
     point: { radius: 4 }
+  },
+  plugins: {
+    ...createBaseOptions().plugins,
+    tooltip: {
+      callbacks: {
+        label: function(context: any) {
+          let label = context.dataset.label || '';
+          if (label) {
+            label += ': ';
+          }
+          // Values are already in 0-100 range, just add % sign
+          if (context.parsed.y !== null) {
+            label += context.parsed.y.toFixed(1) + '%';
+          }
+          return label;
+        }
+      }
+    }
   }
 };
 
