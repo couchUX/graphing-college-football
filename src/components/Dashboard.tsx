@@ -4,6 +4,7 @@ import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
 import Toast from './Toast';
+import { MetaTags } from './MetaTags';
 import { PlayData } from '../types';
 import { fetchPlayByPlayData, fetchWinProbabilityData } from '../services/api';
 import { processPlayData } from '../utils/metrics';
@@ -261,7 +262,14 @@ const Dashboard: React.FC = () => {
   const opponentColors = getDisplayTeamColors(opponentTeam, selectedOpponentColor);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
+    <>
+      <MetaTags
+        title="Games - Graphing College Football"
+        description="Advanced college football analytics dashboard featuring success rate, explosiveness, play-by-play analysis, and interactive charts for every CFB team and game."
+        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_games_open-graph.jpg"
+        url="https://cfb-adv-metrics-dashboard.vercel.app/games"
+      />
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -1237,6 +1245,7 @@ const Dashboard: React.FC = () => {
         </div>
       </footer>
     </div>
+    </>
   );
 };
 

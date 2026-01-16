@@ -3,6 +3,7 @@ import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check, BarChart3, TrendingUp, Award } from 'lucide-react';
 import Toast from './Toast';
+import { MetaTags } from './MetaTags';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
@@ -974,7 +975,14 @@ const RatingsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
+    <>
+      <MetaTags
+        title="Ratings - Graphing College Football"
+        description="College football SP+ ratings and rankings featuring offensive, defensive, and special teams ratings for every FBS team."
+        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_ratings_open-graph.jpg"
+        url="https://cfb-adv-metrics-dashboard.vercel.app/ratings"
+      />
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       {/* Header - matching Games page */}
       <header className="bg-white shadow-sm border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -1451,6 +1459,7 @@ const RatingsPage: React.FC = () => {
         onClose={() => setShowToast(false)}
       />
     </div>
+    </>
   );
 };
 

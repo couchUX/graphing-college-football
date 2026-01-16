@@ -4,6 +4,7 @@ import { Bar } from 'react-chartjs-2';
 import SeasonSelector from './SeasonSelector';
 import TrendsChartsGrid from './TrendsChartsGrid';
 import SeasonAdvancedBoxScore from './SeasonAdvancedBoxScore';
+import { MetaTags } from './MetaTags';
 import { PlayData } from '../types';
 import { TeamGame, ApiPlayData } from '../services/api';
 import { Game as BoxScoreGame } from '../services/boxScoreApi';
@@ -232,7 +233,14 @@ const TeamTrendsPage: React.FC = () => {
   }, [currentParams, selectedTeamColor, seasonGames]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
+    <>
+      <MetaTags
+        title="Team Trends - Graphing College Football"
+        description="Track college football team performance trends across entire seasons with advanced metrics, success rate trends, explosiveness charts, and comprehensive season analytics."
+        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_team-trends_open-graph.jpg"
+        url="https://cfb-adv-metrics-dashboard.vercel.app/trends"
+      />
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -746,6 +754,7 @@ const TeamTrendsPage: React.FC = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
