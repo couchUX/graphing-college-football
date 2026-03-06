@@ -33,7 +33,7 @@ export const aggregateSeasonPlayerStats = (
     if (play.playType?.toLowerCase().includes('interception')) {
       existing.int = (existing.int || 0) + 1;
       existing.unsuccessful += 1;
-    } else if (play.explosive) {
+    } else if (play.explosiveness) {
       existing.explosive += 1;
     } else if (play.success) {
       existing.successful += 1;
@@ -63,7 +63,7 @@ export const aggregateSeasonPlayerStats = (
       total: 0
     };
 
-    if (play.explosive) {
+    if (play.explosiveness) {
       existing.explosive += 1;
     } else if (play.success) {
       existing.successful += 1;
@@ -96,7 +96,7 @@ export const aggregateSeasonPlayerStats = (
       total: 0
     };
 
-    if (play.explosive) {
+    if (play.explosiveness) {
       existing.explosive += 1;
     } else if (play.success) {
       existing.successful += 1;
