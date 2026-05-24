@@ -194,7 +194,7 @@ const DiscoverPage: React.FC = () => {
 
             {/* Content per tab */}
             {tab === 'season-recap' && (
-              <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {detectors.map(d => (
                   <DiscoverCard key={d.id} detector={d} filters={filters} />
                 ))}

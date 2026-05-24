@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Bar, Line, Pie, Doughnut, Scatter, Radar } from 'react-chartjs-2';
-import { ExternalLink, RefreshCcw, AlertCircle } from 'lucide-react';
+import { ExternalLink, RefreshCcw, AlertCircle, ChevronDown } from 'lucide-react';
 import type { Detector, DetectorFilters, DetectorResult } from '../detectors/types';
 import { openStandalone } from '../utils/standaloneChartHtml';
 import { initializeChartDefaults } from '../utils/chartConfig';
@@ -128,8 +128,14 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters }) => {
             </div>
 
             {result.rows && result.rows.length > 0 && (
-              <div className="mt-5 border-t border-neutral-100 pt-4">
-                <table className="w-full text-sm">
+              <details className="group mt-5 border-t border-neutral-100 pt-3">
+                <summary className="flex items-center justify-between cursor-pointer list-none select-none py-1 text-sm font-medium text-neutral-700 hover:text-neutral-900">
+                  <span className="flex items-center gap-2">
+                    <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-0 -rotate-90" />
+                    Show details ({result.rows.length})
+                  </span>
+                </summary>
+                <table className="w-full text-sm mt-3">
                   <tbody>
                     {result.rows.map((row, i) => (
                       <tr key={i} className="border-b border-neutral-50 last:border-0">
@@ -142,7 +148,7 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters }) => {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </details>
             )}
           </>
         )}

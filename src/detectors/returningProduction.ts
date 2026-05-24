@@ -47,9 +47,24 @@ export const returningProductionDetector: Detector = {
   run: async (filters: DetectorFilters): Promise<DetectorResult> => {
     const all = await cachedFetch(`returning:${filters.year}`, () => fetchReturning(filters.year));
 
+    // Filter out rows that look like CFBD default/uncalculated data:
+    // real teams always have some roster turnover, so usage ≈ 1.0 across the
+    // board (with every subcategory exactly 1.0) is a "no calc yet" tell.
+    const looksLikeDefault = (r: ReturningProduction): boolean => {
+      if ((r.usage ?? 0) < 0.997) return false;
+      const subs = [
+        r.percentPassingPPA,
+        r.percentReceivingPPA,
+        r.percentRushingPPA,
+      ];
+      // Every available subcategory is essentially exactly 1.0 → default data.
+      return subs.every(s => s == null || Math.abs(s - 1) < 0.005);
+    };
+
     const filtered = all
       .filter(r => r.team && r.percentPPA != null && isInConference(r.conference, filters.conference))
-      .filter(r => !filters.team || r.team === filters.team);
+      .filter(r => !filters.team || r.team === filters.team)
+      .filter(r => !looksLikeDefault(r));
 
     filtered.sort((a, b) => (b.percentPPA ?? 0) - (a.percentPPA ?? 0));
     const top = filtered.slice(0, TOP_N);
@@ -63,17 +78,21 @@ export const returningProductionDetector: Detector = {
     }
 
     const labels = top.map(t => t.team);
-    const data = top.map(t => Number(((t.percentPPA ?? 0) * 100).toFixed(1)));
+    // Cap the chart value at 100 for visual honesty (returning production is
+    // theoretically bounded at 100%); preserve the actual value in tooltip/rows
+    // since CFBD occasionally reports >100 (transfers-in counted).
+    const data = top.map(t => Math.min(100, Number(((t.percentPPA ?? 0) * 100).toFixed(1))));
+    const rawPct = top.map(t => (t.percentPPA ?? 0) * 100);
     const bg = top.map(t => getDisplayTeamColors(t.team, 'default').success);
     const border = top.map(t => {
       const c = getDisplayTeamColors(t.team, 'default');
       return c.color || c.success;
     });
-    const maxVal = data[0];
+    const maxVal = Math.max(...data);
 
     return {
       headline: `${top.length} returning-production leaders`,
-      subtext: `${filters.year} returning rosters • % of prior season's PPA back on the team`,
+      subtext: `${filters.year} returning rosters • Share of prior season's production-weighted PPA on this year's roster. Teams with incomplete CFBD calculations filtered out.`,
       chart: {
         type: 'bar',
         height: Math.max(360, top.length * 32),
@@ -113,7 +132,11 @@ export const returningProductionDetector: Detector = {
                 label: (item: any) => {
                   const t = top[item.dataIndex];
                   if (!t) return '';
-                  const lines = [`Overall: ${((t.percentPPA ?? 0) * 100).toFixed(1)}%`];
+                  const raw = rawPct[item.dataIndex];
+                  const overallLine = raw > 100
+                    ? `Overall: 100%+ (raw ${raw.toFixed(1)}%)`
+                    : `Overall: ${raw.toFixed(1)}%`;
+                  const lines = [overallLine];
                   if (t.percentPassingPPA != null)
                     lines.push(`Passing: ${(t.percentPassingPPA * 100).toFixed(1)}%`);
                   if (t.percentReceivingPPA != null)
@@ -128,8 +151,8 @@ export const returningProductionDetector: Detector = {
           scales: {
             x: {
               beginAtZero: true,
-              suggestedMax: Math.min(110, maxVal * 1.1),
-              title: { display: true, text: 'Returning production (% of prior season PPA)' },
+              suggestedMax: Math.min(102, maxVal * 1.08),
+              title: { display: true, text: 'Returning production (% of prior season PPA, capped at 100%)' },
               grid: { color: 'rgba(0,0,0,0.06)' },
               ticks: { callback: (v: any) => `${v}%` },
             },
@@ -142,9 +165,13 @@ export const returningProductionDetector: Detector = {
         if (t.percentPassingPPA != null) parts.push(`pass ${(t.percentPassingPPA * 100).toFixed(0)}%`);
         if (t.percentReceivingPPA != null) parts.push(`rec ${(t.percentReceivingPPA * 100).toFixed(0)}%`);
         if (t.percentRushingPPA != null) parts.push(`rush ${(t.percentRushingPPA * 100).toFixed(0)}%`);
+        const raw = (t.percentPPA ?? 0) * 100;
+        const valueText = raw > 100
+          ? `${raw.toFixed(1)}% (incl. transfers in)`
+          : `${raw.toFixed(1)}% overall`;
         return {
           label: t.team,
-          value: `${((t.percentPPA ?? 0) * 100).toFixed(1)}% overall`,
+          value: valueText,
           hint: parts.join(' · ') || t.conference || '',
         };
       }),
