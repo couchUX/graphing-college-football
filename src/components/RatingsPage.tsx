@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check, BarChart3, TrendingUp, Award } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check, BarChart3, TrendingUp, Award, Sparkles } from 'lucide-react';
 import Toast from './Toast';
 import { MetaTags } from './MetaTags';
 import logo from '../assets/graphing-cfb-logo-2.png';
@@ -1037,6 +1037,14 @@ const RatingsPage: React.FC = () => {
                 >
                   <TrendingUp className="h-5 w-5" />
                   <span>Trends</span>
+                </a>
+                <a
+                  href="/discover"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                  title="Discover"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>Discover</span>
                 </a>
               </div>
 

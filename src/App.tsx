@@ -2,6 +2,7 @@ import React from 'react';
 import Dashboard from './components/Dashboard';
 import RatingsPage from './components/RatingsPage';
 import TeamTrendsPage from './components/TeamTrendsPage';
+import DiscoverPage from './components/DiscoverPage';
 import './index.css';
 
 function App() {
@@ -32,6 +33,14 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-50">
         <TeamTrendsPage />
+      </div>
+    );
+  }
+
+  if (path === '/discover') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DiscoverPage />
       </div>
     );
   }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart3, TrendingUp, Award, AlertCircle, Info, Flame, Ruler, Copy, Check } from 'lucide-react';
+import { BarChart3, TrendingUp, Award, AlertCircle, Info, Flame, Ruler, Copy, Check, Sparkles } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
 import SeasonSelector from './SeasonSelector';
 import TrendsChartsGrid from './TrendsChartsGrid';
@@ -295,6 +295,14 @@ const TeamTrendsPage: React.FC = () => {
                 >
                   <TrendingUp className="h-5 w-5" />
                   <span>Trends</span>
+                </a>
+                <a
+                  href="/discover"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+                  title="Discover"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>Discover</span>
                 </a>
               </div>
 

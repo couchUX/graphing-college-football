@@ -102,6 +102,20 @@ export const fetchTeams = async (): Promise<Team[]> => {
   }
 };
 
+export const fetchAllGames = async (year: number): Promise<TeamGame[]> => {
+  const url = `${API_BASE_URL}/games?year=${year}`;
+  console.log('Fetching all games from:', url);
+
+  const response = await fetch(url, { headers: getApiHeaders() });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log('Fetched all games:', data.length);
+  return data;
+};
+
 export const fetchGamesForTeam = async (params: {
   year: number;
   team: string;
