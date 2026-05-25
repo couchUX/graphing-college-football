@@ -6,18 +6,23 @@ import type { Detector, DetectorFilters, DetectorResult } from './types';
 const POWER4 = ['ACC', 'SEC', 'Big 12', 'Big Ten'];
 const TOP_N = 15;
 
-interface TeamPPA {
+interface PlayerPPA {
   season: number;
+  id?: string;
+  name: string;
+  position?: string;
   team: string;
   conference?: string;
-  offense?: { overall?: number; passing?: number; rushing?: number };
-  defense?: { overall?: number; passing?: number; rushing?: number };
+  countablePlays?: number;
+  averagePPA?: { all?: number };
+  totalPPA?: { all?: number };
 }
 
-const fetchTeamPPA = async (year: number): Promise<TeamPPA[]> => {
-  const url = `${API_BASE_URL}/ppa/teams?year=${year}`;
+const fetchPlayerPPA = async (year: number): Promise<PlayerPPA[]> => {
+  // CFBD requires either a team OR an excludeGarbageTime/threshold param; year alone works.
+  const url = `${API_BASE_URL}/ppa/players/season?year=${year}`;
   const res = await fetch(url, { headers: getApiHeaders() });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching team PPA`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching player PPA`);
   return res.json();
 };
 
@@ -28,65 +33,68 @@ const isInConference = (conf: string | undefined, filter?: string): boolean => {
   return conf === filter;
 };
 
-export const teamPPADetector: Detector = {
-  id: 'team-ppa-leaderboard',
-  title: 'PPA leaders (net efficiency)',
+export const topPlayerPPADetector: Detector = {
+  id: 'top-player-ppa',
+  title: 'Top players by total PPA',
   description:
-    'PPA = Predicted Points Added per play: how much each snap shifted a team\'s scoring expectation, on average. Net PPA = offense − defense. Related to but broader than explosiveness, which only counts big plays — PPA values every play, whether it\'s a 3-yard run on 3rd-and-2 or a 60-yard TD.',
+    'Individual players ranked by total Predicted Points Added across the season. Counts every play the player was involved in — passing, rushing, and receiving — weighted by impact on scoring expectation.',
 
   run: async (filters: DetectorFilters): Promise<DetectorResult> => {
-    const all = await cachedFetch(`team-ppa:${filters.year}`, () => fetchTeamPPA(filters.year));
+    const all = await cachedFetch(`player-ppa:${filters.year}`, () =>
+      fetchPlayerPPA(filters.year)
+    );
 
     interface Row {
+      name: string;
       team: string;
       conference: string;
-      offense: number;
-      defense: number;
-      net: number;
+      position: string;
+      total: number;
+      avg: number;
+      plays: number;
     }
 
     const rows: Row[] = [];
-    all.forEach(t => {
-      if (!t.team) return;
-      if (!isInConference(t.conference, filters.conference)) return;
-      if (filters.team && t.team !== filters.team) return;
-      const off = t.offense?.overall;
-      const def = t.defense?.overall;
-      if (off == null || def == null) return;
+    for (const p of all) {
+      if (!p.name || !p.team) continue;
+      if (!isInConference(p.conference, filters.conference)) continue;
+      if (filters.team && p.team !== filters.team) continue;
+      const total = p.totalPPA?.all;
+      if (total == null) continue;
       rows.push({
-        team: t.team,
-        conference: t.conference || '',
-        offense: off,
-        defense: def,
-        net: off - def,
+        name: p.name,
+        team: p.team,
+        conference: p.conference || '',
+        position: p.position || '',
+        total,
+        avg: p.averagePPA?.all ?? 0,
+        plays: p.countablePlays ?? 0,
       });
-    });
+    }
 
-    rows.sort((a, b) => b.net - a.net);
+    rows.sort((a, b) => b.total - a.total);
     const top = rows.slice(0, TOP_N);
 
     if (top.length === 0) {
       return {
-        headline: 'No PPA data available',
-        subtext: 'PPA data isn\'t published yet for this season.',
+        headline: 'No player PPA data',
+        subtext: 'Player PPA hasn\'t been published for this season yet.',
         chart: { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false } },
       };
     }
 
-    const labels = top.map(r => r.team);
-    const data = top.map(r => Number(r.net.toFixed(3)));
+    const labels = top.map(r => `${r.name} (${r.position || '—'}, ${r.team})`);
+    const data = top.map(r => Number(r.total.toFixed(1)));
     const bg = top.map(r => getDisplayTeamColors(r.team, 'default').success);
     const border = top.map(r => {
       const c = getDisplayTeamColors(r.team, 'default');
       return c.color || c.success;
     });
-
     const maxVal = data[0];
-    const minVal = data[data.length - 1];
 
     return {
-      headline: `${top.length} net PPA leaders`,
-      subtext: `${filters.year} season • Net PPA = offensive PPA per play minus defensive PPA allowed. PPA values every play by how much it shifted scoring expectation (broader than explosiveness, which only counts 15+ yard gains).`,
+      headline: `${top.length} top players by total PPA`,
+      subtext: `${filters.year} season • Sum of every play's Predicted Points Added value. Volume + efficiency combined — a QB with lots of snaps and good per-play value lands high here.`,
       chart: {
         type: 'bar',
         height: Math.max(360, top.length * 32),
@@ -94,7 +102,7 @@ export const teamPPADetector: Detector = {
           labels,
           datasets: [
             {
-              label: 'Net PPA per play',
+              label: 'Total PPA',
               data,
               backgroundColor: bg,
               borderColor: border,
@@ -116,7 +124,7 @@ export const teamPPADetector: Detector = {
               clip: false,
               color: '#374151',
               font: { weight: 'bold', size: 11 },
-              formatter: (v: number) => v.toFixed(2),
+              formatter: (v: number) => v.toFixed(0),
               backgroundColor: 'transparent',
               borderColor: 'transparent',
             },
@@ -127,10 +135,10 @@ export const teamPPADetector: Detector = {
                   const r = top[item.dataIndex];
                   if (!r) return '';
                   return [
-                    `Net: ${r.net.toFixed(3)}`,
-                    `Off: ${r.offense.toFixed(3)}`,
-                    `Def: ${r.defense.toFixed(3)} (lower = better)`,
-                    `Conference: ${r.conference}`,
+                    `Total PPA: ${r.total.toFixed(1)}`,
+                    `Avg PPA/play: ${r.avg.toFixed(3)}`,
+                    `Countable plays: ${r.plays}`,
+                    `Team: ${r.team} (${r.conference})`,
                   ];
                 },
               },
@@ -138,19 +146,19 @@ export const teamPPADetector: Detector = {
           },
           scales: {
             x: {
-              suggestedMin: Math.min(0, minVal * 1.1),
-              suggestedMax: maxVal * 1.15,
-              title: { display: true, text: 'Net PPA per play (offense − defense)' },
+              beginAtZero: true,
+              suggestedMax: maxVal * 1.1,
+              title: { display: true, text: 'Total Predicted Points Added (season)' },
               grid: { color: 'rgba(0,0,0,0.06)' },
             },
-            y: { grid: { display: false }, ticks: { font: { size: 12 } } },
+            y: { grid: { display: false }, ticks: { font: { size: 11 } } },
           },
         },
       },
       rows: top.map(r => ({
-        label: `${r.team} (${r.conference})`,
-        value: `Net ${r.net.toFixed(3)}`,
-        hint: `Off ${r.offense.toFixed(3)} · Def ${r.defense.toFixed(3)}`,
+        label: `${r.name} · ${r.position || '—'} · ${r.team}`,
+        value: `${r.total.toFixed(1)} total PPA`,
+        hint: `${r.plays} plays · ${r.avg.toFixed(3)} per play`,
       })),
     };
   },

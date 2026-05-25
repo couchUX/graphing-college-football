@@ -54,7 +54,7 @@ export const efficientLosersDetector: Detector = {
   id: 'efficient-losers',
   title: 'Most efficient losses',
   description:
-    'Games where the LOSING team had a higher offensive success rate than the winning team. Turnovers, special teams, or a few explosive plays swung the scoreboard against the team that moved the ball better.',
+    'Games where the team that LOST had a higher offensive success rate than the team that WON. Each row reads "[loser] lost to [winner]". The bar measures the gap in percentage points (pp) — how much better the losing offense was at staying on schedule. Turnovers, special teams, or a few explosive plays swung the scoreboard.',
 
   run: async (filters: DetectorFilters): Promise<DetectorResult> => {
     const [games, advancedStats] = await Promise.all([
@@ -125,7 +125,7 @@ export const efficientLosersDetector: Detector = {
     const chartRows = top;
     const maxGap = chartRows[0].gapPP;
 
-    const labels = chartRows.map(r => `${r.loser} vs ${r.winner} (W${r.game.week})`);
+    const labels = chartRows.map(r => `${r.loser} lost to ${r.winner} (W${r.game.week})`);
     const data = chartRows.map(r => Number(r.gapPP.toFixed(1)));
     const bgColors = chartRows.map(r => {
       const c = getDisplayTeamColors(r.loser, 'default');
@@ -138,7 +138,7 @@ export const efficientLosersDetector: Detector = {
 
     return {
       headline: `${top.length} most efficient losses`,
-      subtext: `${filters.year} season • Losing team's offensive SR exceeded the winner's by up to ${maxGap.toFixed(1)} pp`,
+      subtext: `${filters.year} season • Bars show how many percentage points the loser's offensive success rate beat the winner's by (the team named first lost). Top game: ${maxGap.toFixed(1)} pp gap.`,
       chart: {
         type: 'bar',
         height: Math.max(360, chartRows.length * 32),
@@ -191,7 +191,7 @@ export const efficientLosersDetector: Detector = {
             x: {
               beginAtZero: true,
               suggestedMax: maxGap * 1.15,
-              title: { display: true, text: 'Loser SR advantage (percentage points)' },
+              title: { display: true, text: "Loser's SR advantage over winner (percentage points)" },
               grid: { color: 'rgba(0,0,0,0.06)' },
             },
             y: { grid: { display: false }, ticks: { font: { size: 12 } } },
@@ -199,7 +199,7 @@ export const efficientLosersDetector: Detector = {
         },
       },
       rows: top.map(r => ({
-        label: `${r.loser} vs ${r.winner} (W${r.game.week})`,
+        label: `${r.loser} lost to ${r.winner} (W${r.game.week})`,
         value: `${r.loser} ${r.loserScore} — ${r.winner} ${r.winnerScore}`,
         hint: `Loser SR ${(r.loserSR * 100).toFixed(1)}% vs Winner ${(r.winnerSR * 100).toFixed(1)}% (+${r.gapPP.toFixed(1)} pp)`,
       })),

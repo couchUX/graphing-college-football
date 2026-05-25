@@ -136,6 +136,7 @@ export const havocVsSPDetector: Detector = {
       chart: {
         type: 'scatter',
         height: 460,
+        searchable: { placeholder: 'Search a team to highlight (e.g. Alabama)', matchField: 'team' },
         data: {
           datasets: [
             {

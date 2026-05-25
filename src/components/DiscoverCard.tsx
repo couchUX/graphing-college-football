@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Bar, Line, Pie, Doughnut, Scatter, Radar } from 'react-chartjs-2';
-import { ExternalLink, RefreshCcw, AlertCircle, ChevronDown } from 'lucide-react';
+import { AlertCircle, ChevronDown, Copy, Check, Search } from 'lucide-react';
 import type { Detector, DetectorFilters, DetectorResult } from '../detectors/types';
-import { openStandalone } from '../utils/standaloneChartHtml';
+import { buildStandaloneHtml } from '../utils/standaloneChartHtml';
 import { initializeChartDefaults } from '../utils/chartConfig';
 
 initializeChartDefaults();
@@ -10,7 +10,61 @@ initializeChartDefaults();
 interface Props {
   detector: Detector;
   filters: DetectorFilters;
+  onCopySuccess: (message: string) => void;
+  onCopyError: (message: string) => void;
 }
+
+const DIMMED = '#d1d5db'; // neutral-300 for non-matching points
+
+/**
+ * When a search term is active on a searchable chart, return a chart with
+ * non-matching points dimmed. Trend/line datasets pass through unchanged.
+ */
+const applySearchHighlight = (
+  result: DetectorResult,
+  term: string
+): DetectorResult => {
+  if (!result.chart.searchable || !term.trim()) return result;
+  const needle = term.trim().toLowerCase();
+  const field = result.chart.searchable.matchField ?? 'team';
+
+  const data = result.chart.data as any;
+  if (!data?.datasets?.length) return result;
+
+  const cloned = {
+    ...result,
+    chart: {
+      ...result.chart,
+      data: {
+        ...data,
+        datasets: data.datasets.map((ds: any) => {
+          // Only highlight datasets whose points carry the search field.
+          const points = ds.data || [];
+          if (!points.length || typeof points[0] !== 'object' || !(field in points[0])) {
+            return ds;
+          }
+          const matches = points.map((p: any) =>
+            String(p[field] ?? '').toLowerCase().includes(needle)
+          );
+          const origBg = Array.isArray(ds.backgroundColor) ? ds.backgroundColor : null;
+          const origBd = Array.isArray(ds.borderColor) ? ds.borderColor : null;
+          return {
+            ...ds,
+            backgroundColor: points.map((_p: any, i: number) =>
+              matches[i] ? origBg?.[i] ?? ds.backgroundColor : DIMMED
+            ),
+            borderColor: points.map((_p: any, i: number) =>
+              matches[i] ? origBd?.[i] ?? ds.borderColor : DIMMED
+            ),
+            pointRadius: points.map((_p: any, i: number) => (matches[i] ? 7 : 3)),
+            pointHoverRadius: points.map((_p: any, i: number) => (matches[i] ? 10 : 5)),
+          };
+        }),
+      },
+    },
+  };
+  return cloned;
+};
 
 const renderChart = (result: DetectorResult) => {
   const { type, data, options } = result.chart;
@@ -33,16 +87,18 @@ const renderChart = (result: DetectorResult) => {
   }
 };
 
-const DiscoverCard: React.FC<Props> = ({ detector, filters }) => {
+const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCopyError }) => {
   const [result, setResult] = useState<DetectorResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setSearch('');
 
     detector
       .run(filters)
@@ -63,15 +119,40 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters }) => {
     return () => {
       cancelled = true;
     };
-  }, [detector, filters, reloadKey]);
+  }, [detector, filters]);
 
-  const handleOpenStandalone = () => {
-    if (result) openStandalone(result);
+  useEffect(() => {
+    if (!copied) return;
+    const t = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(t);
+  }, [copied]);
+
+  const displayResult = useMemo(
+    () => (result ? applySearchHighlight(result, search) : null),
+    [result, search]
+  );
+
+  const handleCopy = async () => {
+    if (!result) return;
+    const html = buildStandaloneHtml(result);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        onCopyError('Clipboard not available in this browser');
+        return;
+      }
+      await navigator.clipboard.writeText(html);
+      setCopied(true);
+      onCopySuccess(`Embed code copied for ${result.headline}`);
+    } catch (err) {
+      console.error('Failed to copy embed code:', err);
+      onCopyError('Failed to copy embed code. Please try again.');
+    }
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-neutral-100 flex items-start justify-between gap-3">
+    <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex flex-col h-full">
+      {/* Header — full-bleed bottom border already comes from the next div */}
+      <div className="px-5 py-4 flex items-start justify-between gap-3 border-b border-neutral-100">
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-neutral-900 truncate">
             {result?.headline || detector.title}
@@ -82,26 +163,23 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters }) => {
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
-            onClick={() => setReloadKey(k => k + 1)}
-            disabled={loading}
-            className="flex items-center justify-center w-8 h-8 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Refresh"
-          >
-            <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={handleOpenStandalone}
+            onClick={handleCopy}
             disabled={!result || loading}
-            className="flex items-center gap-1.5 px-3 h-8 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Open standalone chart in new tab"
+            aria-label={copied ? 'Embed code copied' : 'Copy embed code'}
+            title={copied ? 'Copied!' : 'Copy embed code'}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 ${
+              copied
+                ? 'border-emerald-300 bg-emerald-500/90 text-white shadow-sm'
+                : 'border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed'
+            }`}
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Open standalone</span>
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
-      <div className="p-5">
+      {/* Body — chart area grows to fill */}
+      <div className="px-5 pt-5 pb-5 flex-1 flex flex-col">
         {loading && (
           <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
             Loading insight…
@@ -118,41 +196,54 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters }) => {
           </div>
         )}
 
-        {!loading && !error && result && (
+        {!loading && !error && displayResult && (
           <>
+            {displayResult.chart.searchable && (
+              <div className="mb-3 relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder={displayResult.chart.searchable.placeholder || 'Search a team to highlight'}
+                  className="w-full pl-8 pr-3 py-1.5 text-sm bg-white border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500"
+                />
+              </div>
+            )}
             <div
               className="relative"
-              style={{ height: result.chart.height ?? 360 }}
+              style={{ height: displayResult.chart.height ?? 360 }}
             >
-              {renderChart(result)}
+              {renderChart(displayResult)}
             </div>
-
-            {result.rows && result.rows.length > 0 && (
-              <details className="group mt-5 border-t border-neutral-100 pt-3">
-                <summary className="flex items-center justify-between cursor-pointer list-none select-none py-1 text-sm font-medium text-neutral-700 hover:text-neutral-900">
-                  <span className="flex items-center gap-2">
-                    <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-0 -rotate-90" />
-                    Show details ({result.rows.length})
-                  </span>
-                </summary>
-                <table className="w-full text-sm mt-3">
-                  <tbody>
-                    {result.rows.map((row, i) => (
-                      <tr key={i} className="border-b border-neutral-50 last:border-0">
-                        <td className="py-2 pr-3 font-medium text-neutral-900">{row.label}</td>
-                        <td className="py-2 pr-3 text-neutral-700">{row.value}</td>
-                        {row.hint && (
-                          <td className="py-2 text-xs text-neutral-500 text-right">{row.hint}</td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </details>
-            )}
           </>
         )}
       </div>
+
+      {/* Details drawer — full-bleed top border, sticks to bottom of card */}
+      {!loading && !error && result?.rows && result.rows.length > 0 && (
+        <details className="group border-t border-neutral-100 mt-auto">
+          <summary className="flex items-center cursor-pointer list-none select-none px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
+            <ChevronDown className="h-4 w-4 mr-2 transition-transform group-open:rotate-0 -rotate-90" />
+            Show details ({result.rows.length})
+          </summary>
+          <div className="px-5 pb-4">
+            <table className="w-full text-sm">
+              <tbody>
+                {result.rows.map((row, i) => (
+                  <tr key={i} className="border-b border-neutral-50 last:border-0">
+                    <td className="py-2 pr-3 font-medium text-neutral-900">{row.label}</td>
+                    <td className="py-2 pr-3 text-neutral-700">{row.value}</td>
+                    {row.hint && (
+                      <td className="py-2 text-xs text-neutral-500 text-right">{row.hint}</td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
     </div>
   );
 };

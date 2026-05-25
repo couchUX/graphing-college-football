@@ -12,6 +12,15 @@ export interface DetectorChart {
   options: ChartOptions;
   /** Approximate pixel height for the chart container. */
   height?: number;
+  /**
+   * If set, the card renders a search input above the chart. As the user types,
+   * points whose `raw[searchable.matchField]` doesn't match get dimmed.
+   * Designed for scatter/point charts where each point carries metadata.
+   */
+  searchable?: {
+    placeholder?: string;
+    matchField?: string; // defaults to 'team'
+  };
 }
 
 export interface DetectorRow {

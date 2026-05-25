@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { BarChart3, Award, TrendingUp, Sparkles, Calendar, Layers } from 'lucide-react';
 import { MetaTags } from './MetaTags';
 import DiscoverCard from './DiscoverCard';
+import Toast from './Toast';
 import { detectors } from '../detectors/registry';
 import type { DetectorFilters } from '../detectors/types';
 
@@ -32,6 +33,21 @@ const DiscoverPage: React.FC = () => {
   const [tab, setTab] = useState<SubTab>('season-recap');
   const [year, setYear] = useState<number>(defaultRecapYear());
   const [conference, setConference] = useState<string>('all');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
+    message: '',
+    type: 'success',
+    isVisible: false,
+  });
+
+  const handleCopySuccess = useCallback((message: string) => {
+    setToast({ message, type: 'success', isVisible: true });
+  }, []);
+  const handleCopyError = useCallback((message: string) => {
+    setToast({ message, type: 'error', isVisible: true });
+  }, []);
+  const closeToast = useCallback(() => {
+    setToast(t => ({ ...t, isVisible: false }));
+  }, []);
 
   const yearOptions = useMemo(
     () => Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i),
@@ -139,7 +155,7 @@ const DiscoverPage: React.FC = () => {
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-neutral-900">Discover</h2>
               <p className="text-neutral-600 mt-1">
-                Auto-surfaced storylines from the data. Tweak the filters to slice it your way; click <em>Open standalone</em> on any card to grab a clean chart for an article.
+                Auto-surfaced storylines from the data. Tweak the filters to slice it your way; use the copy button on any card to grab embeddable chart HTML for an article.
               </p>
             </div>
 
@@ -194,9 +210,15 @@ const DiscoverPage: React.FC = () => {
 
             {/* Content per tab */}
             {tab === 'season-recap' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                 {detectors.map(d => (
-                  <DiscoverCard key={d.id} detector={d} filters={filters} />
+                  <DiscoverCard
+                    key={d.id}
+                    detector={d}
+                    filters={filters}
+                    onCopySuccess={handleCopySuccess}
+                    onCopyError={handleCopyError}
+                  />
                 ))}
               </div>
             )}
@@ -226,6 +248,13 @@ const DiscoverPage: React.FC = () => {
             </p>
           </div>
         </footer>
+
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={toast.isVisible}
+          onClose={closeToast}
+        />
       </div>
     </>
   );
