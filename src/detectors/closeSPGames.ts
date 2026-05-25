@@ -77,6 +77,12 @@ const buildMatchups = (
 const matchupLabel = (m: CloseMatchup): string => {
   const g = m.game;
   const sep = g.neutralSite ? 'vs' : '@';
+  return `${g.awayTeam} ${sep} ${g.homeTeam}`;
+};
+
+const matchupLabelWithWeek = (m: CloseMatchup): string => {
+  const g = m.game;
+  const sep = g.neutralSite ? 'vs' : '@';
   return `${g.awayTeam} ${sep} ${g.homeTeam} (W${g.week})`;
 };
 
@@ -175,7 +181,10 @@ export const closeSPGamesDetector: Detector = {
             },
             tooltip: {
               callbacks: {
-                title: (items: any) => items[0]?.label ?? '',
+                title: (items: any) => {
+                  const m = chartMatchups[items[0]?.dataIndex];
+                  return m ? matchupLabelWithWeek(m) : (items[0]?.label ?? '');
+                },
                 label: (item: any) => {
                   const m = chartMatchups[item.dataIndex];
                   if (!m) return '';
@@ -212,7 +221,7 @@ export const closeSPGamesDetector: Detector = {
         },
       },
       rows: matchups.map(m => ({
-        label: matchupLabel(m),
+        label: matchupLabelWithWeek(m),
         value: matchupScoreText(m),
         hint: `Gap ${m.gap.toFixed(2)} • Favorite ${m.ratingFavorite} ${m.favoriteWon === null ? '' : m.favoriteWon ? '(held serve)' : '(upset)'}`,
       })),

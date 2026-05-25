@@ -125,7 +125,7 @@ export const efficientLosersDetector: Detector = {
     const chartRows = top;
     const maxGap = chartRows[0].gapPP;
 
-    const labels = chartRows.map(r => `${r.loser} lost to ${r.winner} (W${r.game.week})`);
+    const labels = chartRows.map(r => `${r.loser} lost to ${r.winner}`);
     const data = chartRows.map(r => Number(r.gapPP.toFixed(1)));
     const bgColors = chartRows.map(r => {
       const c = getDisplayTeamColors(r.loser, 'default');
@@ -174,7 +174,10 @@ export const efficientLosersDetector: Detector = {
             },
             tooltip: {
               callbacks: {
-                title: (items: any) => items[0]?.label ?? '',
+                title: (items: any) => {
+                  const r = chartRows[items[0]?.dataIndex];
+                  return r ? `${r.loser} lost to ${r.winner} (W${r.game.week})` : (items[0]?.label ?? '');
+                },
                 label: (item: any) => {
                   const r = chartRows[item.dataIndex];
                   if (!r) return '';

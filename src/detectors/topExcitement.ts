@@ -24,6 +24,11 @@ const passesConferenceFilter = (
 
 const matchupLabel = (g: TeamGame): string => {
   const sep = g.neutralSite ? 'vs' : '@';
+  return `${g.awayTeam} ${sep} ${g.homeTeam}`;
+};
+
+const matchupLabelWithWeek = (g: TeamGame): string => {
+  const sep = g.neutralSite ? 'vs' : '@';
   return `${g.awayTeam} ${sep} ${g.homeTeam} (W${g.week})`;
 };
 
@@ -108,7 +113,10 @@ export const topExcitementDetector: Detector = {
             },
             tooltip: {
               callbacks: {
-                title: (items: any) => items[0]?.label ?? '',
+                title: (items: any) => {
+                  const g = top[items[0]?.dataIndex];
+                  return g ? matchupLabelWithWeek(g) : (items[0]?.label ?? '');
+                },
                 label: (item: any) => {
                   const g = top[item.dataIndex];
                   if (!g) return '';
@@ -132,7 +140,7 @@ export const topExcitementDetector: Detector = {
         },
       },
       rows: top.map(g => ({
-        label: matchupLabel(g),
+        label: matchupLabelWithWeek(g),
         value: finalScoreText(g),
         hint: `Excitement ${(g.excitementIndex ?? 0).toFixed(2)}`,
       })),
