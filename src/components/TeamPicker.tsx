@@ -1,3 +1,4 @@
+import type React from 'react';
 import { Combobox } from '@headlessui/react';
 import { Check, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
