@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart3, TrendingUp, Award, AlertCircle, Info, Flame, Ruler, Copy, Check, Sparkles, Download } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertCircle, Info, Flame, Ruler, Copy, Check, Download } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
 import SeasonSelector from './SeasonSelector';
 import TrendsChartsGrid from './TrendsChartsGrid';
@@ -19,9 +19,16 @@ import { calculateAveragedBoxScore, BoxScoreMode } from '../utils/seasonBoxScore
 import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
 import MultiYearSpTrends from './MultiYearSpTrends';
 import TeamCompareView from './TeamCompareView';
+import MainNav from './MainNav';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
 type TrendsView = 'season' | 'spTrends' | 'compare';
+
+const TRENDS_TABS: { id: TrendsView; label: string }[] = [
+  { id: 'season', label: 'Season trends' },
+  { id: 'spTrends', label: 'Multi-year SP+' },
+  { id: 'compare', label: 'Team vs. Team' },
+];
 
 const TeamTrendsPage: React.FC = () => {
   const [trendsView, setTrendsView] = useState<TrendsView>('season');
@@ -282,41 +289,8 @@ const TeamTrendsPage: React.FC = () => {
 
             {/* Row 2 on mobile, Right side on desktop: Navigation Toggle + Info Button (desktop only) */}
             <div className="flex items-center gap-3">
-              {/* Navigation Toggle */}
-              <div className="flex w-full sm:w-auto border border-neutral-300 rounded-lg overflow-hidden h-10">
-                <a
-                  href="/games"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Games"
-                >
-                  <BarChart3 className="h-5 w-5" />
-                  <span>Games</span>
-                </a>
-                <a
-                  href="/ratings"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="SP+ Ratings"
-                >
-                  <Award className="h-5 w-5" />
-                  <span>Ratings</span>
-                </a>
-                <a
-                  href="/trends"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-neutral-200 text-neutral-600 cursor-default"
-                  title="Team Trends"
-                >
-                  <TrendingUp className="h-5 w-5" />
-                  <span>Trends</span>
-                </a>
-                <a
-                  href="/discover"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Discover"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <span>Discover</span>
-                </a>
-              </div>
+              {/* Navigation */}
+              <MainNav current="trends" />
 
               {/* Info Button - visible on desktop only */}
               <button
@@ -335,26 +309,39 @@ const TeamTrendsPage: React.FC = () => {
       <main className="flex-grow py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Sub-view switcher */}
-          <div className="inline-flex border border-neutral-300 rounded-lg overflow-hidden mb-6 sm:mb-8">
-            {([
-              { id: 'season', label: 'Season trends' },
-              { id: 'spTrends', label: 'Multi-year SP+' },
-              { id: 'compare', label: 'Team vs. Team' },
-            ] as { id: TrendsView; label: string }[]).map((tab, index) => (
-              <button
-                key={tab.id}
-                onClick={() => setTrendsView(tab.id)}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  index > 0 ? 'border-l border-neutral-300' : ''
-                } ${
-                  trendsView === tab.id
-                    ? 'bg-neutral-200 text-neutral-900'
-                    : 'bg-white text-neutral-700 hover:bg-neutral-50'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="mb-6 sm:mb-8">
+            {/* Mobile: full-width dropdown */}
+            <select
+              value={trendsView}
+              onChange={(e) => setTrendsView(e.target.value as TrendsView)}
+              aria-label="Select Team Trends view"
+              className="sm:hidden w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {TRENDS_TABS.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Desktop: segmented control */}
+            <div className="hidden sm:inline-flex border border-neutral-300 rounded-lg overflow-hidden">
+              {TRENDS_TABS.map((tab, index) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setTrendsView(tab.id)}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    index > 0 ? 'border-l border-neutral-300' : ''
+                  } ${
+                    trendsView === tab.id
+                      ? 'bg-neutral-200 text-neutral-900'
+                      : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {trendsView === 'season' && (
