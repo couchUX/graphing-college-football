@@ -1,26 +1,10 @@
-// API Configuration
-export const API_BASE_URL = 'https://api.collegefootballdata.com';
+// API requests are proxied through /api/cfbd so the CFBD API key stays
+// server-side and never ships in the client bundle. The proxy attaches the
+// Authorization header: in production via api/cfbd/[...path].js, and in local
+// dev via the Vite dev-server proxy in vite.config.ts.
+export const API_BASE_URL = '/api/cfbd';
 
-// Get API key from environment variables
-const getApiKey = (): string => {
-  const apiKey = import.meta.env.VITE_CFB_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error(
-      'Missing API key. Please set VITE_CFB_API_KEY in your .env file. ' +
-      'Get your API key from: https://api.collegefootballdata.com/'
-    );
-  }
-  
-  // Clean the API key - remove any potential whitespace/newlines/carriage returns
-  return apiKey.trim().replace(/[\r\n]/g, '');
-};
-
-// Shared headers for all API requests
+// Shared headers for all API requests. Auth is added by the proxy, not here.
 export const getApiHeaders = () => ({
-  'Authorization': `Bearer ${getApiKey()}`,
-  'Content-Type': 'application/json',
+  Accept: 'application/json',
 });
-
-// Export API key getter for backward compatibility
-export const getApiToken = getApiKey;
