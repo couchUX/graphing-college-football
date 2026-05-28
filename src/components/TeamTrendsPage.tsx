@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart3, TrendingUp, Award, AlertCircle, Info, Flame, Ruler, Copy, Check, Sparkles } from 'lucide-react';
+import { BarChart3, TrendingUp, Award, AlertCircle, Info, Flame, Ruler, Copy, Check, Sparkles, Download } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
 import SeasonSelector from './SeasonSelector';
 import TrendsChartsGrid from './TrendsChartsGrid';
@@ -16,6 +16,7 @@ import { createPlayerData } from '../utils/chartHelpers';
 import { generateTrendsEmbedCode } from '../utils/trendsEmbedGenerator';
 import { createPlayerOptions } from '../utils/chartOptions';
 import { calculateAveragedBoxScore, BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
+import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
 const TeamTrendsPage: React.FC = () => {
@@ -164,6 +165,12 @@ const TeamTrendsPage: React.FC = () => {
       console.error('Failed to copy player chart embed code:', err);
       setCopiedPlayerChart(null);
     }
+  };
+
+  const handleDownloadCsv = () => {
+    if (!currentParams || allSeasonPlays.length === 0) return;
+    const csv = playsToCsv(allSeasonPlays, seasonGames);
+    downloadCsv(buildPlaysCsvFilename(currentParams.team, currentParams.year), csv);
   };
 
   // Get chart data (hooks must be called unconditionally)
@@ -351,13 +358,25 @@ const TeamTrendsPage: React.FC = () => {
 
           {/* Season Info Banner */}
           {chartData && currentParams && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-neutral-900">
-                {currentParams.team} - {currentParams.year} Season
-              </h2>
-              <p className="text-neutral-600">
-                Showing {currentParams.selectedGameIds.length} of {seasonGames.length} games
-              </p>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-neutral-900">
+                  {currentParams.team} - {currentParams.year} Season
+                </h2>
+                <p className="text-neutral-600">
+                  Showing {currentParams.selectedGameIds.length} of {seasonGames.length} games
+                </p>
+              </div>
+              {allSeasonPlays.length > 0 && (
+                <button
+                  onClick={handleDownloadCsv}
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg bg-white text-neutral-700 text-sm font-medium hover:bg-neutral-50 transition-colors self-start"
+                  title="Download all plays as a CSV file"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download plays CSV</span>
+                </button>
+              )}
             </div>
           )}
 
