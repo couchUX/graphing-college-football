@@ -18,6 +18,7 @@ import { createPlayerOptions } from '../utils/chartOptions';
 import { calculateAveragedBoxScore, BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
 import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
 import MultiYearSpTrends from './MultiYearSpTrends';
+import TeamCompareView from './TeamCompareView';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
 type TrendsView = 'season' | 'spTrends' | 'compare';
@@ -644,19 +645,7 @@ const TeamTrendsPage: React.FC = () => {
 
           {trendsView === 'spTrends' && <MultiYearSpTrends />}
 
-          {trendsView === 'compare' && (
-            <div className="text-center py-8">
-              <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
-                <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-neutral-900 mb-2">
-                  Team vs. Team comparison
-                </h3>
-                <p className="text-neutral-600 max-w-md mx-auto">
-                  Coming next: pick two teams and a season to compare their trends side by side.
-                </p>
-              </div>
-            </div>
-          )}
+          {trendsView === 'compare' && <TeamCompareView />}
         </div>
       </main>
 
