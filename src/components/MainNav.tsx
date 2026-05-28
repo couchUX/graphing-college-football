@@ -1,5 +1,5 @@
-import type React from 'react';
-import { BarChart3, Award, TrendingUp, Sparkles, type LucideIcon } from 'lucide-react';
+import { Listbox } from '@headlessui/react';
+import { BarChart3, Award, TrendingUp, Sparkles, ChevronDown, type LucideIcon } from 'lucide-react';
 
 export type MainNavId = 'games' | 'ratings' | 'trends' | 'discover';
 
@@ -23,8 +23,10 @@ interface MainNavProps {
 }
 
 const MainNav = ({ current }: MainNavProps) => {
-  const handleMobileNav = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const item = NAV_ITEMS.find((nav) => nav.id === event.target.value);
+  const currentItem = NAV_ITEMS.find((item) => item.id === current) ?? NAV_ITEMS[0];
+
+  const handleSelect = (id: MainNavId) => {
+    const item = NAV_ITEMS.find((nav) => nav.id === id);
     if (item && item.id !== current) {
       window.location.href = item.href;
     }
@@ -32,19 +34,46 @@ const MainNav = ({ current }: MainNavProps) => {
 
   return (
     <>
-      {/* Mobile: full-width dropdown */}
-      <select
-        value={current}
-        onChange={handleMobileNav}
-        aria-label="Navigate to page"
-        className="sm:hidden w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      >
-        {NAV_ITEMS.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.label}
-          </option>
-        ))}
-      </select>
+      {/* Mobile: full-width dropdown with icons */}
+      <div className="sm:hidden w-full">
+        <Listbox value={current} onChange={handleSelect}>
+          <div className="relative">
+            <Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <span className="flex items-center gap-2">
+                <currentItem.Icon className="h-5 w-5 text-neutral-600" />
+                <span className="block truncate text-sm font-medium text-neutral-700">
+                  {currentItem.label}
+                </span>
+              </span>
+              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+              </span>
+            </Listbox.Button>
+            <Listbox.Options className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              {NAV_ITEMS.map((item) => (
+                <Listbox.Option
+                  key={item.id}
+                  value={item.id}
+                  className={({ active }) =>
+                    `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
+                      active ? 'bg-blue-100 text-blue-900' : 'text-neutral-900'
+                    }`
+                  }
+                >
+                  {({ selected }) => (
+                    <span className="flex items-center gap-2">
+                      <item.Icon className="h-5 w-5 text-neutral-600" />
+                      <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                        {item.label}
+                      </span>
+                    </span>
+                  )}
+                </Listbox.Option>
+              ))}
+            </Listbox.Options>
+          </div>
+        </Listbox>
+      </div>
 
       {/* Desktop: segmented control */}
       <div className="hidden sm:flex border border-neutral-300 rounded-lg overflow-hidden h-10">
