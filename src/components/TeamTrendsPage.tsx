@@ -17,9 +17,13 @@ import { generateTrendsEmbedCode } from '../utils/trendsEmbedGenerator';
 import { createPlayerOptions } from '../utils/chartOptions';
 import { calculateAveragedBoxScore, BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
 import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
+import MultiYearSpTrends from './MultiYearSpTrends';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
+type TrendsView = 'season' | 'spTrends' | 'compare';
+
 const TeamTrendsPage: React.FC = () => {
+  const [trendsView, setTrendsView] = useState<TrendsView>('season');
   const [seasonGames, setSeasonGames] = useState<TeamGame[]>([]);
   const [allSeasonPlays, setAllSeasonPlays] = useState<PlayData[]>([]);
   const [perGamePlays, setPerGamePlays] = useState<Map<number, PlayData[]>>(new Map());
@@ -329,6 +333,31 @@ const TeamTrendsPage: React.FC = () => {
       {/* Main Content */}
       <main className="flex-grow py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Sub-view switcher */}
+          <div className="inline-flex border border-neutral-300 rounded-lg overflow-hidden mb-6 sm:mb-8">
+            {([
+              { id: 'season', label: 'Season trends' },
+              { id: 'spTrends', label: 'Multi-year SP+' },
+              { id: 'compare', label: 'Team vs. Team' },
+            ] as { id: TrendsView; label: string }[]).map((tab, index) => (
+              <button
+                key={tab.id}
+                onClick={() => setTrendsView(tab.id)}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  index > 0 ? 'border-l border-neutral-300' : ''
+                } ${
+                  trendsView === tab.id
+                    ? 'bg-neutral-200 text-neutral-900'
+                    : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {trendsView === 'season' && (
+            <>
           {/* Data Input */}
           <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
             <SeasonSelector
@@ -606,6 +635,24 @@ const TeamTrendsPage: React.FC = () => {
                 </h3>
                 <p className="text-neutral-600 max-w-md mx-auto">
                   Choose your team, year, and click "Fetch Season Data" to explore season-wide performance metrics.
+                </p>
+              </div>
+            </div>
+          )}
+            </>
+          )}
+
+          {trendsView === 'spTrends' && <MultiYearSpTrends />}
+
+          {trendsView === 'compare' && (
+            <div className="text-center py-8">
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
+                <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-neutral-900 mb-2">
+                  Team vs. Team comparison
+                </h3>
+                <p className="text-neutral-600 max-w-md mx-auto">
+                  Coming next: pick two teams and a season to compare their trends side by side.
                 </p>
               </div>
             </div>
