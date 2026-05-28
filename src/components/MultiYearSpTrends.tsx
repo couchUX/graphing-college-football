@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import type { ChartData, ChartOptions } from 'chart.js';

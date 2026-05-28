@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useMemo } from 'react';
 import { Scatter } from 'react-chartjs-2';
 import type { ChartData, ChartOptions } from 'chart.js';
@@ -34,9 +35,9 @@ const GameWaveChart: React.FC<GameWaveChartProps> = ({
 }) => {
   const model = useMemo(() => buildGameWave(plays, team), [plays, team]);
 
-  const topColors = useMemo(() => getDisplayTeamColors(team, teamColorId) as ShadeColors, [team, teamColorId]);
-  const bottomColors = useMemo(
-    () => getDisplayTeamColors(opponent, opponentColorId) as ShadeColors,
+  const topColors = useMemo<ShadeColors>(() => getDisplayTeamColors(team, teamColorId), [team, teamColorId]);
+  const bottomColors = useMemo<ShadeColors>(
+    () => getDisplayTeamColors(opponent, opponentColorId),
     [opponent, opponentColorId],
   );
 
