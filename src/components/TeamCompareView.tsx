@@ -217,7 +217,7 @@ const TeamCompareView: React.FC = () => {
     <div>
       {/* Inputs */}
       <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
-        <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
           <TeamPicker
             label="Team A"
             value={teamA}
@@ -233,12 +233,12 @@ const TeamCompareView: React.FC = () => {
             loading={loadingTeams}
             placeholder="e.g., Georgia"
           />
-          <div className="flex-shrink-0">
+          <div className="w-full sm:w-auto sm:flex-shrink-0">
             <label className="block text-sm font-medium text-neutral-700 mb-2">Year</label>
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="bg-white border border-neutral-300 rounded-lg px-3 py-2.5 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full sm:w-auto bg-white border border-neutral-300 rounded-lg px-3 py-2.5 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               {YEARS.map((y) => (
                 <option key={y} value={y}>
@@ -247,11 +247,11 @@ const TeamCompareView: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="flex-shrink-0">
+          <div className="w-full sm:w-auto sm:flex-shrink-0">
             <button
               onClick={handleCompare}
               disabled={!canCompare}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
             >
               {loading ? <span>Comparing...</span> : (
                 <>
