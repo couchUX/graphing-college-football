@@ -21,8 +21,8 @@ module.exports = async function handler(req, res) {
     }
 
     // Check if all required environment variables are set
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.error('Missing SMTP environment variables');
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.CONTACT_EMAIL) {
+      console.error('Missing SMTP or CONTACT_EMAIL environment variables');
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
@@ -38,7 +38,7 @@ module.exports = async function handler(req, res) {
 
     const mailOptions = {
       from: process.env.SMTP_USER,
-      to: process.env.CONTACT_EMAIL || 'amcouch@gmail.com',
+      to: process.env.CONTACT_EMAIL,
       subject: `Contact from Graphing College Football - ${name}`,
       text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
       html: `
