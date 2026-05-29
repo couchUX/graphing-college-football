@@ -1021,6 +1021,7 @@ const Dashboard: React.FC = () => {
               opponent={opponentTeam}
               teamColorId={selectedTeamColor}
               opponentColorId={selectedOpponentColor}
+              rawPlays={rawApiData}
             />
 
             {/* Charts Grid */}
