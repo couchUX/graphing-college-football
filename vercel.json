@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
+      "source": "/api/cfbd/:path*",
+      "destination": "/api/cfbd?proxyPath=:path*"
     },
     {
       "source": "/games",
@@ -21,7 +21,7 @@
       "destination": "/games.html"
     },
     {
-      "source": "/:path*",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

@@ -1,9 +1,8 @@
 // Serverless proxy for the CollegeFootballData API.
 // Keeps CFB_API_KEY server-side so it never ships in the client bundle.
-// The browser calls /api/cfbd/<cfbd-path>?<query> and this function forwards
-// the request to CFBD with the Authorization header attached.
+// The browser calls /api/cfbd/<cfbd-path>?<query>; vercel.json rewrites that to
+// this function with the CFBD path in `proxyPath` plus the original query params.
 const CFBD_BASE = 'https://api.collegefootballdata.com';
-const PREFIX = '/api/cfbd/';
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 500;
 
@@ -23,18 +22,26 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
-  const prefixIndex = req.url.indexOf(PREFIX);
-  if (prefixIndex === -1) {
+  // proxyPath is injected by the vercel.json rewrite; everything else is the
+  // caller's original query string. The CFBD host is fixed, so a malicious
+  // proxyPath can only ever resolve to a path under CFBD.
+  const { proxyPath, ...rest } = req.query;
+  const pathPart = (Array.isArray(proxyPath) ? proxyPath.join('/') : proxyPath || '').replace(/^\/+/, '');
+  if (!pathPart) {
     return res.status(400).json({ error: 'Invalid proxy path' });
   }
 
-  // Everything after /api/cfbd/ — path segments plus query string. The CFBD host
-  // is fixed, so a malicious suffix can only ever resolve to a path under CFBD.
-  const upstreamSuffix = req.url.slice(prefixIndex + PREFIX.length);
-  const upstreamUrl = `${CFBD_BASE}/${upstreamSuffix}`;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(rest)) {
+    if (Array.isArray(value)) value.forEach((v) => params.append(key, v));
+    else if (value != null) params.append(key, value);
+  }
+  const queryString = params.toString();
+  const cacheKey = queryString ? `${pathPart}?${queryString}` : pathPart;
+  const upstreamUrl = `${CFBD_BASE}/${pathPart}${queryString ? `?${queryString}` : ''}`;
 
   const now = Date.now();
-  const cached = cache.get(upstreamSuffix);
+  const cached = cache.get(cacheKey);
   if (cached && now - cached.time < CACHE_TTL_MS) {
     res.setHeader('X-Proxy-Cache', 'HIT');
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
@@ -60,7 +67,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (upstream.ok) {
-      cache.set(upstreamSuffix, { time: now, body });
+      cache.set(cacheKey, { time: now, body });
       if (cache.size > CACHE_MAX_ENTRIES) {
         cache.delete(cache.keys().next().value);
       }
