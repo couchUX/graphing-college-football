@@ -1,6 +1,6 @@
 // API requests are proxied through /api/cfbd so the CFBD API key stays
 // server-side and never ships in the client bundle. The proxy attaches the
-// Authorization header: in production via api/cfbd/[...path].js, and in local
+// Authorization header: in production via api/cfbd.js, and in local
 // dev via the Vite dev-server proxy in vite.config.ts.
 export const API_BASE_URL = '/api/cfbd';
 
