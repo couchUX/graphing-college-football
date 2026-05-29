@@ -1,6 +1,10 @@
 import { fetchGamesForTeam, fetchPlayByPlayData, ApiPlayData, TeamGame } from './api';
 import { fetchBoxScore, Game as BoxScoreGame } from './boxScoreApi';
 import { SeasonDataFetchResult } from '../types';
+import { mapWithConcurrency, withRetry } from '../utils/asyncUtils';
+
+// Cap simultaneous requests so we don't burst past the CFBD API rate limit.
+const FETCH_CONCURRENCY = 4;
 
 export const fetchSeasonPlayByPlayData = async (
   params: {
@@ -25,39 +29,40 @@ export const fetchSeasonPlayByPlayData = async (
       return a.week - b.week;
     });
 
-    // 4. Fetch play-by-play for each game in parallel
+    // 4. Fetch play-by-play for each game with bounded concurrency + retry
     const allPlays: ApiPlayData[] = [];
     const perGamePlays = new Map<number, ApiPlayData[]>();
     const failedGames: number[] = [];
+    let completed = 0;
 
-    const playResults = await Promise.allSettled(
-      sortedGames.map((game, index) =>
-        fetchPlayByPlayData({
-          year: game.season,
-          week: game.week,
-          seasonType: game.seasonType,
-          team: params.team,
-          gameId: game.id.toString()
-        }).then(plays => {
-          if (onProgress) {
-            onProgress(index + 1, sortedGames.length);
-          }
-          return { gameId: game.id, plays };
-        })
-      )
-    );
+    const results = await mapWithConcurrency(sortedGames, FETCH_CONCURRENCY, async (game) => {
+      try {
+        const plays = await withRetry(() =>
+          fetchPlayByPlayData({
+            year: game.season,
+            week: game.week,
+            seasonType: game.seasonType,
+            team: params.team,
+            gameId: game.id.toString()
+          })
+        );
+        return { gameId: game.id, plays, ok: true };
+      } catch (error) {
+        console.warn(`Failed to load game ${game.id}:`, error);
+        return { gameId: game.id, plays: [] as ApiPlayData[], ok: false };
+      } finally {
+        completed += 1;
+        onProgress?.(completed, sortedGames.length);
+      }
+    });
 
-    // 5. Aggregate results
-    playResults.forEach((result, index) => {
-      const game = sortedGames[index];
-      if (result.status === 'fulfilled' && result.value.plays.length > 0) {
-        allPlays.push(...result.value.plays);
-        perGamePlays.set(game.id, result.value.plays);
+    // 5. Aggregate results (in chronological game order)
+    results.forEach((result) => {
+      if (result.ok && result.plays.length > 0) {
+        allPlays.push(...result.plays);
+        perGamePlays.set(result.gameId, result.plays);
       } else {
-        failedGames.push(game.id);
-        if (result.status === 'rejected') {
-          console.warn(`Failed to load game ${game.id}:`, result.reason);
-        }
+        failedGames.push(result.gameId);
       }
     });
 
@@ -74,37 +79,35 @@ export const fetchSeasonBoxScores = async (
   onProgress?: (current: number, total: number) => void
 ): Promise<{ boxScores: BoxScoreGame[]; failedGames: number[] }> => {
   const failedGames: number[] = [];
+  let completed = 0;
 
-  const boxScoreResults = await Promise.allSettled(
-    games.map(async (game, index) => {
-      try {
-        const boxScoreData = await fetchBoxScore({
+  const results = await mapWithConcurrency(games, FETCH_CONCURRENCY, async (game) => {
+    try {
+      const boxScoreData = await withRetry(() =>
+        fetchBoxScore({
           year: game.season,
           week: game.week,
           seasonType: game.seasonType,
           team,
           gameId: game.id.toString()
-        });
-
-        if (onProgress) {
-          onProgress(index + 1, games.length);
-        }
-
-        return boxScoreData[0]; // fetchBoxScore returns an array, we want the first game
-      } catch (error) {
-        console.error(`Failed to fetch box score for game ${game.id}:`, error);
-        failedGames.push(game.id);
-        throw error;
-      }
-    })
-  );
+        })
+      );
+      return { gameId: game.id, boxScore: boxScoreData[0], ok: true };
+    } catch (error) {
+      console.error(`Failed to fetch box score for game ${game.id}:`, error);
+      return { gameId: game.id, boxScore: undefined, ok: false };
+    } finally {
+      completed += 1;
+      onProgress?.(completed, games.length);
+    }
+  });
 
   const boxScores: BoxScoreGame[] = [];
-  boxScoreResults.forEach((result, index) => {
-    if (result.status === 'fulfilled' && result.value) {
-      boxScores.push(result.value);
+  results.forEach((result) => {
+    if (result.ok && result.boxScore) {
+      boxScores.push(result.boxScore);
     } else {
-      failedGames.push(games[index].id);
+      failedGames.push(result.gameId);
     }
   });
 

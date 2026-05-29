@@ -58,10 +58,10 @@ const TeamCompareView: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [a, b] = await Promise.all([
-        loadTeamSeason(year, teamA.school),
-        loadTeamSeason(year, teamB.school),
-      ]);
+      // Load teams one at a time to keep the request burst (and rate-limit
+      // pressure) the same as a single-team season fetch.
+      const a = await loadTeamSeason(year, teamA.school);
+      const b = await loadTeamSeason(year, teamB.school);
       setResult({ a, b, year });
     } catch (err) {
       console.error(err);
