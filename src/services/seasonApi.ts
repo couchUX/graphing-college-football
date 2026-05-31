@@ -11,12 +11,15 @@ export const fetchSeasonPlayByPlayData = async (
     year: number;
     team: string;
     selectedGameIds: number[];
+    // Optional pre-fetched schedule. Callers that already loaded the team's
+    // games can pass them here to avoid a redundant /games round-trip.
+    games?: TeamGame[];
   },
   onProgress?: (current: number, total: number) => void
 ): Promise<SeasonDataFetchResult> => {
   try {
-    // 1. Fetch all games for team/year
-    const allGames = await fetchGamesForTeam({ year: params.year, team: params.team });
+    // 1. Fetch all games for team/year (unless the caller supplied them)
+    const allGames = params.games ?? await fetchGamesForTeam({ year: params.year, team: params.team });
 
     // 2. Filter by selected game IDs
     const filteredGames = allGames.filter(g => params.selectedGameIds.includes(g.id));
