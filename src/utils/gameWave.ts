@@ -176,7 +176,7 @@ export const buildGameWave = (
 };
 
 // Raw play shape from the CFBD /plays feed (field names vary by case).
-interface RawPlayLike {
+export interface RawPlayLike {
   offense?: string;
   play_type?: string;
   playType?: string;

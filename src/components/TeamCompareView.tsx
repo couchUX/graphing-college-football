@@ -26,7 +26,8 @@ interface TeamSeason {
 const loadTeamSeason = async (year: number, team: string): Promise<TeamSeason> => {
   const games = await fetchGamesForTeam({ year, team });
   const completedIds = games.filter((g) => g.completed).map((g) => g.id);
-  const result = await fetchSeasonPlayByPlayData({ year, team, selectedGameIds: completedIds });
+  // Forward the already-fetched schedule so the season fetch doesn't re-request it.
+  const result = await fetchSeasonPlayByPlayData({ year, team, selectedGameIds: completedIds, games });
 
   const allProcessed = processPlayData(result.allPlays);
   const perGameProcessed = new Map<number, PlayData[]>();
