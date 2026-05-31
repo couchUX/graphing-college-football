@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { BarChart3, Award, TrendingUp, Sparkles, Calendar, Layers } from 'lucide-react';
+import { Sparkles, Calendar, Layers } from 'lucide-react';
 import { MetaTags } from './MetaTags';
 import DiscoverCard from './DiscoverCard';
+import MainNav from './MainNav';
 import Toast from './Toast';
 import { detectors } from '../detectors/registry';
 import type { DetectorFilters } from '../detectors/types';
@@ -114,36 +115,7 @@ const DiscoverPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex w-full sm:w-auto border border-neutral-300 rounded-lg overflow-hidden h-10">
-                  <a
-                    href="/games"
-                    className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors bg-white text-neutral-700 hover:bg-neutral-50"
-                  >
-                    <BarChart3 className="h-5 w-5" />
-                    <span>Games</span>
-                  </a>
-                  <a
-                    href="/ratings"
-                    className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  >
-                    <Award className="h-5 w-5" />
-                    <span>Ratings</span>
-                  </a>
-                  <a
-                    href="/trends"
-                    className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  >
-                    <TrendingUp className="h-5 w-5" />
-                    <span>Trends</span>
-                  </a>
-                  <a
-                    href="/discover"
-                    className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-neutral-200 text-neutral-600 cursor-default"
-                  >
-                    <Sparkles className="h-5 w-5" />
-                    <span>Discover</span>
-                  </a>
-                </div>
+                <MainNav current="discover" />
               </div>
             </div>
           </div>

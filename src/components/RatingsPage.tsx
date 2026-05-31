@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check, BarChart3, TrendingUp, Award, Sparkles } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check } from 'lucide-react';
 import Toast from './Toast';
 import { MetaTags } from './MetaTags';
+import MainNav from './MainNav';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
@@ -1012,41 +1013,8 @@ const RatingsPage: React.FC = () => {
 
             {/* Row 2 on mobile, Right side on desktop: Navigation Toggle + Info Button (desktop only) */}
             <div className="flex items-center gap-3">
-              {/* Navigation Toggle */}
-              <div className="flex w-full sm:w-auto border border-neutral-300 rounded-lg overflow-hidden h-10">
-                <a
-                  href="/games"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Games"
-                >
-                  <BarChart3 className="h-5 w-5" />
-                  <span>Games</span>
-                </a>
-                <a
-                  href="/ratings"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-neutral-200 text-neutral-600 cursor-default"
-                  title="SP+ Ratings"
-                >
-                  <Award className="h-5 w-5" />
-                  <span>Ratings</span>
-                </a>
-                <a
-                  href="/trends"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Team Trends"
-                >
-                  <TrendingUp className="h-5 w-5" />
-                  <span>Trends</span>
-                </a>
-                <a
-                  href="/discover"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Discover"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <span>Discover</span>
-                </a>
-              </div>
+              {/* Navigation */}
+              <MainNav current="ratings" />
 
               {/* Info Button - visible on desktop only */}
               <button

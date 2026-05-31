@@ -1,4 +1,5 @@
 import { API_BASE_URL, getApiHeaders } from '../config/api';
+import { withRetry } from '../utils/asyncUtils';
 
 export interface SPRating {
   year: number;
@@ -39,6 +40,33 @@ export const fetchSPRatings = async (year: number): Promise<SPRating[]> => {
     return data;
   } catch (error) {
     console.error('Error fetching SP+ ratings:', error);
+    throw error;
+  }
+};
+
+// All seasons of SP+ ratings for a single team, oldest year first.
+export const fetchSPRatingsHistory = async (team: string): Promise<SPRating[]> => {
+  try {
+    const url = `${API_BASE_URL}/ratings/sp?team=${encodeURIComponent(team)}`;
+    console.log('Fetching SP+ ratings history from:', url);
+
+    const response = await withRetry(async () => {
+      const res = await fetch(url, { headers: getApiHeaders() });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res;
+    });
+
+    const data: SPRating[] = await response.json();
+    console.log('Fetched SP+ ratings history:', data.length, 'seasons');
+
+    // Guard against any aggregate rows without a real season year.
+    return data
+      .filter((rating) => typeof rating.year === 'number')
+      .sort((a, b) => a.year - b.year);
+  } catch (error) {
+    console.error('Error fetching SP+ ratings history:', error);
     throw error;
   }
 };

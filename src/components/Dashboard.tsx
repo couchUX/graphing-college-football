@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle, Link, Award, TrendingUp, Sparkles } from 'lucide-react';
+import { BarChart3, Database, ChevronDown, BookOpen, Flame, Ruler, Settings, Info, AlertCircle, Link, Download } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -11,6 +11,9 @@ import { processPlayData } from '../utils/metrics';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { useBoxScore } from '../hooks/useBoxScore';
 import { createShareableUrl, copyToClipboard } from '../services/urlShortener';
+import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
+import GameWaveChart from './GameWaveChart';
+import MainNav from './MainNav';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
 const Dashboard: React.FC = () => {
@@ -74,6 +77,30 @@ const Dashboard: React.FC = () => {
     }
 
     setShowToast(true);
+  };
+
+  const handleDownloadCsv = () => {
+    if (!currentParams || plays.length === 0) return;
+    const gameId = plays[0]?.gameId;
+    const games = gameId
+      ? [{
+          id: gameId,
+          season: currentParams.year,
+          week: currentParams.week,
+          seasonType: currentParams.seasonType,
+        }]
+      : [];
+    const csv = playsToCsv(plays, games);
+    const weekLabel =
+      currentParams.seasonType === 'regular'
+        ? `week-${currentParams.week}`
+        : `postseason-week-${currentParams.week}`;
+    const filename = buildPlaysCsvFilename(
+      currentParams.team,
+      currentParams.year,
+      `${weekLabel}-vs-${opponentTeam}`
+    );
+    downloadCsv(filename, csv);
   };
 
   // Contact form handlers
@@ -299,41 +326,8 @@ const Dashboard: React.FC = () => {
 
             {/* Row 2 on mobile, Right side on desktop: Navigation Toggle + Info Button (desktop only) */}
             <div className="flex items-center gap-3">
-              {/* Navigation Toggle */}
-              <div className="flex w-full sm:w-auto border border-neutral-300 rounded-lg overflow-hidden h-10">
-                <a
-                  href="/games"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors bg-neutral-200 text-neutral-600 cursor-default"
-                  title="Games"
-                >
-                  <BarChart3 className="h-5 w-5" />
-                  <span>Games</span>
-                </a>
-                <a
-                  href="/ratings"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="SP+ Ratings"
-                >
-                  <Award className="h-5 w-5" />
-                  <span>Ratings</span>
-                </a>
-                <a
-                  href="/trends"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Team Trends"
-                >
-                  <TrendingUp className="h-5 w-5" />
-                  <span>Trends</span>
-                </a>
-                <a
-                  href="/discover"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Discover"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <span>Discover</span>
-                </a>
-              </div>
+              {/* Navigation */}
+              <MainNav current="games" />
 
               {/* Info Button - visible on desktop only */}
               <button
@@ -379,6 +373,14 @@ const Dashboard: React.FC = () => {
                 title="Copy short link to this page"
               >
                 <Link className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              </button>
+              <button
+                onClick={handleDownloadCsv}
+                className="flex items-center gap-2 h-8 px-3 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 text-sm font-medium transition-all duration-200"
+                title="Download this game's plays as a CSV file"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Download CSV</span>
               </button>
             </div>
             <p className="text-neutral-600 mb-6">
@@ -1012,6 +1014,16 @@ const Dashboard: React.FC = () => {
         {/* Analytics Dashboard */}
         {plays.length > 0 && currentParams && (
           <div className="space-y-8">
+            {/* Game Wave */}
+            <GameWaveChart
+              plays={filteredPlays}
+              team={currentParams.team}
+              opponent={opponentTeam}
+              teamColorId={selectedTeamColor}
+              opponentColorId={selectedOpponentColor}
+              rawPlays={rawApiData}
+            />
+
             {/* Charts Grid */}
             <ChartsGrid
               plays={filteredPlays}
