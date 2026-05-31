@@ -108,7 +108,9 @@ export const playsToCsv = (plays: PlayData[], games: PlaysCsvGame[] = []): strin
     lines.push(row.map(csvCell).join(','));
   }
 
-  return lines.join('\n');
+  // RFC 4180 record separator. CRLF keeps Excel on Windows from collapsing
+  // the whole file into a single cell.
+  return lines.join('\r\n');
 };
 
 export const downloadCsv = (filename: string, csv: string): void => {

@@ -1,18 +1,7 @@
 import { useMemo } from 'react';
 import type { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { buildGameWave, extractFieldGoals, type WavePoint } from '../utils/gameWave';
-
-interface RawPlayLike {
-  offense?: string;
-  play_type?: string;
-  playType?: string;
-  play_text?: string;
-  playText?: string;
-  quarter?: number;
-  period?: number;
-  clock?: { minutes?: number; seconds?: number };
-}
+import { buildGameWave, extractFieldGoals, type RawPlayLike, type WavePoint } from '../utils/gameWave';
 
 interface GameWaveChartProps {
   plays: PlayData[];
@@ -206,10 +195,19 @@ const GameWaveChart = ({
         </svg>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
-        <Swatch color={topColors.explosive} label="Explosive" />
-        <Swatch color={topColors.success} label="Successful" />
-        <Swatch color={topColors.light} label="Unsuccessful" />
+      <div className="mt-4 space-y-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="text-xs font-medium text-neutral-600 w-24 shrink-0">{team}</span>
+          <Swatch color={topColors.explosive} label="Explosive" />
+          <Swatch color={topColors.success} label="Successful" />
+          <Swatch color={topColors.light} label="Unsuccessful" />
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="text-xs font-medium text-neutral-600 w-24 shrink-0">{opponent}</span>
+          <Swatch color={bottomColors.explosive} label="Explosive" />
+          <Swatch color={bottomColors.success} label="Successful" />
+          <Swatch color={bottomColors.light} label="Unsuccessful" />
+        </div>
         <span className="text-xs text-neutral-400">Numbers mark scoring plays (7 = TD, 3 = FG); i = interception.</span>
       </div>
     </div>
