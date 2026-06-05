@@ -57,6 +57,58 @@ interface CompareResult {
   year: number;
 }
 
+// Small styled <select> used by the player-chart filters. Defined at module
+// scope so its identity is stable across renders (otherwise the dropdown would
+// remount and close mid-interaction).
+const FILTER_SELECT_CLASS =
+  'text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat';
+const FILTER_SELECT_STYLE: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+  paddingRight: '2rem',
+};
+
+const FilterSelect: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}> = ({ value, onChange, children }) => (
+  <select
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
+    className={FILTER_SELECT_CLASS}
+    style={FILTER_SELECT_STYLE}
+  >
+    {children}
+  </select>
+);
+
+const PlayerTeamFilter: React.FC<{
+  value: PlayerFilter;
+  onChange: (v: PlayerFilter) => void;
+  teamAName: string;
+  teamBName: string;
+}> = ({ value, onChange, teamAName, teamBName }) => (
+  <FilterSelect value={value} onChange={(v) => onChange(v as PlayerFilter)}>
+    <option value="both">Both teams</option>
+    <option value="a">{teamAName}</option>
+    <option value="b">{teamBName}</option>
+  </FilterSelect>
+);
+
+const PlayerCountFilter: React.FC<{
+  value: PlayerCount;
+  onChange: (v: PlayerCount) => void;
+}> = ({ value, onChange }) => (
+  <FilterSelect value={String(value)} onChange={(v) => onChange(v === 'all' ? 'all' : Number(v))}>
+    <option value="all">All</option>
+    {[1, 2, 3, 4, 5].map((n) => (
+      <option key={n} value={n}>
+        Top {n}
+      </option>
+    ))}
+  </FilterSelect>
+);
+
 const TeamCompareView: React.FC = () => {
   const { teams, loading: loadingTeams } = useTeams();
   const [teamA, setTeamA] = useState<Team | null>(null);
@@ -292,47 +344,6 @@ const TeamCompareView: React.FC = () => {
     });
   };
 
-  const PlayerTeamFilter: React.FC<{ value: PlayerFilter; onChange: (v: PlayerFilter) => void }> = ({
-    value,
-    onChange,
-  }) => (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value as PlayerFilter)}
-      className="text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat"
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-        paddingRight: '2rem',
-      }}
-    >
-      <option value="both">Both teams</option>
-      {result && <option value="a">{result.a.team}</option>}
-      {result && <option value="b">{result.b.team}</option>}
-    </select>
-  );
-
-  const PlayerCountFilter: React.FC<{ value: PlayerCount; onChange: (v: PlayerCount) => void }> = ({
-    value,
-    onChange,
-  }) => (
-    <select
-      value={String(value)}
-      onChange={(e) => onChange(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-      className="text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat"
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-        paddingRight: '2rem',
-      }}
-    >
-      <option value="all">All</option>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <option key={n} value={n}>
-          Top {n}
-        </option>
-      ))}
-    </select>
-  );
-
   return (
     <div>
       {/* Inputs: a row per team, then year + compare */}
@@ -482,7 +493,12 @@ const TeamCompareView: React.FC = () => {
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
                     <h3 className="text-lg font-semibold text-neutral-900">Top rushers</h3>
-                    <PlayerTeamFilter value={rushersFilter} onChange={setRushersFilter} />
+                    <PlayerTeamFilter
+                      value={rushersFilter}
+                      onChange={setRushersFilter}
+                      teamAName={result.a.team}
+                      teamBName={result.b.team}
+                    />
                     <PlayerCountFilter value={rushersCount} onChange={setRushersCount} />
                   </div>
                   <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -498,11 +514,16 @@ const TeamCompareView: React.FC = () => {
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
                     <h3 className="text-lg font-semibold text-neutral-900">Top passers</h3>
-                    <PlayerTeamFilter value={passersFilter} onChange={setPassersFilter} />
+                    <PlayerTeamFilter
+                      value={passersFilter}
+                      onChange={setPassersFilter}
+                      teamAName={result.a.team}
+                      teamBName={result.b.team}
+                    />
                     <PlayerCountFilter value={passersCount} onChange={setPassersCount} />
                   </div>
                   <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
-                    <div className="h-50" style={{ height: '200px' }}>
+                    <div style={{ height: '200px' }}>
                       <Bar
                         data={createPlayerData(selectPlayers(chartData.allPassers, passersFilter, passersCount), 'pass') as any}
                         options={playerOptions}
@@ -515,7 +536,12 @@ const TeamCompareView: React.FC = () => {
               <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
                   <h3 className="text-lg font-semibold text-neutral-900">Top receivers</h3>
-                  <PlayerTeamFilter value={receiversFilter} onChange={setReceiversFilter} />
+                  <PlayerTeamFilter
+                    value={receiversFilter}
+                    onChange={setReceiversFilter}
+                    teamAName={result.a.team}
+                    teamBName={result.b.team}
+                  />
                   <PlayerCountFilter value={receiversCount} onChange={setReceiversCount} />
                 </div>
                 <div className="pt-5 px-6 pb-6 sm:pt-5 sm:px-6 sm:pb-6">
