@@ -11,10 +11,12 @@ interface TrendsChartsGridProps {
   year: number;
   gamesCount: number;
   selectedTeamColor?: string;
-  // Per-game charts (SR/XR by game, play-type, rush rate) normally render as
-  // lines. Team vs. Team passes 'bar' for a one-game comparison, where a single
-  // point per series reads better as grouped columns.
+  // Per-game charts in a one-game comparison: Rush Rate renders as grouped
+  // columns when perGameChartType is 'bar'. The SR/XR-by-game and play-type
+  // charts are line-only (a single point isn't meaningful), so perGameMessage
+  // replaces them with a short notice instead.
   perGameChartType?: 'line' | 'bar';
+  perGameMessage?: string;
 }
 
 // Chart options for bar charts (XR overlaps SR, matching Games page)
@@ -87,20 +89,20 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
   year,
   gamesCount,
   selectedTeamColor = 'default',
-  perGameChartType = 'line'
+  perGameChartType = 'line',
+  perGameMessage
 }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
 
   if (!chartData) return null;
 
-  // Render a per-game chart as either a line (multi-game) or grouped bars
-  // (one-game comparison). Both share the rotated-label percent axis.
-  const renderPerGame = (data: any) =>
-    perGameChartType === 'bar' ? (
-      <Bar data={data} options={lineChartOptionsWithRotatedLabels} />
-    ) : (
-      <Line data={data} options={lineChartOptionsWithRotatedLabels} />
-    );
+  // Notice shown in place of the line-only per-game charts when a single game
+  // is selected (one data point per series isn't meaningful).
+  const perGameNotice = (
+    <div className="flex items-center justify-center h-full text-center px-6">
+      <p className="text-sm text-neutral-500 max-w-xs">{perGameMessage}</p>
+    </div>
+  );
 
   const handleCopyEmbed = async (
     chartId: string,
@@ -196,7 +198,9 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            {renderPerGame(chartData.srxrByGame)}
+            {perGameMessage ? perGameNotice : (
+              <Line data={chartData.srxrByGame} options={lineChartOptionsWithRotatedLabels} />
+            )}
           </div>
         </div>
       </div>
@@ -231,7 +235,9 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            {renderPerGame(chartData.rushPassByGame)}
+            {perGameMessage ? perGameNotice : (
+              <Line data={chartData.rushPassByGame} options={lineChartOptionsWithRotatedLabels} />
+            )}
           </div>
         </div>
 
@@ -263,7 +269,11 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            {renderPerGame(chartData.rushRateByGame)}
+            {perGameChartType === 'bar' ? (
+              <Bar data={chartData.rushRateByGame} options={lineChartOptionsWithRotatedLabels} />
+            ) : (
+              <Line data={chartData.rushRateByGame} options={lineChartOptionsWithRotatedLabels} />
+            )}
           </div>
         </div>
       </div>

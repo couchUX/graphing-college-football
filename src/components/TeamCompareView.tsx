@@ -307,7 +307,7 @@ const TeamCompareView: React.FC = () => {
               <select
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
-                className="w-full sm:w-auto bg-white border border-neutral-300 rounded-lg px-3 py-2.5 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full sm:w-auto bg-white border border-neutral-300 rounded-lg px-4 py-3 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               >
                 {YEARS.map((y) => (
                   <option key={y} value={y}>
@@ -386,6 +386,11 @@ const TeamCompareView: React.FC = () => {
             gamesCount={Math.max(result.a.games.length, result.b.games.length)}
             selectedTeamColor={colorA}
             perGameChartType={chartData.perGameChartType}
+            perGameMessage={
+              chartData.perGameChartType === 'bar'
+                ? 'Not available for a single-game selection.'
+                : undefined
+            }
           />
 
           {/* Player charts (both teams; per-team filter + top-N per chart) */}
