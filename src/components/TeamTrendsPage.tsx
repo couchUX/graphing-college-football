@@ -26,8 +26,8 @@ type TrendsView = 'season' | 'spTrends' | 'compare';
 
 const TRENDS_TABS: { id: TrendsView; label: string }[] = [
   { id: 'season', label: 'Season trends' },
-  { id: 'spTrends', label: 'Multi-year SP+' },
   { id: 'compare', label: 'Team vs. Team' },
+  { id: 'spTrends', label: 'Multi-year SP+' },
 ];
 
 const TeamTrendsPage: React.FC = () => {

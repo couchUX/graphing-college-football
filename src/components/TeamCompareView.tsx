@@ -1,69 +1,104 @@
 import type React from 'react';
 import { useMemo, useState } from 'react';
-import { Bar, Line } from 'react-chartjs-2';
-import type { ChartData, ChartOptions } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
 import { AlertCircle, GitCompareArrows, Play } from 'lucide-react';
-import type { PlayData, SeasonMetrics, PerGameMetric } from '../types';
+import type { PlayData } from '../types';
 import { fetchGamesForTeam, type Team } from '../services/api';
-import { fetchSeasonPlayByPlayData } from '../services/seasonApi';
+import type { Game as BoxScoreGame } from '../services/boxScoreApi';
+import { fetchSeasonPlayByPlayData, fetchSeasonBoxScores } from '../services/seasonApi';
 import { processPlayData } from '../utils/metrics';
-import { calculateSeasonMetrics, calculatePerGameMetrics } from '../utils/seasonMetrics';
-import { getDisplayTeamColors } from '../utils/displayTeamColors';
+import { calculateAveragedBoxScore, type BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
+import { getTeamColors } from '../utils/teamColors';
+import { type ColorOption } from '../utils/colorPalette';
+import { createPlayerData } from '../utils/chartHelpers';
+import { createPlayerOptions } from '../utils/chartOptions';
+import { initializeChartDefaults } from '../utils/chartConfig';
 import { useTeams } from '../hooks/useTeams';
-import { initializeChartDefaults, percentCallback } from '../utils/chartConfig';
+import { useCompareChartData, type CompareSide } from '../hooks/useCompareChartData';
 import TeamPicker from './TeamPicker';
+import ColorPicker from './ColorPicker';
+import TrendsChartsGrid from './TrendsChartsGrid';
+import SeasonAdvancedBoxScore from './SeasonAdvancedBoxScore';
 
 initializeChartDefaults();
 
 const YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014];
 
-interface TeamSeason {
-  team: string;
-  metrics: SeasonMetrics;
-  perGame: PerGameMetric[];
-}
+const formatPct = (value: number) => `${(value * 100).toFixed(1)}%`;
 
-const loadTeamSeason = async (year: number, team: string): Promise<TeamSeason> => {
-  const games = await fetchGamesForTeam({ year, team });
-  const completedIds = games.filter((g) => g.completed).map((g) => g.id);
+// The "default" swatch for ColorPicker, derived from a team's real colors so
+// the picker matches the /games experience (default + curated palette).
+const defaultColorOption = (team: Team | null): ColorOption => ({
+  id: 'default',
+  primary: team ? getTeamColors(team.school).success : '#6B7280',
+  light: '',
+  dark: '',
+});
+
+// Load and process one team's full season (plays + per-game plays + schedule).
+const loadTeamSeason = async (year: number, team: string): Promise<CompareSide> => {
+  const schedule = await fetchGamesForTeam({ year, team });
+  const completed = schedule.filter((g) => g.completed);
+  const completedIds = completed.map((g) => g.id);
   // Forward the already-fetched schedule so the season fetch doesn't re-request it.
-  const result = await fetchSeasonPlayByPlayData({ year, team, selectedGameIds: completedIds, games });
-
-  const allProcessed = processPlayData(result.allPlays);
-  const perGameProcessed = new Map<number, PlayData[]>();
-  result.perGamePlays.forEach((plays, id) => perGameProcessed.set(id, processPlayData(plays)));
-
-  return {
+  const result = await fetchSeasonPlayByPlayData({
+    year,
     team,
-    metrics: calculateSeasonMetrics(allProcessed, team),
-    perGame: calculatePerGameMetrics(perGameProcessed, result.games, team),
-  };
+    selectedGameIds: completedIds,
+    games: completed,
+  });
+
+  const allPlays = processPlayData(result.allPlays);
+  const perGamePlays = new Map<number, PlayData[]>();
+  result.perGamePlays.forEach((plays, id) => perGamePlays.set(id, processPlayData(plays)));
+
+  return { team, games: result.games, allPlays, perGamePlays };
 };
 
-const formatPct = (value: number) => `${(value * 100).toFixed(1)}%`;
+type PlayerFilter = 'both' | 'a' | 'b';
+
+interface CompareResult {
+  a: CompareSide;
+  b: CompareSide;
+  year: number;
+}
 
 const TeamCompareView: React.FC = () => {
   const { teams, loading: loadingTeams } = useTeams();
   const [teamA, setTeamA] = useState<Team | null>(null);
   const [teamB, setTeamB] = useState<Team | null>(null);
+  const [colorA, setColorA] = useState<string>('default');
+  const [colorB, setColorB] = useState<string>('default');
   const [year, setYear] = useState<number>(2025);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ a: TeamSeason; b: TeamSeason; year: number } | null>(null);
+  const [result, setResult] = useState<CompareResult | null>(null);
+  const [boxScoresA, setBoxScoresA] = useState<BoxScoreGame[]>([]);
+  const [boxScoresB, setBoxScoresB] = useState<BoxScoreGame[]>([]);
+  const [boxScoreMode, setBoxScoreMode] = useState<BoxScoreMode>('averages');
+  const [rushersFilter, setRushersFilter] = useState<PlayerFilter>('both');
+  const [passersFilter, setPassersFilter] = useState<PlayerFilter>('both');
+  const [receiversFilter, setReceiversFilter] = useState<PlayerFilter>('both');
 
-  const canCompare =
-    !!teamA && !!teamB && teamA.school !== teamB.school && !loading;
+  const canCompare = !!teamA && !!teamB && teamA.school !== teamB.school && !loading;
 
   const handleCompare = async () => {
     if (!teamA || !teamB || teamA.school === teamB.school) return;
     setLoading(true);
     setError(null);
     try {
-      // Load teams one at a time to keep the request burst (and rate-limit
-      // pressure) the same as a single-team season fetch.
+      // Load each team sequentially to keep the request burst (and rate-limit
+      // pressure) close to a single-team season fetch.
       const a = await loadTeamSeason(year, teamA.school);
       const b = await loadTeamSeason(year, teamB.school);
+      const boxA = await fetchSeasonBoxScores(a.games, a.team, () => {});
+      const boxB = await fetchSeasonBoxScores(b.games, b.team, () => {});
       setResult({ a, b, year });
+      setBoxScoresA(boxA.boxScores);
+      setBoxScoresB(boxB.boxScores);
+      setRushersFilter('both');
+      setPassersFilter('both');
+      setReceiversFilter('both');
     } catch (err) {
       console.error(err);
       setError('Failed to load comparison data. Please try again.');
@@ -73,167 +108,130 @@ const TeamCompareView: React.FC = () => {
     }
   };
 
-  const colorsA = useMemo(
-    () => (result ? getDisplayTeamColors(result.a.team, 'default') : null),
-    [result],
-  );
-  const colorsB = useMemo(
-    () => (result ? getDisplayTeamColors(result.b.team, 'default') : null),
-    [result],
-  );
+  const chartData = useCompareChartData(result?.a ?? null, result?.b ?? null, colorA, colorB);
 
-  const rateBarData = useMemo<ChartData<'bar'> | null>(() => {
-    if (!result || !colorsA || !colorsB) return null;
-    return {
-      labels: ['Success rate', 'Explosiveness'],
-      datasets: [
-        {
-          label: result.a.team,
-          data: [result.a.metrics.successRate, result.a.metrics.explosivenessRate],
-          backgroundColor: colorsA.success,
-        },
-        {
-          label: result.b.team,
-          data: [result.b.metrics.successRate, result.b.metrics.explosivenessRate],
-          backgroundColor: colorsB.success,
-        },
-      ],
-    };
-  }, [result, colorsA, colorsB]);
-
-  const rateBarOptions = useMemo<ChartOptions<'bar'>>(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top', align: 'center' },
-        datalabels: {
-          display: true,
-          color: 'white',
-          formatter: (value: number) => (value > 0 ? percentCallback(value) : null),
-        },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.dataset.label}: ${percentCallback(ctx.parsed.y as number)}`,
-          },
-        },
-      },
-      scales: {
-        x: { grid: { display: false } },
-        y: { min: 0, max: 1, ticks: { callback: (v) => percentCallback(v as number) } },
-      },
-    }),
-    [],
+  const averagedA = useMemo(
+    () =>
+      result && boxScoresA.length
+        ? calculateAveragedBoxScore(boxScoresA, result.a.team, boxScoreMode)
+        : null,
+    [boxScoresA, result, boxScoreMode],
+  );
+  const averagedB = useMemo(
+    () =>
+      result && boxScoresB.length
+        ? calculateAveragedBoxScore(boxScoresB, result.b.team, boxScoreMode)
+        : null,
+    [boxScoresB, result, boxScoreMode],
   );
 
-  const srTrendData = useMemo<ChartData<'line'> | null>(() => {
-    if (!result || !colorsA || !colorsB) return null;
-    const maxGames = Math.max(result.a.perGame.length, result.b.perGame.length);
-    const labels = Array.from({ length: maxGames }, (_, i) => `Gm ${i + 1}`);
-    return {
-      labels,
-      datasets: [
-        {
-          label: result.a.team,
-          data: labels.map((_, i) => result.a.perGame[i]?.teamSR ?? null),
-          borderColor: colorsA.success,
-          backgroundColor: colorsA.success,
-          borderWidth: 2,
-          spanGaps: true,
-        },
-        {
-          label: result.b.team,
-          data: labels.map((_, i) => result.b.perGame[i]?.teamSR ?? null),
-          borderColor: colorsB.success,
-          backgroundColor: colorsB.success,
-          borderWidth: 2,
-          spanGaps: true,
-        },
-      ],
-    };
-  }, [result, colorsA, colorsB]);
-
-  const srTrendOptions = useMemo<ChartOptions<'line'>>(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { position: 'top', align: 'center' },
-        datalabels: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const team = ctx.dataset.label;
-              const perGame = team === result?.a.team ? result?.a.perGame : result?.b.perGame;
-              const game = perGame?.[ctx.dataIndex];
-              const oppText = game ? ` (${game.isHome ? 'vs' : '@'} ${game.opponent})` : '';
-              return `${team}: ${percentCallback(ctx.parsed.y as number)}${oppText}`;
-            },
-          },
-        },
-      },
-      scales: {
-        x: { grid: { display: false } },
-        y: { min: 0, max: 1, ticks: { callback: (v) => percentCallback(v as number) } },
-      },
-    }),
-    [result],
-  );
-
-  const metricRows = result
+  const metricRows = chartData
     ? [
         {
           label: 'Total plays',
-          a: String(result.a.metrics.totalPlays),
-          b: String(result.b.metrics.totalPlays),
-          aWins: result.a.metrics.totalPlays > result.b.metrics.totalPlays,
-          bWins: result.b.metrics.totalPlays > result.a.metrics.totalPlays,
+          a: String(chartData.metricsA.totalPlays),
+          b: String(chartData.metricsB.totalPlays),
+          aWins: chartData.metricsA.totalPlays > chartData.metricsB.totalPlays,
+          bWins: chartData.metricsB.totalPlays > chartData.metricsA.totalPlays,
         },
         {
           label: 'Success rate',
-          a: formatPct(result.a.metrics.successRate),
-          b: formatPct(result.b.metrics.successRate),
-          aWins: result.a.metrics.successRate > result.b.metrics.successRate,
-          bWins: result.b.metrics.successRate > result.a.metrics.successRate,
+          a: formatPct(chartData.metricsA.successRate),
+          b: formatPct(chartData.metricsB.successRate),
+          aWins: chartData.metricsA.successRate > chartData.metricsB.successRate,
+          bWins: chartData.metricsB.successRate > chartData.metricsA.successRate,
         },
         {
           label: 'Explosiveness',
-          a: formatPct(result.a.metrics.explosivenessRate),
-          b: formatPct(result.b.metrics.explosivenessRate),
-          aWins: result.a.metrics.explosivenessRate > result.b.metrics.explosivenessRate,
-          bWins: result.b.metrics.explosivenessRate > result.a.metrics.explosivenessRate,
+          a: formatPct(chartData.metricsA.explosivenessRate),
+          b: formatPct(chartData.metricsB.explosivenessRate),
+          aWins: chartData.metricsA.explosivenessRate > chartData.metricsB.explosivenessRate,
+          bWins: chartData.metricsB.explosivenessRate > chartData.metricsA.explosivenessRate,
         },
         {
           label: 'Yards / play',
-          a: result.a.metrics.avgYardsPerPlay.toFixed(1),
-          b: result.b.metrics.avgYardsPerPlay.toFixed(1),
-          aWins: result.a.metrics.avgYardsPerPlay > result.b.metrics.avgYardsPerPlay,
-          bWins: result.b.metrics.avgYardsPerPlay > result.a.metrics.avgYardsPerPlay,
+          a: chartData.metricsA.avgYardsPerPlay.toFixed(1),
+          b: chartData.metricsB.avgYardsPerPlay.toFixed(1),
+          aWins: chartData.metricsA.avgYardsPerPlay > chartData.metricsB.avgYardsPerPlay,
+          bWins: chartData.metricsB.avgYardsPerPlay > chartData.metricsA.avgYardsPerPlay,
         },
       ]
     : [];
+
+  const playerOptions = createPlayerOptions();
+
+  // Filter combined (both-team) player lists down to a single team when chosen.
+  const filterPlayers = (players: any[], filter: PlayerFilter) => {
+    if (!result || filter === 'both') return players;
+    const team = filter === 'a' ? result.a.team : result.b.team;
+    return players.filter((p) => p.team === team);
+  };
+
+  const PlayerTeamFilter: React.FC<{
+    value: PlayerFilter;
+    onChange: (value: PlayerFilter) => void;
+  }> = ({ value, onChange }) => (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as PlayerFilter)}
+      className="text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat"
+      style={{
+        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+        paddingRight: '2rem',
+      }}
+    >
+      <option value="both">Both teams</option>
+      {result && <option value="a">{result.a.team}</option>}
+      {result && <option value="b">{result.b.team}</option>}
+    </select>
+  );
 
   return (
     <div>
       {/* Inputs */}
       <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-          <TeamPicker
-            label="Team A"
-            value={teamA}
-            onChange={setTeamA}
-            teams={teams}
-            loading={loadingTeams}
-          />
-          <TeamPicker
-            label="Team B"
-            value={teamB}
-            onChange={setTeamB}
-            teams={teams}
-            loading={loadingTeams}
-            placeholder="e.g., Georgia"
-          />
+          <div className="flex items-end gap-2 w-full sm:w-auto">
+            <div className="flex-1 min-w-0">
+              <TeamPicker
+                label="Team A"
+                value={teamA}
+                onChange={setTeamA}
+                teams={teams}
+                loading={loadingTeams}
+              />
+            </div>
+            {teamA && (
+              <div className="flex-shrink-0 pb-0.5">
+                <ColorPicker
+                  selectedColorId={colorA}
+                  onColorChange={setColorA}
+                  defaultColor={defaultColorOption(teamA)}
+                />
+              </div>
+            )}
+          </div>
+          <div className="flex items-end gap-2 w-full sm:w-auto">
+            <div className="flex-1 min-w-0">
+              <TeamPicker
+                label="Team B"
+                value={teamB}
+                onChange={setTeamB}
+                teams={teams}
+                loading={loadingTeams}
+                placeholder="e.g., Georgia"
+              />
+            </div>
+            {teamB && (
+              <div className="flex-shrink-0 pb-0.5">
+                <ColorPicker
+                  selectedColorId={colorB}
+                  onColorChange={setColorB}
+                  defaultColor={defaultColorOption(teamB)}
+                />
+              </div>
+            )}
+          </div>
           <div className="w-full sm:w-auto sm:flex-shrink-0">
             <label className="block text-sm font-medium text-neutral-700 mb-2">Year</label>
             <select
@@ -254,7 +252,9 @@ const TeamCompareView: React.FC = () => {
               disabled={!canCompare}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
             >
-              {loading ? <span>Comparing...</span> : (
+              {loading ? (
+                <span>Comparing...</span>
+              ) : (
                 <>
                   <span>Compare</span>
                   <Play className="h-5 w-5" />
@@ -283,16 +283,16 @@ const TeamCompareView: React.FC = () => {
         </div>
       )}
 
-      {!loading && result && (
+      {!loading && result && chartData && (
         <>
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-neutral-900">
               {result.a.team} vs. {result.b.team}
             </h2>
-            <p className="text-neutral-600">{result.year} season • offensive efficiency</p>
+            <p className="text-neutral-600">{result.year} season</p>
           </div>
 
-          {/* Metric comparison table */}
+          {/* Head-to-head metric table */}
           <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden mb-8">
             <div className="grid grid-cols-3 bg-neutral-100 text-sm font-semibold text-neutral-700">
               <div className="px-4 py-3">{result.a.team}</div>
@@ -312,14 +312,93 @@ const TeamCompareView: React.FC = () => {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-neutral-200 shadow-sm pt-5 px-4 pb-4 sm:px-6 sm:pb-6">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-4">Efficiency rates</h3>
-              <div className="h-80">{rateBarData && <Bar data={rateBarData} options={rateBarOptions} />}</div>
-            </div>
-            <div className="bg-white rounded-xl border border-neutral-200 shadow-sm pt-5 px-4 pb-4 sm:px-6 sm:pb-6">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-4">Success rate by game</h3>
-              <div className="h-80">{srTrendData && <Line data={srTrendData} options={srTrendOptions} />}</div>
+          {/* Advanced box scores (one per team) */}
+          {averagedA && (
+            <SeasonAdvancedBoxScore
+              team={result.a.team}
+              year={result.year}
+              firstTableStats={averagedA.firstTableStats}
+              secondTableStats={averagedA.secondTableStats}
+              selectedTeamColor={colorA}
+              gamesCount={boxScoresA.length}
+              mode={boxScoreMode}
+              onModeChange={setBoxScoreMode}
+            />
+          )}
+          {averagedB && (
+            <SeasonAdvancedBoxScore
+              team={result.b.team}
+              year={result.year}
+              firstTableStats={averagedB.firstTableStats}
+              secondTableStats={averagedB.secondTableStats}
+              selectedTeamColor={colorB}
+              gamesCount={boxScoresB.length}
+              mode={boxScoreMode}
+              onModeChange={setBoxScoreMode}
+            />
+          )}
+
+          {/* Comparison charts (same grid/order as Season trends) */}
+          <TrendsChartsGrid
+            chartData={chartData}
+            team={`${result.a.team} vs. ${result.b.team}`}
+            year={result.year}
+            gamesCount={Math.max(result.a.games.length, result.b.games.length)}
+            selectedTeamColor={colorA}
+          />
+
+          {/* Player charts (both teams, per-team picker per chart) */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-neutral-900 mb-6">Player charts</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left column - Rushers and Passers stacked */}
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+                  <div className="flex items-center gap-3 px-6 py-4 border-b border-neutral-200">
+                    <h3 className="text-lg font-semibold text-neutral-900">Top rushers</h3>
+                    <PlayerTeamFilter value={rushersFilter} onChange={setRushersFilter} />
+                  </div>
+                  <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
+                    <div className="h-80">
+                      <Bar
+                        data={createPlayerData(filterPlayers(chartData.allRushers, rushersFilter), 'rush') as any}
+                        options={playerOptions}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+                  <div className="flex items-center gap-3 px-6 py-4 border-b border-neutral-200">
+                    <h3 className="text-lg font-semibold text-neutral-900">Top passers</h3>
+                    <PlayerTeamFilter value={passersFilter} onChange={setPassersFilter} />
+                  </div>
+                  <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
+                    <div className="h-50" style={{ height: '200px' }}>
+                      <Bar
+                        data={createPlayerData(filterPlayers(chartData.allPassers, passersFilter), 'pass') as any}
+                        options={playerOptions}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right column - Receivers spanning full height */}
+              <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-neutral-200">
+                  <h3 className="text-lg font-semibold text-neutral-900">Top receivers</h3>
+                  <PlayerTeamFilter value={receiversFilter} onChange={setReceiversFilter} />
+                </div>
+                <div className="pt-5 px-6 pb-6 sm:pt-5 sm:px-6 sm:pb-6">
+                  <div className="h-[640px]">
+                    <Bar
+                      data={createPlayerData(filterPlayers(chartData.allReceivers, receiversFilter), 'receive') as any}
+                      options={playerOptions}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </>
@@ -331,8 +410,9 @@ const TeamCompareView: React.FC = () => {
             <GitCompareArrows className="h-16 w-16 text-slate-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-neutral-900 mb-2">Compare two teams' seasons</h3>
             <p className="text-neutral-600 max-w-md mx-auto">
-              Pick two teams and a year, then click Compare to see their offensive success rate,
-              explosiveness, and per-game trends side by side.
+              Pick two teams and a year, then click Compare to see the same season-trends charts —
+              success rate, explosiveness, play-type splits, per-game trends, and player charts —
+              with one team set against the other.
             </p>
           </div>
         </div>
