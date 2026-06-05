@@ -9,6 +9,8 @@ import { useTeams } from '../hooks/useTeams';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import TeamPicker from './TeamPicker';
 import { readParams, writeParams } from '../utils/trendsUrl';
+import { colorPalette } from '../utils/colorPalette';
+import { getTeamColors } from '../utils/teamColors';
 
 initializeChartDefaults();
 
@@ -32,29 +34,93 @@ const ratingValue = (rating: SPRating, key: (typeof SERIES)[number]['key']): num
   }
 };
 
+// Parse an rgb(a)/hex color into [r, g, b].
+const parseColor = (color: string): [number, number, number] => {
+  const m = color.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (m) return [Number(m[1]), Number(m[2]), Number(m[3])];
+  const hex = color.replace('#', '');
+  if (hex.length >= 6) {
+    return [
+      parseInt(hex.slice(0, 2), 16),
+      parseInt(hex.slice(2, 4), 16),
+      parseInt(hex.slice(4, 6), 16),
+    ];
+  }
+  return [23, 23, 23];
+};
+
+const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      default:
+        h = (r - g) / d + 4;
+    }
+    h /= 6;
+  }
+  return [h * 360, s * 100, l * 100];
+};
+
+// Derive the four SP+ series colors from a single root color (the /games
+// approach): same hue, stepped from dark to light so the lines stay on-brand
+// and distinguishable. 'default' uses the team's own color.
+const seriesColorsFor = (teamName: string, colorId: string): string[] => {
+  const root =
+    colorId !== 'default'
+      ? colorPalette.find((c) => c.id === colorId)?.primary ?? '#171717'
+      : getTeamColors(teamName).success;
+  const [r, g, b] = parseColor(root);
+  const [h, s] = rgbToHsl(r, g, b);
+  const sat = Math.min(Math.max(s, 50), 90);
+  return [30, 44, 58, 70].map((l) => `hsl(${Math.round(h)}, ${Math.round(sat)}%, ${l}%)`);
+};
+
 const MultiYearSpTrends: React.FC = () => {
   const { teams, loading: loadingTeams } = useTeams();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [colorId, setColorId] = useState<string>('default');
   const [ratings, setRatings] = useState<SPRating[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const restoredRef = useRef(false);
 
-  // Restore the selected team from the URL once the team list is available.
+  // Restore the selected team and color from the URL once teams are available.
   useEffect(() => {
     if (restoredRef.current || teams.length === 0) return;
     restoredRef.current = true;
-    const school = readParams().get('spTeam');
+    const p = readParams();
+    const school = p.get('spTeam');
     if (school) {
       const match = teams.find((t) => t.school.toLowerCase() === school.toLowerCase());
       if (match) setSelectedTeam(match);
     }
+    const c = p.get('spColor');
+    if (c) setColorId(c);
   }, [teams]);
 
-  // Persist the selected team to the URL.
+  // Persist the selected team / color to the URL.
   const handleTeamChange = (team: Team | null) => {
     setSelectedTeam(team);
     writeParams({ spTeam: team?.school ?? null });
+  };
+  const handleColorChange = (id: string) => {
+    setColorId(id);
+    writeParams({ spColor: id === 'default' ? null : id });
   };
 
   useEffect(() => {
@@ -85,20 +151,22 @@ const MultiYearSpTrends: React.FC = () => {
     };
   }, [selectedTeam]);
 
-  const chartData = useMemo<ChartData<'line'>>(
-    () => ({
+  const chartData = useMemo<ChartData<'line'>>(() => {
+    const colors = selectedTeam
+      ? seriesColorsFor(selectedTeam.school, colorId)
+      : SERIES.map((s) => s.color);
+    return {
       labels: ratings.map((r) => String(r.year)),
-      datasets: SERIES.map((series) => ({
+      datasets: SERIES.map((series, i) => ({
         label: series.label,
         data: ratings.map((r) => ratingValue(r, series.key)),
-        borderColor: series.color,
-        backgroundColor: series.color,
+        borderColor: colors[i],
+        backgroundColor: colors[i],
         borderWidth: 2,
         spanGaps: true,
       })),
-    }),
-    [ratings],
-  );
+    };
+  }, [ratings, selectedTeam, colorId]);
 
   const options = useMemo<ChartOptions<'line'>>(
     () => ({
@@ -134,6 +202,8 @@ const MultiYearSpTrends: React.FC = () => {
             onChange={handleTeamChange}
             teams={teams}
             loading={loadingTeams}
+            colorId={colorId}
+            onColorChange={handleColorChange}
           />
         </div>
       </div>
