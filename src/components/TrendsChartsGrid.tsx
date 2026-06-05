@@ -11,6 +11,10 @@ interface TrendsChartsGridProps {
   year: number;
   gamesCount: number;
   selectedTeamColor?: string;
+  // When set, the per-game line charts (SR/XR by game, play-type, rush rate)
+  // render this message instead of a chart — used by Team vs. Team when a
+  // custom subset of games is selected and per-game alignment isn't meaningful.
+  perGameUnavailableMessage?: string;
 }
 
 // Chart options for bar charts (XR overlaps SR, matching Games page)
@@ -82,11 +86,18 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
   team,
   year,
   gamesCount,
-  selectedTeamColor = 'default'
+  selectedTeamColor = 'default',
+  perGameUnavailableMessage
 }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
 
   if (!chartData) return null;
+
+  const perGameBlank = (
+    <div className="flex items-center justify-center h-full text-center px-6">
+      <p className="text-sm text-neutral-500 max-w-xs">{perGameUnavailableMessage}</p>
+    </div>
+  );
 
   const handleCopyEmbed = async (
     chartId: string,
@@ -182,7 +193,9 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            <Line data={chartData.srxrByGame} options={lineChartOptionsWithRotatedLabels} />
+            {perGameUnavailableMessage ? perGameBlank : (
+              <Line data={chartData.srxrByGame} options={lineChartOptionsWithRotatedLabels} />
+            )}
           </div>
         </div>
       </div>
@@ -217,7 +230,9 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            <Line data={chartData.rushPassByGame} options={lineChartOptionsWithRotatedLabels} />
+            {perGameUnavailableMessage ? perGameBlank : (
+              <Line data={chartData.rushPassByGame} options={lineChartOptionsWithRotatedLabels} />
+            )}
           </div>
         </div>
 
@@ -249,7 +264,9 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            <Line data={chartData.rushRateByGame} options={lineChartOptionsWithRotatedLabels} />
+            {perGameUnavailableMessage ? perGameBlank : (
+              <Line data={chartData.rushRateByGame} options={lineChartOptionsWithRotatedLabels} />
+            )}
           </div>
         </div>
       </div>
