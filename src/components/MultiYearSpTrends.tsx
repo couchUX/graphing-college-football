@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { AlertCircle, TrendingUp } from 'lucide-react';
@@ -8,6 +8,7 @@ import { fetchSPRatingsHistory, type SPRating } from '../services/ratingsApi';
 import { useTeams } from '../hooks/useTeams';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import TeamPicker from './TeamPicker';
+import { readParams, writeParams } from '../utils/trendsUrl';
 
 initializeChartDefaults();
 
@@ -37,6 +38,24 @@ const MultiYearSpTrends: React.FC = () => {
   const [ratings, setRatings] = useState<SPRating[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const restoredRef = useRef(false);
+
+  // Restore the selected team from the URL once the team list is available.
+  useEffect(() => {
+    if (restoredRef.current || teams.length === 0) return;
+    restoredRef.current = true;
+    const school = readParams().get('spTeam');
+    if (school) {
+      const match = teams.find((t) => t.school.toLowerCase() === school.toLowerCase());
+      if (match) setSelectedTeam(match);
+    }
+  }, [teams]);
+
+  // Persist the selected team to the URL.
+  const handleTeamChange = (team: Team | null) => {
+    setSelectedTeam(team);
+    writeParams({ spTeam: team?.school ?? null });
+  };
 
   useEffect(() => {
     if (!selectedTeam) {
@@ -112,7 +131,7 @@ const MultiYearSpTrends: React.FC = () => {
           <TeamPicker
             label="Team"
             value={selectedTeam}
-            onChange={setSelectedTeam}
+            onChange={handleTeamChange}
             teams={teams}
             loading={loadingTeams}
           />

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { AlertCircle, GitCompareArrows, Play } from 'lucide-react';
 import type { PlayData } from '../types';
@@ -13,6 +13,7 @@ import { createPlayerOptions } from '../utils/chartOptions';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import { useTeams } from '../hooks/useTeams';
 import { useCompareChartData, type CompareSide } from '../hooks/useCompareChartData';
+import { readParams, writeParams, encodeGameSelection, decodeGameSelection } from '../utils/trendsUrl';
 import TeamPicker from './TeamPicker';
 import GameMultiSelect from './GameMultiSelect';
 import CompareBoxScore from './CompareBoxScore';
@@ -85,6 +86,14 @@ const TeamCompareView: React.FC = () => {
   const [passersCount, setPassersCount] = useState<PlayerCount>('all');
   const [receiversCount, setReceiversCount] = useState<PlayerCount>('all');
 
+  // URL restore/persist plumbing. pendingGames* hold a game selection read from
+  // the URL until that team's schedule loads and the indices can be resolved.
+  const [pendingGamesA, setPendingGamesA] = useState<string | null>(null);
+  const [pendingGamesB, setPendingGamesB] = useState<string | null>(null);
+  const restoredRef = useRef(false);
+  const autoCompareRef = useRef(false);
+  const urlReadyRef = useRef(false);
+
   // Load each team's completed games when the team or year changes.
   useEffect(() => {
     let active = true;
@@ -99,7 +108,12 @@ const TeamCompareView: React.FC = () => {
         if (!active) return;
         const completed = games.filter((g) => g.completed).sort(sortGames);
         setGamesA(completed);
-        setSelectedA(completed.map((g) => g.id));
+        setSelectedA(
+          pendingGamesA !== null
+            ? decodeGameSelection(pendingGamesA, completed)
+            : completed.map((g) => g.id),
+        );
+        setPendingGamesA(null);
       })
       .catch(() => {
         if (active) {
@@ -128,7 +142,12 @@ const TeamCompareView: React.FC = () => {
         if (!active) return;
         const completed = games.filter((g) => g.completed).sort(sortGames);
         setGamesB(completed);
-        setSelectedB(completed.map((g) => g.id));
+        setSelectedB(
+          pendingGamesB !== null
+            ? decodeGameSelection(pendingGamesB, completed)
+            : completed.map((g) => g.id),
+        );
+        setPendingGamesB(null);
       })
       .catch(() => {
         if (active) {
@@ -143,6 +162,38 @@ const TeamCompareView: React.FC = () => {
       active = false;
     };
   }, [teamB, year]);
+
+  // Restore teams / colors / year / game selections from the URL once the team
+  // list is available; auto-run the comparison when both teams are present.
+  useEffect(() => {
+    if (restoredRef.current || teams.length === 0) return;
+    restoredRef.current = true;
+    const p = readParams();
+    const find = (school: string | null) =>
+      school ? teams.find((t) => t.school.toLowerCase() === school.toLowerCase()) ?? null : null;
+    const a = find(p.get('aTeam'));
+    const b = find(p.get('bTeam'));
+    const y = Number(p.get('year'));
+    if (Number.isInteger(y) && y > 0) setYear(y);
+    const ac = p.get('aColor');
+    if (ac) setColorA(ac);
+    const bc = p.get('bColor');
+    if (bc) setColorB(bc);
+    if (a) {
+      setPendingGamesA(p.get('aGames'));
+      setTeamA(a);
+    }
+    if (b) {
+      setPendingGamesB(p.get('bGames'));
+      setTeamB(b);
+    }
+    if (a && b) {
+      autoCompareRef.current = true;
+    } else {
+      urlReadyRef.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams]);
 
   const canCompare =
     !!teamA &&
@@ -183,6 +234,36 @@ const TeamCompareView: React.FC = () => {
   };
 
   const chartData = useCompareChartData(result?.a ?? null, result?.b ?? null, colorA, colorB);
+
+  // Auto-run the comparison after a URL restore, once both teams' games have
+  // loaded and any pending game selection has been applied.
+  useEffect(() => {
+    if (!autoCompareRef.current) return;
+    if (!teamA || !teamB) return;
+    if (loadingGamesA || loadingGamesB) return;
+    if (pendingGamesA !== null || pendingGamesB !== null) return;
+    if (gamesA.length === 0 || gamesB.length === 0) return;
+    if (selectedA.length === 0 || selectedB.length === 0) return;
+    autoCompareRef.current = false;
+    urlReadyRef.current = true;
+    void handleCompare();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamA, teamB, gamesA, gamesB, selectedA, selectedB, loadingGamesA, loadingGamesB, pendingGamesA, pendingGamesB]);
+
+  // Persist the comparison inputs to the URL (namespaced so they don't collide
+  // with the single-team Season trends params).
+  useEffect(() => {
+    if (!urlReadyRef.current) return;
+    writeParams({
+      aTeam: teamA?.school ?? null,
+      bTeam: teamB?.school ?? null,
+      year: String(year),
+      aColor: colorA === 'default' ? null : colorA,
+      bColor: colorB === 'default' ? null : colorB,
+      aGames: teamA ? encodeGameSelection(selectedA, gamesA) : null,
+      bGames: teamB ? encodeGameSelection(selectedB, gamesB) : null,
+    });
+  }, [teamA, teamB, year, colorA, colorB, selectedA, selectedB, gamesA, gamesB]);
 
   const averagedA = useMemo(
     () => (result && boxScoresA.length ? calculateAveragedBoxScore(boxScoresA, result.a.team, boxScoreMode) : null),

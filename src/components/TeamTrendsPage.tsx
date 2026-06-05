@@ -20,6 +20,7 @@ import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCs
 import MultiYearSpTrends from './MultiYearSpTrends';
 import TeamCompareView from './TeamCompareView';
 import MainNav from './MainNav';
+import { readParams, writeParams } from '../utils/trendsUrl';
 
 type TrendsView = 'season' | 'spTrends' | 'compare';
 
@@ -30,7 +31,16 @@ const TRENDS_TABS: { id: TrendsView; label: string }[] = [
 ];
 
 const TeamTrendsPage: React.FC = () => {
-  const [trendsView, setTrendsView] = useState<TrendsView>('season');
+  const [trendsView, setTrendsView] = useState<TrendsView>(() => {
+    const v = readParams().get('view');
+    return v === 'compare' || v === 'spTrends' ? v : 'season';
+  });
+
+  // Persist the active sub-tab in the URL (omit for the default 'season').
+  const handleViewChange = (view: TrendsView) => {
+    setTrendsView(view);
+    writeParams({ view: view === 'season' ? null : view });
+  };
   const [seasonGames, setSeasonGames] = useState<TeamGame[]>([]);
   const [allSeasonPlays, setAllSeasonPlays] = useState<PlayData[]>([]);
   const [perGamePlays, setPerGamePlays] = useState<Map<number, PlayData[]>>(new Map());
@@ -312,7 +322,7 @@ const TeamTrendsPage: React.FC = () => {
             {/* Mobile: full-width dropdown */}
             <select
               value={trendsView}
-              onChange={(e) => setTrendsView(e.target.value as TrendsView)}
+              onChange={(e) => handleViewChange(e.target.value as TrendsView)}
               aria-label="Select Team Trends view"
               className="sm:hidden w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
@@ -328,7 +338,7 @@ const TeamTrendsPage: React.FC = () => {
               {TRENDS_TABS.map((tab, index) => (
                 <button
                   key={tab.id}
-                  onClick={() => setTrendsView(tab.id)}
+                  onClick={() => handleViewChange(tab.id)}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
                     index > 0 ? 'border-l border-neutral-300' : ''
                   } ${

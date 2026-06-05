@@ -63,10 +63,10 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
 
   const filteredTeams =
     query === ''
-      ? teams.slice(0, 20)
+      ? teams.slice(0, 50)
       : teams
           .filter((team) => team.school.toLowerCase().includes(query.toLowerCase()))
-          .slice(0, 10);
+          .slice(0, 20);
 
   return (
     <div className="flex-1 min-w-0">

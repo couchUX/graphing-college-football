@@ -81,12 +81,17 @@ const Dashboard: React.FC = () => {
   const handleDownloadCsv = () => {
     if (!currentParams || plays.length === 0) return;
     const gameId = plays[0]?.gameId;
+    // Raw API plays carry home/away team names; use them so the CSV's
+    // home_team/away_team columns aren't blank for the per-game export.
+    const raw = rawApiData[0];
     const games = gameId
       ? [{
           id: gameId,
           season: currentParams.year,
           week: currentParams.week,
           seasonType: currentParams.seasonType,
+          homeTeam: raw?.home,
+          awayTeam: raw?.away,
         }]
       : [];
     const csv = playsToCsv(plays, games);
