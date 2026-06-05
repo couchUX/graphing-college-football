@@ -130,6 +130,21 @@ export const useCompareChartData = (
     const splitsA = perGameSplits(a);
     const splitsB = perGameSplits(b);
 
+    // One game per team: a single point per series reads better as grouped
+    // columns (Team A vs Team B per metric) than as one-dot lines.
+    const singleGame = maxGames <= 1;
+    const barCompare = (
+      catLabels: string[],
+      aVals: (number | null)[],
+      bVals: (number | null)[],
+    ) => ({
+      labels: catLabels,
+      datasets: [
+        { label: a.team, data: aVals, backgroundColor: colorsA.success, datalabels: { display: false } },
+        { label: b.team, data: bVals, backgroundColor: colorsB.success, datalabels: { display: false } },
+      ],
+    });
+
     const srSeries = (perGame: typeof perGameA, key: 'teamSR' | 'teamXR') =>
       labels.map((_, i) => (i < perGame.length ? perGame[i][key] * 100 : null));
     const splitSeries = (splits: ReturnType<typeof perGameSplits>, key: 'rushRate' | 'rushSR' | 'passSR') =>
@@ -150,7 +165,13 @@ export const useCompareChartData = (
       order: 10,
     });
 
-    const srxrByGame = {
+    const srxrByGame = singleGame
+      ? barCompare(
+          ['Success rate', 'Explosiveness'],
+          [perGameA[0].teamSR * 100, perGameA[0].teamXR * 100],
+          [perGameB[0].teamSR * 100, perGameB[0].teamXR * 100],
+        )
+      : {
       labels,
       datasets: [
         ncaaArea(),
@@ -162,7 +183,7 @@ export const useCompareChartData = (
           borderWidth: 2.5,
           pointRadius: 4,
           pointBackgroundColor: colorsA.success,
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 1,
@@ -176,7 +197,7 @@ export const useCompareChartData = (
           borderDash: [5, 3],
           pointRadius: 4,
           pointBackgroundColor: colorsA.explosive,
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 2,
@@ -189,7 +210,7 @@ export const useCompareChartData = (
           borderWidth: 2.5,
           pointRadius: 4,
           pointBackgroundColor: colorsB.success,
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 3,
@@ -203,7 +224,7 @@ export const useCompareChartData = (
           borderDash: [5, 3],
           pointRadius: 4,
           pointBackgroundColor: colorsB.explosive,
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 4,
@@ -211,7 +232,9 @@ export const useCompareChartData = (
       ],
     };
 
-    const rushRateByGame = {
+    const rushRateByGame = singleGame
+      ? barCompare(['Rush rate'], [splitsA[0].rushRate], [splitsB[0].rushRate])
+      : {
       labels,
       datasets: [
         {
@@ -233,7 +256,7 @@ export const useCompareChartData = (
           backgroundColor: 'transparent',
           borderWidth: 2.5,
           pointRadius: 4,
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 1,
@@ -245,7 +268,7 @@ export const useCompareChartData = (
           backgroundColor: 'transparent',
           borderWidth: 2.5,
           pointRadius: 4,
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 2,
@@ -253,7 +276,13 @@ export const useCompareChartData = (
       ],
     };
 
-    const rushPassByGame = {
+    const rushPassByGame = singleGame
+      ? barCompare(
+          ['Rush SR', 'Pass SR'],
+          [splitsA[0].rushSR, splitsA[0].passSR],
+          [splitsB[0].rushSR, splitsB[0].passSR],
+        )
+      : {
       labels,
       datasets: [
         ncaaArea(),
@@ -265,7 +294,7 @@ export const useCompareChartData = (
           borderWidth: 2.5,
           pointRadius: 4,
           pointStyle: 'circle',
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 1,
@@ -279,7 +308,7 @@ export const useCompareChartData = (
           borderDash: [4, 4],
           pointRadius: 5,
           pointStyle: 'triangle',
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 2,
@@ -292,7 +321,7 @@ export const useCompareChartData = (
           borderWidth: 2.5,
           pointRadius: 4,
           pointStyle: 'circle',
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 3,
@@ -306,7 +335,7 @@ export const useCompareChartData = (
           borderDash: [4, 4],
           pointRadius: 5,
           pointStyle: 'triangle',
-          spanGaps: true,
+          spanGaps: false,
           tension: 0.15,
           datalabels: { display: false },
           order: 4,
@@ -336,6 +365,7 @@ export const useCompareChartData = (
     return {
       teamA: a.team,
       teamB: b.team,
+      perGameChartType: (singleGame ? 'bar' : 'line') as 'bar' | 'line',
       colorsA,
       colorsB,
       metricsA,

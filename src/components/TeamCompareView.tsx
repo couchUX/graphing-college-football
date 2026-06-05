@@ -8,7 +8,6 @@ import type { Game as BoxScoreGame } from '../services/boxScoreApi';
 import { fetchSeasonPlayByPlayData, fetchSeasonBoxScores } from '../services/seasonApi';
 import { processPlayData } from '../utils/metrics';
 import { calculateAveragedBoxScore, type BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
-import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { createPlayerData } from '../utils/chartHelpers';
 import { createPlayerOptions } from '../utils/chartOptions';
 import { initializeChartDefaults } from '../utils/chartConfig';
@@ -23,19 +22,9 @@ initializeChartDefaults();
 
 const YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014];
 
-const PER_GAME_UNAVAILABLE =
-  "Per-game trends aren't available when a custom set of games is selected. Choose all games for both teams to see this chart.";
-
 const sortGames = (a: TeamGame, b: TeamGame) => {
   if (a.seasonType !== b.seasonType) return a.seasonType === 'regular' ? -1 : 1;
   return a.week - b.week;
-};
-
-// Dark, solid color for a team's name in the box-score header.
-const headerColor = (team: string, colorId: string): string => {
-  const c = getDisplayTeamColors(team, colorId);
-  if (c.colorDark) return c.colorDark;
-  return c.explosive.replace(/rgba\(([^)]+)\)/, 'rgb($1)').replace(/,\s*[\d.]+\)/, ')');
 };
 
 // Load and process one team's selected games (plays + per-game plays).
@@ -65,7 +54,6 @@ interface CompareResult {
   a: CompareSide;
   b: CompareSide;
   year: number;
-  customGames: boolean;
 }
 
 const TeamCompareView: React.FC = () => {
@@ -176,9 +164,7 @@ const TeamCompareView: React.FC = () => {
       const b = await loadTeamSeason(year, teamB.school, selGamesB);
       const boxA = await fetchSeasonBoxScores(a.games, a.team, () => {});
       const boxB = await fetchSeasonBoxScores(b.games, b.team, () => {});
-      const customGames =
-        selGamesA.length !== gamesA.length || selGamesB.length !== gamesB.length;
-      setResult({ a, b, year, customGames });
+      setResult({ a, b, year });
       setBoxScoresA(boxA.boxScores);
       setBoxScoresB(boxB.boxScores);
       setRushersFilter('both');
@@ -374,10 +360,7 @@ const TeamCompareView: React.FC = () => {
             <h2 className="text-2xl font-bold text-neutral-900">
               {result.a.team} vs. {result.b.team}
             </h2>
-            <p className="text-neutral-600">
-              {result.year} season
-              {result.customGames ? ' • custom game selection' : ''}
-            </p>
+            <p className="text-neutral-600">{result.year} season</p>
           </div>
 
           {/* Consolidated box score: the two teams compared directly */}
@@ -387,8 +370,9 @@ const TeamCompareView: React.FC = () => {
               teamB={result.b.team}
               statsA={averagedA}
               statsB={averagedB}
-              colorA={headerColor(result.a.team, colorA)}
-              colorB={headerColor(result.b.team, colorB)}
+              colorA={colorA}
+              colorB={colorB}
+              year={result.year}
               mode={boxScoreMode}
               onModeChange={setBoxScoreMode}
             />
@@ -401,7 +385,7 @@ const TeamCompareView: React.FC = () => {
             year={result.year}
             gamesCount={Math.max(result.a.games.length, result.b.games.length)}
             selectedTeamColor={colorA}
-            perGameUnavailableMessage={result.customGames ? PER_GAME_UNAVAILABLE : undefined}
+            perGameChartType={chartData.perGameChartType}
           />
 
           {/* Player charts (both teams; per-team filter + top-N per chart) */}

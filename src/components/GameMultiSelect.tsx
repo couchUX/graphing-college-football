@@ -87,24 +87,36 @@ const GameMultiSelect: React.FC<GameMultiSelectProps> = ({
               {games.map((game) => {
                 const checked = selectedIds.includes(game.id);
                 return (
-                  <label
+                  <div
                     key={game.id}
-                    className="flex items-center px-4 py-2 hover:bg-neutral-50 cursor-pointer"
+                    className="flex items-center justify-between px-4 py-2 hover:bg-neutral-50"
                   >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          onChange([...selectedIds, game.id]);
-                        } else {
-                          onChange(selectedIds.filter((id) => id !== game.id));
-                        }
-                      }}
-                      className="h-4 w-4 text-blue-600 rounded border-neutral-300 focus:ring-blue-500"
-                    />
-                    <span className="ml-3 text-sm text-neutral-900">{gameLabel(game, teamName)}</span>
-                  </label>
+                    <label className="flex items-center cursor-pointer flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            onChange([...selectedIds, game.id]);
+                          } else {
+                            onChange(selectedIds.filter((id) => id !== game.id));
+                          }
+                        }}
+                        className="h-4 w-4 text-blue-600 rounded border-neutral-300 focus:ring-blue-500 flex-shrink-0"
+                      />
+                      <span className="ml-3 text-sm text-neutral-900 truncate">
+                        {gameLabel(game, teamName)}
+                      </span>
+                    </label>
+                    {/* Quick "only this game" — handy for matchup-style comparisons */}
+                    <button
+                      type="button"
+                      onClick={() => onChange([game.id])}
+                      className="ml-3 flex-shrink-0 text-xs font-medium text-blue-600 hover:text-blue-700"
+                    >
+                      Only
+                    </button>
+                  </div>
                 );
               })}
             </div>

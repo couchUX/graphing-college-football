@@ -11,10 +11,10 @@ interface TrendsChartsGridProps {
   year: number;
   gamesCount: number;
   selectedTeamColor?: string;
-  // When set, the per-game line charts (SR/XR by game, play-type, rush rate)
-  // render this message instead of a chart — used by Team vs. Team when a
-  // custom subset of games is selected and per-game alignment isn't meaningful.
-  perGameUnavailableMessage?: string;
+  // Per-game charts (SR/XR by game, play-type, rush rate) normally render as
+  // lines. Team vs. Team passes 'bar' for a one-game comparison, where a single
+  // point per series reads better as grouped columns.
+  perGameChartType?: 'line' | 'bar';
 }
 
 // Chart options for bar charts (XR overlaps SR, matching Games page)
@@ -87,17 +87,20 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
   year,
   gamesCount,
   selectedTeamColor = 'default',
-  perGameUnavailableMessage
+  perGameChartType = 'line'
 }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
 
   if (!chartData) return null;
 
-  const perGameBlank = (
-    <div className="flex items-center justify-center h-full text-center px-6">
-      <p className="text-sm text-neutral-500 max-w-xs">{perGameUnavailableMessage}</p>
-    </div>
-  );
+  // Render a per-game chart as either a line (multi-game) or grouped bars
+  // (one-game comparison). Both share the rotated-label percent axis.
+  const renderPerGame = (data: any) =>
+    perGameChartType === 'bar' ? (
+      <Bar data={data} options={lineChartOptionsWithRotatedLabels} />
+    ) : (
+      <Line data={data} options={lineChartOptionsWithRotatedLabels} />
+    );
 
   const handleCopyEmbed = async (
     chartId: string,
@@ -193,9 +196,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            {perGameUnavailableMessage ? perGameBlank : (
-              <Line data={chartData.srxrByGame} options={lineChartOptionsWithRotatedLabels} />
-            )}
+            {renderPerGame(chartData.srxrByGame)}
           </div>
         </div>
       </div>
@@ -230,9 +231,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            {perGameUnavailableMessage ? perGameBlank : (
-              <Line data={chartData.rushPassByGame} options={lineChartOptionsWithRotatedLabels} />
-            )}
+            {renderPerGame(chartData.rushPassByGame)}
           </div>
         </div>
 
@@ -264,9 +263,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            {perGameUnavailableMessage ? perGameBlank : (
-              <Line data={chartData.rushRateByGame} options={lineChartOptionsWithRotatedLabels} />
-            )}
+            {renderPerGame(chartData.rushRateByGame)}
           </div>
         </div>
       </div>

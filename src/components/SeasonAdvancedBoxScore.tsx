@@ -196,15 +196,21 @@ interface SeasonBoxScoreTableProps {
   selectedTeamColor: string;
   gamesCount: number;
   isFirst: boolean;
+  // Override the right-hand column (defaults to a gray "Opponents" column).
+  // Team vs. Team passes the opponent team's name and color here.
+  oppLabel?: string;
+  oppColor?: string;
 }
 
-const SeasonBoxScoreTable: React.FC<SeasonBoxScoreTableProps> = ({
+export const SeasonBoxScoreTable: React.FC<SeasonBoxScoreTableProps> = ({
   stats,
   team,
   tableTitle,
   selectedTeamColor,
   gamesCount,
-  isFirst
+  isFirst,
+  oppLabel = 'Opponents',
+  oppColor
 }) => {
   const teamColors = getDisplayTeamColors(team, selectedTeamColor);
   const oppColors = {
@@ -242,9 +248,9 @@ const SeasonBoxScoreTable: React.FC<SeasonBoxScoreTableProps> = ({
             </th>
             <th
               className="px-4 py-3 text-center text-sm font-semibold border-b-4"
-              style={{ borderBottomColor: oppColors.success }}
+              style={{ borderBottomColor: oppColor || oppColors.success }}
             >
-              Opponents
+              {oppLabel}
             </th>
           </tr>
         </thead>
