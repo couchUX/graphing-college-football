@@ -20,7 +20,6 @@ import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCs
 import MultiYearSpTrends from './MultiYearSpTrends';
 import TeamCompareView from './TeamCompareView';
 import MainNav from './MainNav';
-import logo from '../assets/graphing-cfb-logo-2.png';
 
 type TrendsView = 'season' | 'spTrends' | 'compare';
 

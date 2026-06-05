@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Combobox } from '@headlessui/react';
 import { Check, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { Team } from '../services/api';
 
 interface TeamPickerProps {
@@ -21,6 +21,7 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
   loading = false,
   placeholder = 'e.g., Alabama',
 }) => {
+  const inputId = useId();
   const [query, setQuery] = useState('');
 
   const filteredTeams =
@@ -32,10 +33,13 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
 
   return (
     <div className="flex-1 min-w-0">
-      <label className="block text-sm font-medium text-neutral-700 mb-2">{label}</label>
+      <label htmlFor={inputId} className="block text-sm font-medium text-neutral-700 mb-2">
+        {label}
+      </label>
       <Combobox value={value} onChange={onChange}>
         <div className="relative">
           <Combobox.Input
+            id={inputId}
             className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 pr-10 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             displayValue={(team: Team | null) => team?.school || ''}
             onChange={(event) => setQuery(event.target.value)}
