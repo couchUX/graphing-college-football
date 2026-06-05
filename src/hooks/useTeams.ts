@@ -26,9 +26,12 @@ export const useTeams = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (cachedTeams) return;
     let active = true;
-    setLoading(true);
+    // Don't guard on `cachedTeams` here: if a sibling's in-flight fetch resolves
+    // between this component's render and effect, an early return would strand it
+    // at loading=true forever. loadTeams() resolves instantly when the cache is
+    // warm, so letting it always run drives the final state correctly.
+    if (!cachedTeams) setLoading(true);
     loadTeams()
       .then((data) => {
         if (active) setTeams(data);
