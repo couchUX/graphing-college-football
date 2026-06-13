@@ -94,6 +94,12 @@ const MultiYearSpTrends: React.FC = () => {
   const { teams, loading: loadingTeams } = useTeams();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [colorId, setColorId] = useState<string>('default');
+  const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({
+    overall: true,
+    offense: true,
+    defense: true,
+    specialTeams: true,
+  });
   const [ratings, setRatings] = useState<SPRating[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,22 +157,27 @@ const MultiYearSpTrends: React.FC = () => {
     };
   }, [selectedTeam]);
 
-  const chartData = useMemo<ChartData<'line'>>(() => {
-    const colors = selectedTeam
-      ? seriesColorsFor(selectedTeam.school, colorId)
-      : SERIES.map((s) => s.color);
-    return {
+  const seriesColors = useMemo(
+    () => (selectedTeam ? seriesColorsFor(selectedTeam.school, colorId) : SERIES.map((s) => s.color)),
+    [selectedTeam, colorId],
+  );
+
+  const chartData = useMemo<ChartData<'line'>>(
+    () => ({
       labels: ratings.map((r) => String(r.year)),
-      datasets: SERIES.map((series, i) => ({
-        label: series.label,
-        data: ratings.map((r) => ratingValue(r, series.key)),
-        borderColor: colors[i],
-        backgroundColor: colors[i],
-        borderWidth: 2,
-        spanGaps: true,
-      })),
-    };
-  }, [ratings, selectedTeam, colorId]);
+      datasets: SERIES.map((series, i) => ({ series, color: seriesColors[i] }))
+        .filter(({ series }) => visibleSeries[series.key])
+        .map(({ series, color }) => ({
+          label: series.label,
+          data: ratings.map((r) => ratingValue(r, series.key)),
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          spanGaps: true,
+        })),
+    }),
+    [ratings, seriesColors, visibleSeries],
+  );
 
   const options = useMemo<ChartOptions<'line'>>(
     () => ({
@@ -236,6 +247,30 @@ const MultiYearSpTrends: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-xl border border-neutral-200 shadow-sm pt-5 px-4 pb-4 sm:px-6 sm:pb-6 mb-4">
+            {/* Series toggle checklist */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4">
+              {SERIES.map((series, i) => (
+                <label
+                  key={series.key}
+                  className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer select-none"
+                >
+                  <input
+                    type="checkbox"
+                    checked={visibleSeries[series.key]}
+                    onChange={(e) =>
+                      setVisibleSeries((v) => ({ ...v, [series.key]: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-neutral-300 focus:ring-blue-500"
+                    style={{ accentColor: seriesColors[i] }}
+                  />
+                  <span
+                    className="inline-block w-3 h-3 rounded-sm"
+                    style={{ backgroundColor: seriesColors[i] }}
+                  />
+                  {series.label}
+                </label>
+              ))}
+            </div>
             <div className="h-[420px]">
               <Line data={chartData} options={options} />
             </div>

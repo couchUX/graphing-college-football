@@ -29,10 +29,13 @@ const sortGames = (a: TeamGame, b: TeamGame) => {
 };
 
 // Load and process one team's selected games (plays + per-game plays).
+// fullSchedule is the team's complete completed schedule so the per-game charts
+// can place each game at its real slot even when a subset is selected.
 const loadTeamSeason = async (
   year: number,
   team: string,
   selectedGames: TeamGame[],
+  fullSchedule: TeamGame[],
 ): Promise<CompareSide> => {
   const result = await fetchSeasonPlayByPlayData({
     year,
@@ -45,7 +48,13 @@ const loadTeamSeason = async (
   const perGamePlays = new Map<number, PlayData[]>();
   result.perGamePlays.forEach((plays, id) => perGamePlays.set(id, processPlayData(plays)));
 
-  return { team, games: result.games, allPlays, perGamePlays };
+  return {
+    team,
+    games: result.games,
+    allPlays,
+    perGamePlays,
+    allGameIds: fullSchedule.map((g) => g.id),
+  };
 };
 
 type PlayerFilter = 'both' | 'a' | 'b';
@@ -263,8 +272,8 @@ const TeamCompareView: React.FC = () => {
       const selGamesA = gamesA.filter((g) => selectedA.includes(g.id));
       const selGamesB = gamesB.filter((g) => selectedB.includes(g.id));
       // Sequentially to keep request bursts close to a single-team season fetch.
-      const a = await loadTeamSeason(year, teamA.school, selGamesA);
-      const b = await loadTeamSeason(year, teamB.school, selGamesB);
+      const a = await loadTeamSeason(year, teamA.school, selGamesA, gamesA);
+      const b = await loadTeamSeason(year, teamB.school, selGamesB, gamesB);
       const boxA = await fetchSeasonBoxScores(a.games, a.team, () => {});
       const boxB = await fetchSeasonBoxScores(b.games, b.team, () => {});
       setResult({ a, b, year });

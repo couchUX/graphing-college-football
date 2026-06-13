@@ -16,6 +16,10 @@ export interface CompareSide {
   games: TeamGame[];
   allPlays: PlayData[];
   perGamePlays: Map<number, PlayData[]>;
+  // Game ids of the team's full (unfiltered) completed schedule, in
+  // chronological order. Used to place per-game points at their real schedule
+  // slot so a filtered-out game leaves a gap instead of shifting later games up.
+  allGameIds: number[];
 }
 
 const isRushPlay = (p: PlayData) =>
@@ -36,6 +40,7 @@ const perGameSplits = (side: CompareSide) =>
     const pass = teamPlays.filter(isPassPlay);
     const pct = (n: number, d: number): number | null => (d > 0 ? (n / d) * 100 : null);
     return {
+      gameId: game.id,
       rushRate: pct(rush.length, teamPlays.length),
       rushSR: pct(rush.filter((p) => p.success).length, rush.length),
       passSR: pct(pass.filter((p) => p.success).length, pass.length),
@@ -124,15 +129,25 @@ export const useCompareChartData = (
     const performanceByFieldPosition = bar('redZone');
     const performanceByDistance = bar('distance');
 
-    // ===== Line charts (per-game trends, generic "Game N" labels) =====
-    const maxGames = Math.max(perGameA.length, perGameB.length);
-    const labels = Array.from({ length: maxGames }, (_, i) => `Game ${i + 1}`);
+    // ===== Line charts (per-game trends) =====
+    // Place each game at its slot in that team's full schedule so filtering out
+    // games leaves a gap rather than shifting later games up; the two teams line
+    // up by game ordinal ("Game N"), roughly matching by time.
     const splitsA = perGameSplits(a);
     const splitsB = perGameSplits(b);
+    const selectedMax = Math.max(perGameA.length, perGameB.length);
+    const slotCount = Math.max(a.allGameIds.length, b.allGameIds.length, selectedMax);
+    const labels = Array.from({ length: slotCount }, (_, i) => `Game ${i + 1}`);
+
+    // gameId -> slot (index within its own team's full schedule). Game ids are
+    // unique per game, so one map covers both teams without collision.
+    const slotById = new Map<number, number>();
+    a.allGameIds.forEach((id, i) => slotById.set(id, i));
+    b.allGameIds.forEach((id, i) => slotById.set(id, i));
 
     // One game per team: a single point per series reads better as grouped
     // columns (Team A vs Team B per metric) than as one-dot lines.
-    const singleGame = maxGames <= 1;
+    const singleGame = selectedMax <= 1;
     const barCompare = (
       catLabels: string[],
       aVals: (number | null)[],
@@ -145,17 +160,32 @@ export const useCompareChartData = (
       ],
     });
 
-    const srSeries = (perGame: typeof perGameA, key: 'teamSR' | 'teamXR') =>
-      labels.map((_, i) => (i < perGame.length ? perGame[i][key] * 100 : null));
-    const splitSeries = (splits: ReturnType<typeof perGameSplits>, key: 'rushRate' | 'rushSR' | 'passSR') =>
-      labels.map((_, i) => (i < splits.length ? splits[i][key] : null));
+    const srSeries = (perGame: typeof perGameA, key: 'teamSR' | 'teamXR'): (number | null)[] => {
+      const arr: (number | null)[] = new Array(slotCount).fill(null);
+      perGame.forEach((g) => {
+        const slot = slotById.get(g.gameId);
+        if (slot != null && slot < slotCount) arr[slot] = g[key] * 100;
+      });
+      return arr;
+    };
+    const splitSeries = (
+      splits: ReturnType<typeof perGameSplits>,
+      key: 'rushRate' | 'rushSR' | 'passSR',
+    ): (number | null)[] => {
+      const arr: (number | null)[] = new Array(slotCount).fill(null);
+      splits.forEach((s) => {
+        const slot = slotById.get(s.gameId);
+        if (slot != null && slot < slotCount) arr[slot] = s[key];
+      });
+      return arr;
+    };
 
     // Fresh instance per chart — Chart.js can attach internal state to dataset
     // objects, so the NCAA reference area must not be shared across charts.
     const ncaaArea = () => ({
       type: 'line' as const,
       label: 'NCAA Avg SR',
-      data: Array(maxGames).fill(NCAA_AVERAGE_SR * 100),
+      data: Array(slotCount).fill(NCAA_AVERAGE_SR * 100),
       backgroundColor: 'rgba(0,0,0,0.03)',
       borderColor: 'transparent',
       pointRadius: 0,
@@ -240,7 +270,7 @@ export const useCompareChartData = (
         {
           type: 'line' as const,
           label: '50% Line',
-          data: Array(maxGames).fill(50),
+          data: Array(slotCount).fill(50),
           borderColor: 'rgba(0,0,0,0.15)',
           borderWidth: 1.5,
           pointRadius: 0,
