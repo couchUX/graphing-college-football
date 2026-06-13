@@ -478,11 +478,7 @@ const TeamCompareView: React.FC = () => {
             gamesCount={Math.max(result.a.games.length, result.b.games.length)}
             selectedTeamColor={colorA}
             perGameChartType={chartData.perGameChartType}
-            perGameMessage={
-              chartData.perGameChartType === 'bar'
-                ? 'Not available for a single-game selection.'
-                : undefined
-            }
+            hidePerGameLines={chartData.perGameChartType === 'bar'}
           />
 
           {/* Player charts (both teams; per-team filter + top-N per chart) */}

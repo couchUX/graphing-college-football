@@ -44,7 +44,7 @@ export const decodeGameSelection = (
 ): number[] => {
   if (!encoded) return games.map((g) => g.id);
   const ids = encoded
-    .split(/[-,]/)
+    .split('-')
     .map((n) => Number(n))
     .filter((n) => Number.isInteger(n))
     .map((i) => games[i]?.id)

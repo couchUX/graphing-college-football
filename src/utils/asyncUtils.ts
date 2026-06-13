@@ -40,16 +40,16 @@ const isRetriable = (error: unknown): boolean => {
 // transient API failures (429/5xx) when fetching many resources.
 export const withRetry = async <T>(
   fn: () => Promise<T>,
-  attempts = 2,
+  maxRetries = 2,
   baseDelayMs = 700,
 ): Promise<T> => {
   let lastError: unknown;
-  for (let attempt = 0; attempt <= attempts; attempt += 1) {
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      if (attempt < attempts && isRetriable(error)) {
+      if (attempt < maxRetries && isRetriable(error)) {
         const delay = baseDelayMs * (attempt + 1) + Math.random() * 200;
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {

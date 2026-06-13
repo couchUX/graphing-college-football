@@ -9,8 +9,7 @@ import { useTeams } from '../hooks/useTeams';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import TeamPicker from './TeamPicker';
 import { readParams, writeParams } from '../utils/trendsUrl';
-import { colorPalette } from '../utils/colorPalette';
-import { getTeamColors } from '../utils/teamColors';
+import { getDisplayTeamColors } from '../utils/displayTeamColors';
 
 initializeChartDefaults();
 
@@ -76,18 +75,19 @@ const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => 
   return [h * 360, s * 100, l * 100];
 };
 
-// Derive the four SP+ series colors from a single root color (the /games
-// approach): same hue, stepped from dark to light so the lines stay on-brand
-// and distinguishable. 'default' uses the team's own color.
+// SP+ series colors, ordered to match SERIES (Overall, Offense, Defense,
+// Special teams): Overall = the dark team color, Offense = the primary team
+// color, Defense = a neutral gray, Special teams = a light tint of the team
+// color. 'default' uses the team's own colors.
 const seriesColorsFor = (teamName: string, colorId: string): string[] => {
-  const root =
-    colorId !== 'default'
-      ? colorPalette.find((c) => c.id === colorId)?.primary ?? '#171717'
-      : getTeamColors(teamName).success;
-  const [r, g, b] = parseColor(root);
+  const c = getDisplayTeamColors(teamName, colorId);
+  const primary = c.color || c.success; // Offense — primary team color
+  const dark = c.colorDark || c.explosive; // Overall — dark team color
+  const [r, g, b] = parseColor(primary);
   const [h, s] = rgbToHsl(r, g, b);
-  const sat = Math.min(Math.max(s, 50), 90);
-  return [30, 44, 58, 70].map((l) => `hsl(${Math.round(h)}, ${Math.round(sat)}%, ${l}%)`);
+  const sat = Math.round(Math.min(Math.max(s, 45), 85));
+  const light = `hsl(${Math.round(h)}, ${sat}%, 68%)`; // Special teams — light tint
+  return [dark, primary, '#9CA3AF', light];
 };
 
 const MultiYearSpTrends: React.FC = () => {
