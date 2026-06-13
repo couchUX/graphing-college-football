@@ -382,7 +382,20 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
       })(),
       clock: play.clock || { minutes: 0, seconds: 0 },
       wallclock: play.wallclock || '',
-      timeRemaining: play.time_remaining || play.timeRemaining || 0,
+      timeRemaining: (() => {
+        // CFBD returns the clock as a per-quarter { minutes, seconds } object,
+        // not a flat game-seconds-remaining field, so derive seconds left in
+        // regulation. Prefer an explicit API value if one is ever present.
+        // Overtime is untimed → 0.
+        const apiValue = play.time_remaining || play.timeRemaining;
+        if (apiValue) return apiValue;
+        const q = play.quarter || play.period || 0;
+        if (q < 1 || q > 4) return 0;
+        const clock = play.clock || {};
+        const minutes = clock.minutes ?? 0;
+        const seconds = clock.seconds ?? 0;
+        return (4 - q) * 900 + minutes * 60 + seconds;
+      })(),
       // Player names
       rusher: playerNames.rusher,
       passer: playerNames.passer,
