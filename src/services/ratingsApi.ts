@@ -35,7 +35,6 @@ export const fetchSPRatings = async (year: number): Promise<SPRating[]> => {
     }
 
     const data = await response.json();
-    console.log('Fetched SP+ ratings:', data.length, 'teams');
 
     return data;
   } catch (error) {
@@ -48,7 +47,6 @@ export const fetchSPRatings = async (year: number): Promise<SPRating[]> => {
 export const fetchSPRatingsHistory = async (team: string): Promise<SPRating[]> => {
   try {
     const url = `${API_BASE_URL}/ratings/sp?team=${encodeURIComponent(team)}`;
-    console.log('Fetching SP+ ratings history from:', url);
 
     const response = await withRetry(async () => {
       const res = await fetch(url, { headers: getApiHeaders() });
@@ -59,7 +57,6 @@ export const fetchSPRatingsHistory = async (team: string): Promise<SPRating[]> =
     });
 
     const data: SPRating[] = await response.json();
-    console.log('Fetched SP+ ratings history:', data.length, 'seasons');
 
     // Guard against aggregate rows without a real season year, and collapse any
     // duplicate rows for the same year to a single point (the endpoint can

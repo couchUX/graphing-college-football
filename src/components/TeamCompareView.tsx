@@ -119,7 +119,7 @@ const PlayerCountFilter: React.FC<{
 );
 
 const TeamCompareView: React.FC = () => {
-  const { teams, loading: loadingTeams } = useTeams();
+  const { teams, loading: loadingTeams, error: teamsError } = useTeams();
   const [teamA, setTeamA] = useState<Team | null>(null);
   const [teamB, setTeamB] = useState<Team | null>(null);
   const [colorA, setColorA] = useState<string>('default');
@@ -437,6 +437,11 @@ const TeamCompareView: React.FC = () => {
         </div>
         {teamA && teamB && teamA.school === teamB.school && (
           <p className="text-sm text-amber-700 mt-3">Pick two different teams to compare.</p>
+        )}
+        {teamsError && (
+          <p className="text-sm text-red-700 mt-3">
+            Couldn't load the team list. Check your connection and refresh to try again.
+          </p>
         )}
       </div>
 

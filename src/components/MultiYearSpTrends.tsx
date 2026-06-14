@@ -91,7 +91,7 @@ const seriesColorsFor = (teamName: string, colorId: string): string[] => {
 };
 
 const MultiYearSpTrends: React.FC = () => {
-  const { teams, loading: loadingTeams } = useTeams();
+  const { teams, loading: loadingTeams, error: teamsError } = useTeams();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [colorId, setColorId] = useState<string>('default');
   const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({
@@ -218,6 +218,15 @@ const MultiYearSpTrends: React.FC = () => {
           />
         </div>
       </div>
+
+      {teamsError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-red-700 text-sm">
+            Couldn't load the team list. Check your connection and refresh to try again.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 flex items-start gap-3">
