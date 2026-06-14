@@ -94,6 +94,8 @@ const MultiYearSpTrends: React.FC = () => {
     writeParams({ spColor: id === 'default' ? null : id });
   };
   const handleTeamBChange = (team: Team | null) => {
+    // Avoid comparing a team against itself (two identical lines).
+    if (team && selectedTeam && team.school === selectedTeam.school) return;
     setSelectedTeamB(team);
     writeParams({ spTeamB: team?.school ?? null });
   };

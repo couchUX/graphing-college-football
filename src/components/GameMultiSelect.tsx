@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { TeamGame } from '../services/api';
 
@@ -37,6 +37,7 @@ const GameMultiSelect: React.FC<GameMultiSelectProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -59,9 +60,12 @@ const GameMultiSelect: React.FC<GameMultiSelectProps> = ({
 
   return (
     <div className="flex-1 min-w-0">
-      <label className="block text-sm font-medium text-neutral-700 mb-2">{label}</label>
+      <label htmlFor={buttonId} className="block text-sm font-medium text-neutral-700 mb-2">
+        {label}
+      </label>
       <div className="relative" ref={ref}>
         <button
+          id={buttonId}
           type="button"
           onClick={() => setOpen((o) => !o)}
           disabled={disabled || loading || games.length === 0}
