@@ -139,15 +139,19 @@ export const useCompareChartData = (
     const slotCount = Math.max(a.allGameIds.length, b.allGameIds.length, selectedMax);
     const labels = Array.from({ length: slotCount }, (_, i) => `Game ${i + 1}`);
 
-    // gameId -> slot (index within its own team's full schedule). Game ids are
-    // unique per game, so one map covers both teams without collision.
-    const slotById = new Map<number, number>();
-    a.allGameIds.forEach((id, i) => slotById.set(id, i));
-    b.allGameIds.forEach((id, i) => slotById.set(id, i));
+    // gameId -> slot (index within each team's own full schedule). Separate maps
+    // per team: a game the two teams played against each other shares a single id
+    // but sits at a different slot in each schedule, so one shared map would
+    // collide and mis-place one team's point.
+    const slotByIdA = new Map<number, number>();
+    a.allGameIds.forEach((id, i) => slotByIdA.set(id, i));
+    const slotByIdB = new Map<number, number>();
+    b.allGameIds.forEach((id, i) => slotByIdB.set(id, i));
 
     // One game per team: a single point per series reads better as grouped
-    // columns (Team A vs Team B per metric) than as one-dot lines.
-    const singleGame = selectedMax <= 1;
+    // columns (Team A vs Team B per metric) than as one-dot lines. Require both
+    // sides to have exactly one game so the [0] accesses below are always safe.
+    const singleGame = perGameA.length === 1 && perGameB.length === 1;
     const barCompare = (
       catLabels: string[],
       aVals: (number | null)[],
@@ -160,21 +164,26 @@ export const useCompareChartData = (
       ],
     });
 
-    const srSeries = (perGame: typeof perGameA, key: 'teamSR' | 'teamXR'): (number | null)[] => {
+    const srSeries = (
+      perGame: typeof perGameA,
+      slots: Map<number, number>,
+      key: 'teamSR' | 'teamXR',
+    ): (number | null)[] => {
       const arr: (number | null)[] = new Array(slotCount).fill(null);
       perGame.forEach((g) => {
-        const slot = slotById.get(g.gameId);
+        const slot = slots.get(g.gameId);
         if (slot != null && slot < slotCount) arr[slot] = g[key] * 100;
       });
       return arr;
     };
     const splitSeries = (
       splits: ReturnType<typeof perGameSplits>,
+      slots: Map<number, number>,
       key: 'rushRate' | 'rushSR' | 'passSR',
     ): (number | null)[] => {
       const arr: (number | null)[] = new Array(slotCount).fill(null);
       splits.forEach((s) => {
-        const slot = slotById.get(s.gameId);
+        const slot = slots.get(s.gameId);
         if (slot != null && slot < slotCount) arr[slot] = s[key];
       });
       return arr;
@@ -207,7 +216,7 @@ export const useCompareChartData = (
         ncaaArea(),
         {
           label: `${a.team} SR`,
-          data: srSeries(perGameA, 'teamSR'),
+          data: srSeries(perGameA, slotByIdA, 'teamSR'),
           borderColor: colorsA.success,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -220,7 +229,7 @@ export const useCompareChartData = (
         },
         {
           label: `${a.team} XR`,
-          data: srSeries(perGameA, 'teamXR'),
+          data: srSeries(perGameA, slotByIdA, 'teamXR'),
           borderColor: colorsA.explosive,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -234,7 +243,7 @@ export const useCompareChartData = (
         },
         {
           label: `${b.team} SR`,
-          data: srSeries(perGameB, 'teamSR'),
+          data: srSeries(perGameB, slotByIdB, 'teamSR'),
           borderColor: colorsB.success,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -247,7 +256,7 @@ export const useCompareChartData = (
         },
         {
           label: `${b.team} XR`,
-          data: srSeries(perGameB, 'teamXR'),
+          data: srSeries(perGameB, slotByIdB, 'teamXR'),
           borderColor: colorsB.explosive,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -281,7 +290,7 @@ export const useCompareChartData = (
         },
         {
           label: `${a.team} Rush Rate`,
-          data: splitSeries(splitsA, 'rushRate'),
+          data: splitSeries(splitsA, slotByIdA, 'rushRate'),
           borderColor: colorsA.success,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -293,7 +302,7 @@ export const useCompareChartData = (
         },
         {
           label: `${b.team} Rush Rate`,
-          data: splitSeries(splitsB, 'rushRate'),
+          data: splitSeries(splitsB, slotByIdB, 'rushRate'),
           borderColor: colorsB.success,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -318,7 +327,7 @@ export const useCompareChartData = (
         ncaaArea(),
         {
           label: `${a.team} Rush SR`,
-          data: splitSeries(splitsA, 'rushSR'),
+          data: splitSeries(splitsA, slotByIdA, 'rushSR'),
           borderColor: colorsA.success,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -331,7 +340,7 @@ export const useCompareChartData = (
         },
         {
           label: `${a.team} Pass SR`,
-          data: splitSeries(splitsA, 'passSR'),
+          data: splitSeries(splitsA, slotByIdA, 'passSR'),
           borderColor: colorsA.explosive,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -345,7 +354,7 @@ export const useCompareChartData = (
         },
         {
           label: `${b.team} Rush SR`,
-          data: splitSeries(splitsB, 'rushSR'),
+          data: splitSeries(splitsB, slotByIdB, 'rushSR'),
           borderColor: colorsB.success,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
@@ -358,7 +367,7 @@ export const useCompareChartData = (
         },
         {
           label: `${b.team} Pass SR`,
-          data: splitSeries(splitsB, 'passSR'),
+          data: splitSeries(splitsB, slotByIdB, 'passSR'),
           borderColor: colorsB.explosive,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
