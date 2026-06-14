@@ -56,6 +56,7 @@ const MultiYearSpTrends: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [loadingB, setLoadingB] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorB, setErrorB] = useState<string | null>(null);
   const restoredRef = useRef(false);
 
   const compareMode = !!selectedTeamB;
@@ -136,10 +137,12 @@ const MultiYearSpTrends: React.FC = () => {
   useEffect(() => {
     if (!selectedTeamB) {
       setRatingsB([]);
+      setErrorB(null);
       return;
     }
     let active = true;
     setLoadingB(true);
+    setErrorB(null);
     fetchSPRatingsHistory(selectedTeamB.school)
       .then((data) => {
         if (active) setRatingsB(data);
@@ -147,7 +150,7 @@ const MultiYearSpTrends: React.FC = () => {
       .catch((err) => {
         console.error(err);
         if (active) {
-          setError('Failed to load SP+ history for the second team.');
+          setErrorB('Failed to load SP+ history for the second team.');
           setRatingsB([]);
         }
       })
@@ -195,6 +198,8 @@ const MultiYearSpTrends: React.FC = () => {
             borderColor: teamAColor,
             backgroundColor: teamAColor,
             borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
             spanGaps: true,
           },
           {
@@ -206,6 +211,8 @@ const MultiYearSpTrends: React.FC = () => {
             borderColor: teamBColor,
             backgroundColor: teamBColor,
             borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
             spanGaps: true,
           },
         ],
@@ -222,6 +229,8 @@ const MultiYearSpTrends: React.FC = () => {
           borderColor: color,
           backgroundColor: color,
           borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 4,
           spanGaps: true,
         })),
     };
@@ -259,6 +268,7 @@ const MultiYearSpTrends: React.FC = () => {
 
   const latest = ratings.length > 0 ? ratings[ratings.length - 1] : null;
   const combinedLoading = loading || (compareMode && loadingB);
+  const combinedError = error || (compareMode ? errorB : null);
   const hasData = ratings.length > 0 && (!compareMode || ratingsB.length > 0);
 
   return (
@@ -277,16 +287,30 @@ const MultiYearSpTrends: React.FC = () => {
             />
           </div>
           <div className="flex-1 min-w-0">
-            <TeamPicker
-              label="Compare to (optional)"
-              value={selectedTeamB}
-              onChange={handleTeamBChange}
-              teams={teams}
-              loading={loadingTeams}
-              placeholder="e.g., Georgia"
-              colorId={colorB}
-              onColorChange={handleColorBChange}
-            />
+            <div className="flex items-end gap-2">
+              <div className="flex-1 min-w-0">
+                <TeamPicker
+                  label="Compare to (optional)"
+                  value={selectedTeamB}
+                  onChange={handleTeamBChange}
+                  teams={teams}
+                  loading={loadingTeams}
+                  placeholder="e.g., Georgia"
+                  colorId={colorB}
+                  onColorChange={handleColorBChange}
+                />
+              </div>
+              {selectedTeamB && (
+                <button
+                  type="button"
+                  onClick={() => handleTeamBChange(null)}
+                  className="flex-shrink-0 px-3 py-2.5 text-sm font-medium text-neutral-600 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                  title="Clear the second team and return to the single-team view"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
         </div>
         {teamsError && (
@@ -299,10 +323,10 @@ const MultiYearSpTrends: React.FC = () => {
         )}
       </div>
 
-      {error && (
+      {combinedError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-red-700 text-sm">{error}</p>
+          <p className="text-red-700 text-sm">{combinedError}</p>
         </div>
       )}
 
@@ -312,7 +336,7 @@ const MultiYearSpTrends: React.FC = () => {
         </div>
       )}
 
-      {!combinedLoading && !error && selectedTeam && hasData && (
+      {!combinedLoading && !combinedError && selectedTeam && hasData && (
         <>
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-neutral-900">
@@ -387,7 +411,7 @@ const MultiYearSpTrends: React.FC = () => {
         </>
       )}
 
-      {!combinedLoading && !error && !selectedTeam && (
+      {!combinedLoading && !combinedError && !selectedTeam && (
         <div className="text-center py-8">
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
             <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
@@ -402,7 +426,7 @@ const MultiYearSpTrends: React.FC = () => {
         </div>
       )}
 
-      {!combinedLoading && !error && selectedTeam && ratings.length === 0 && (
+      {!combinedLoading && !combinedError && selectedTeam && ratings.length === 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <p className="text-amber-800 text-sm">No SP+ history found for {selectedTeam.school}.</p>
@@ -410,7 +434,7 @@ const MultiYearSpTrends: React.FC = () => {
       )}
 
       {!combinedLoading &&
-        !error &&
+        !combinedError &&
         compareMode &&
         selectedTeamB &&
         ratings.length > 0 &&
