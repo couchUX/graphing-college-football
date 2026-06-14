@@ -38,10 +38,23 @@ export interface Team {
   alt_name_3?: string;
   conference: string;
   division: string;
+  classification?: string;
   color: string;
   alt_color: string;
   logos: string[];
 }
+
+// Divisions that field a football team we chart. The CFBD /teams endpoint
+// also returns lower divisions (ii, iii) and defunct/non-football programs.
+const FOOTBALL_CLASSIFICATIONS = new Set(['fbs', 'fcs']);
+
+export const isFootballTeam = (team: Team): boolean => {
+  if (team.classification) {
+    return FOOTBALL_CLASSIFICATIONS.has(team.classification.toLowerCase());
+  }
+  // Older/edge responses may omit classification; fall back to "has a conference".
+  return Boolean(team.conference);
+};
 
 export interface TeamGame {
   id: number;
@@ -92,10 +105,10 @@ export const fetchTeams = async (): Promise<Team[]> => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const data = await response.json();
-    console.log('Fetched teams:', data.length);
-    
-    return data;
+    const data: Team[] = await response.json();
+    const footballTeams = data.filter(isFootballTeam);
+
+    return footballTeams;
   } catch (error) {
     console.error('Error fetching teams:', error);
     throw error;

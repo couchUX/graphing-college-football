@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart3, TrendingUp, Award, AlertCircle, Info, Flame, Ruler, Copy, Check, Sparkles } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertCircle, Info, Flame, Ruler, Copy, Check, Download } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
 import SeasonSelector from './SeasonSelector';
 import TrendsChartsGrid from './TrendsChartsGrid';
@@ -16,9 +16,31 @@ import { createPlayerData } from '../utils/chartHelpers';
 import { generateTrendsEmbedCode } from '../utils/trendsEmbedGenerator';
 import { createPlayerOptions } from '../utils/chartOptions';
 import { calculateAveragedBoxScore, BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
-import logo from '../assets/graphing-cfb-logo-2.png';
+import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
+import MultiYearSpTrends from './MultiYearSpTrends';
+import TeamCompareView from './TeamCompareView';
+import MainNav from './MainNav';
+import { readParams, writeParams } from '../utils/trendsUrl';
+
+type TrendsView = 'season' | 'spTrends' | 'compare';
+
+const TRENDS_TABS: { id: TrendsView; label: string }[] = [
+  { id: 'season', label: 'Season trends' },
+  { id: 'compare', label: 'Team vs. Team' },
+  { id: 'spTrends', label: 'Multi-year SP+' },
+];
 
 const TeamTrendsPage: React.FC = () => {
+  const [trendsView, setTrendsView] = useState<TrendsView>(() => {
+    const v = readParams().get('view');
+    return v === 'compare' || v === 'spTrends' ? v : 'season';
+  });
+
+  // Persist the active sub-tab in the URL (omit for the default 'season').
+  const handleViewChange = (view: TrendsView) => {
+    setTrendsView(view);
+    writeParams({ view: view === 'season' ? null : view });
+  };
   const [seasonGames, setSeasonGames] = useState<TeamGame[]>([]);
   const [allSeasonPlays, setAllSeasonPlays] = useState<PlayData[]>([]);
   const [perGamePlays, setPerGamePlays] = useState<Map<number, PlayData[]>>(new Map());
@@ -166,6 +188,12 @@ const TeamTrendsPage: React.FC = () => {
     }
   };
 
+  const handleDownloadCsv = () => {
+    if (!currentParams || allSeasonPlays.length === 0) return;
+    const csv = playsToCsv(allSeasonPlays, seasonGames);
+    downloadCsv(buildPlaysCsvFilename(currentParams.team, currentParams.year), csv);
+  };
+
   // Get chart data (hooks must be called unconditionally)
   const chartData = useSeasonChartData(
     allSeasonPlays,
@@ -270,41 +298,8 @@ const TeamTrendsPage: React.FC = () => {
 
             {/* Row 2 on mobile, Right side on desktop: Navigation Toggle + Info Button (desktop only) */}
             <div className="flex items-center gap-3">
-              {/* Navigation Toggle */}
-              <div className="flex w-full sm:w-auto border border-neutral-300 rounded-lg overflow-hidden h-10">
-                <a
-                  href="/games"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Games"
-                >
-                  <BarChart3 className="h-5 w-5" />
-                  <span>Games</span>
-                </a>
-                <a
-                  href="/ratings"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="SP+ Ratings"
-                >
-                  <Award className="h-5 w-5" />
-                  <span>Ratings</span>
-                </a>
-                <a
-                  href="/trends"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-neutral-200 text-neutral-600 cursor-default"
-                  title="Team Trends"
-                >
-                  <TrendingUp className="h-5 w-5" />
-                  <span>Trends</span>
-                </a>
-                <a
-                  href="/discover"
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-3 text-sm font-medium transition-colors border-l border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
-                  title="Discover"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <span>Discover</span>
-                </a>
-              </div>
+              {/* Navigation */}
+              <MainNav current="trends" />
 
               {/* Info Button - visible on desktop only */}
               <button
@@ -322,6 +317,44 @@ const TeamTrendsPage: React.FC = () => {
       {/* Main Content */}
       <main className="flex-grow py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Sub-view switcher */}
+          <div className="mb-6 sm:mb-8">
+            {/* Mobile: full-width dropdown */}
+            <select
+              value={trendsView}
+              onChange={(e) => handleViewChange(e.target.value as TrendsView)}
+              aria-label="Select Team Trends view"
+              className="sm:hidden w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {TRENDS_TABS.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Desktop: segmented control */}
+            <div className="hidden sm:inline-flex border border-neutral-300 rounded-lg overflow-hidden">
+              {TRENDS_TABS.map((tab, index) => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleViewChange(tab.id)}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    index > 0 ? 'border-l border-neutral-300' : ''
+                  } ${
+                    trendsView === tab.id
+                      ? 'bg-neutral-200 text-neutral-900'
+                      : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {trendsView === 'season' && (
+            <>
           {/* Data Input */}
           <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
             <SeasonSelector
@@ -351,13 +384,25 @@ const TeamTrendsPage: React.FC = () => {
 
           {/* Season Info Banner */}
           {chartData && currentParams && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-neutral-900">
-                {currentParams.team} - {currentParams.year} Season
-              </h2>
-              <p className="text-neutral-600">
-                Showing {currentParams.selectedGameIds.length} of {seasonGames.length} games
-              </p>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-neutral-900">
+                  {currentParams.team} - {currentParams.year} Season
+                </h2>
+                <p className="text-neutral-600">
+                  Showing {currentParams.selectedGameIds.length} of {seasonGames.length} games
+                </p>
+              </div>
+              {allSeasonPlays.length > 0 && (
+                <button
+                  onClick={handleDownloadCsv}
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-neutral-300 rounded-lg bg-white text-neutral-700 text-sm font-medium hover:bg-neutral-50 transition-colors self-start"
+                  title="Download all plays as a CSV file"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download plays CSV</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -591,6 +636,12 @@ const TeamTrendsPage: React.FC = () => {
               </div>
             </div>
           )}
+            </>
+          )}
+
+          {trendsView === 'spTrends' && <MultiYearSpTrends />}
+
+          {trendsView === 'compare' && <TeamCompareView />}
         </div>
       </main>
 
