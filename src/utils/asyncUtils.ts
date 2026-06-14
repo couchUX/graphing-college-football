@@ -33,7 +33,10 @@ const isRetriable = (error: unknown): boolean => {
       return status === 429 || status >= 500;
     }
   }
-  return true; // network errors, timeouts, etc.
+  // Only retry genuine network/timeout errors (an Error without a status code).
+  // Non-Error throws (plain strings, objects) surface immediately rather than
+  // burning retry budget on something that won't recover.
+  return error instanceof Error;
 };
 
 // Retry an async operation a few times with backoff + jitter. Useful for
@@ -50,7 +53,7 @@ export const withRetry = async <T>(
     } catch (error) {
       lastError = error;
       if (attempt < maxRetries && isRetriable(error)) {
-        const delay = baseDelayMs * (attempt + 1) + Math.random() * 200;
+        const delay = baseDelayMs * 2 ** attempt + Math.random() * 200;
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         break;
