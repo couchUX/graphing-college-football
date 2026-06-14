@@ -21,10 +21,12 @@ interface TeamPickerProps {
 }
 
 // Solid CSS color for a team's default swatch (team colors are stored as rgba).
-const teamDefaultSwatch = (team: Team): string =>
-  getTeamColors(team.school)
-    .success.replace(/rgba\(([^)]+)\)/, 'rgb($1)')
-    .replace(', 0.8', '');
+// Strip any alpha component rather than assuming a fixed 0.8.
+const teamDefaultSwatch = (team: Team): string => {
+  const color = getTeamColors(team.school).success;
+  const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  return match ? `rgb(${match[1]}, ${match[2]}, ${match[3]})` : color;
+};
 
 const TeamPicker: React.FC<TeamPickerProps> = ({
   label,
@@ -88,7 +90,8 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
           {/* Inline color swatch (inside the input, like /games) */}
           {showColors && (
             <div className="absolute inset-y-0 right-10 flex items-center">
-              <div
+              <button
+                type="button"
                 className="w-5 h-5 rounded border border-neutral-200 cursor-pointer hover:scale-110 transition-transform"
                 style={{ backgroundColor: swatchColor }}
                 onClick={(e) => {
@@ -97,6 +100,7 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
                   setShowColorPicker((s) => !s);
                 }}
                 title="Team chart color"
+                aria-label="Choose team chart color"
               />
             </div>
           )}

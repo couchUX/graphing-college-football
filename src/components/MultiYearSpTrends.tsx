@@ -9,7 +9,7 @@ import { useTeams } from '../hooks/useTeams';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import TeamPicker from './TeamPicker';
 import { readParams, writeParams } from '../utils/trendsUrl';
-import { getDisplayTeamColors } from '../utils/displayTeamColors';
+import { seriesColorsFor, teamLineColor } from '../utils/teamColorUtils';
 
 initializeChartDefaults();
 
@@ -20,7 +20,9 @@ const SERIES = [
   { key: 'specialTeams', label: 'Special teams', color: '#9333ea' },
 ] as const;
 
-const ratingValue = (rating: SPRating, key: (typeof SERIES)[number]['key']): number | null => {
+type SeriesKey = (typeof SERIES)[number]['key'];
+
+const ratingValue = (rating: SPRating, key: SeriesKey): number | null => {
   switch (key) {
     case 'overall':
       return rating.rating ?? null;
@@ -33,67 +35,16 @@ const ratingValue = (rating: SPRating, key: (typeof SERIES)[number]['key']): num
   }
 };
 
-// Parse an rgb(a)/hex color into [r, g, b].
-const parseColor = (color: string): [number, number, number] => {
-  const m = color.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
-  if (m) return [Number(m[1]), Number(m[2]), Number(m[3])];
-  const hex = color.replace('#', '');
-  if (hex.length >= 6) {
-    return [
-      parseInt(hex.slice(0, 2), 16),
-      parseInt(hex.slice(2, 4), 16),
-      parseInt(hex.slice(4, 6), 16),
-    ];
-  }
-  return [23, 23, 23];
-};
-
-const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r:
-        h = (g - b) / d + (g < b ? 6 : 0);
-        break;
-      case g:
-        h = (b - r) / d + 2;
-        break;
-      default:
-        h = (r - g) / d + 4;
-    }
-    h /= 6;
-  }
-  return [h * 360, s * 100, l * 100];
-};
-
-// SP+ series colors, ordered to match SERIES (Overall, Offense, Defense,
-// Special teams): Overall = the dark team color, Offense = the primary team
-// color, Defense = a neutral gray, Special teams = a light tint of the team
-// color. 'default' uses the team's own colors.
-const seriesColorsFor = (teamName: string, colorId: string): string[] => {
-  const c = getDisplayTeamColors(teamName, colorId);
-  const primary = c.color || c.success; // Offense — primary team color
-  const dark = c.colorDark || c.explosive; // Overall — dark team color
-  const [r, g, b] = parseColor(primary);
-  const [h, s] = rgbToHsl(r, g, b);
-  const sat = Math.round(Math.min(Math.max(s, 45), 85));
-  const light = `hsl(${Math.round(h)}, ${sat}%, 68%)`; // Special teams — light tint
-  return [dark, primary, '#9CA3AF', light];
-};
-
 const MultiYearSpTrends: React.FC = () => {
   const { teams, loading: loadingTeams, error: teamsError } = useTeams();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [colorId, setColorId] = useState<string>('default');
+  // Optional second team — when set, the view switches to comparison mode.
+  const [selectedTeamB, setSelectedTeamB] = useState<Team | null>(null);
+  const [colorB, setColorB] = useState<string>('default');
+  // In comparison mode we show a single aspect for both teams (rather than all
+  // four per team, which would crowd the legend).
+  const [aspect, setAspect] = useState<SeriesKey>('overall');
   const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({
     overall: true,
     offense: true,
@@ -101,11 +52,15 @@ const MultiYearSpTrends: React.FC = () => {
     specialTeams: true,
   });
   const [ratings, setRatings] = useState<SPRating[]>([]);
+  const [ratingsB, setRatingsB] = useState<SPRating[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingB, setLoadingB] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const restoredRef = useRef(false);
 
-  // Restore the selected team and color from the URL once teams are available.
+  const compareMode = !!selectedTeamB;
+
+  // Restore selections from the URL once teams are available.
   useEffect(() => {
     if (restoredRef.current || teams.length === 0) return;
     restoredRef.current = true;
@@ -117,9 +72,18 @@ const MultiYearSpTrends: React.FC = () => {
     }
     const c = p.get('spColor');
     if (c) setColorId(c);
+    const schoolB = p.get('spTeamB');
+    if (schoolB) {
+      const matchB = teams.find((t) => t.school.toLowerCase() === schoolB.toLowerCase());
+      if (matchB) setSelectedTeamB(matchB);
+    }
+    const cB = p.get('spColorB');
+    if (cB) setColorB(cB);
+    const a = p.get('spAspect');
+    if (a && SERIES.some((s) => s.key === a)) setAspect(a as SeriesKey);
   }, [teams]);
 
-  // Persist the selected team / color to the URL.
+  // Persist selections to the URL.
   const handleTeamChange = (team: Team | null) => {
     setSelectedTeam(team);
     writeParams({ spTeam: team?.school ?? null });
@@ -127,6 +91,18 @@ const MultiYearSpTrends: React.FC = () => {
   const handleColorChange = (id: string) => {
     setColorId(id);
     writeParams({ spColor: id === 'default' ? null : id });
+  };
+  const handleTeamBChange = (team: Team | null) => {
+    setSelectedTeamB(team);
+    writeParams({ spTeamB: team?.school ?? null });
+  };
+  const handleColorBChange = (id: string) => {
+    setColorB(id);
+    writeParams({ spColorB: id === 'default' ? null : id });
+  };
+  const handleAspectChange = (key: SeriesKey) => {
+    setAspect(key);
+    writeParams({ spAspect: key === 'overall' ? null : key });
   };
 
   useEffect(() => {
@@ -157,13 +133,86 @@ const MultiYearSpTrends: React.FC = () => {
     };
   }, [selectedTeam]);
 
+  useEffect(() => {
+    if (!selectedTeamB) {
+      setRatingsB([]);
+      return;
+    }
+    let active = true;
+    setLoadingB(true);
+    fetchSPRatingsHistory(selectedTeamB.school)
+      .then((data) => {
+        if (active) setRatingsB(data);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (active) {
+          setError('Failed to load SP+ history for the second team.');
+          setRatingsB([]);
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingB(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedTeamB]);
+
   const seriesColors = useMemo(
     () => (selectedTeam ? seriesColorsFor(selectedTeam.school, colorId) : SERIES.map((s) => s.color)),
     [selectedTeam, colorId],
   );
+  const teamAColor = useMemo(
+    () => (selectedTeam ? teamLineColor(selectedTeam.school, colorId) : '#171717'),
+    [selectedTeam, colorId],
+  );
+  const teamBColor = useMemo(
+    () => (selectedTeamB ? teamLineColor(selectedTeamB.school, colorB) : '#9CA3AF'),
+    [selectedTeamB, colorB],
+  );
 
-  const chartData = useMemo<ChartData<'line'>>(
-    () => ({
+  const aspectLabel = SERIES.find((s) => s.key === aspect)?.label ?? 'Overall';
+
+  const chartData = useMemo<ChartData<'line'>>(() => {
+    if (compareMode && selectedTeam && selectedTeamB) {
+      // One aspect, one line per team. Align both teams on a shared year axis so
+      // mismatched ranges still line up by season (gaps are spanned).
+      const allYears = Array.from(
+        new Set([...ratings, ...ratingsB].map((r) => r.year)),
+      ).sort((a, b) => a - b);
+      const byA = new Map(ratings.map((r) => [r.year, r]));
+      const byB = new Map(ratingsB.map((r) => [r.year, r]));
+      return {
+        labels: allYears.map(String),
+        datasets: [
+          {
+            label: selectedTeam.school,
+            data: allYears.map((y) => {
+              const r = byA.get(y);
+              return r ? ratingValue(r, aspect) : null;
+            }),
+            borderColor: teamAColor,
+            backgroundColor: teamAColor,
+            borderWidth: 2,
+            spanGaps: true,
+          },
+          {
+            label: selectedTeamB.school,
+            data: allYears.map((y) => {
+              const r = byB.get(y);
+              return r ? ratingValue(r, aspect) : null;
+            }),
+            borderColor: teamBColor,
+            backgroundColor: teamBColor,
+            borderWidth: 2,
+            spanGaps: true,
+          },
+        ],
+      };
+    }
+    // Single-team mode: all four series with per-series toggles.
+    return {
       labels: ratings.map((r) => String(r.year)),
       datasets: SERIES.map((series, i) => ({ series, color: seriesColors[i] }))
         .filter(({ series }) => visibleSeries[series.key])
@@ -175,15 +224,17 @@ const MultiYearSpTrends: React.FC = () => {
           borderWidth: 2,
           spanGaps: true,
         })),
-    }),
-    [ratings, seriesColors, visibleSeries],
-  );
+    };
+  }, [compareMode, selectedTeam, selectedTeamB, ratings, ratingsB, aspect, teamAColor, teamBColor, seriesColors, visibleSeries]);
 
   const options = useMemo<ChartOptions<'line'>>(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      // Slightly smaller point markers than the global default — the dots were
+      // looking exaggerated on these multi-year lines.
+      elements: { point: { radius: 2, hoverRadius: 5 } },
       plugins: {
         legend: { position: 'top', align: 'center' },
         datalabels: { display: false },
@@ -195,38 +246,58 @@ const MultiYearSpTrends: React.FC = () => {
       },
       scales: {
         x: { grid: { display: false }, title: { display: true, text: 'Season' } },
-        y: { title: { display: true, text: 'SP+ rating (points)' } },
+        y: {
+          title: {
+            display: true,
+            text: compareMode ? `SP+ ${aspectLabel} (points)` : 'SP+ rating (points)',
+          },
+        },
       },
     }),
-    [],
+    [compareMode, aspectLabel],
   );
 
   const latest = ratings.length > 0 ? ratings[ratings.length - 1] : null;
+  const combinedLoading = loading || (compareMode && loadingB);
+  const hasData = ratings.length > 0 && (!compareMode || ratingsB.length > 0);
 
   return (
     <div>
       <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
-        <div className="max-w-md">
-          <TeamPicker
-            label="Team"
-            value={selectedTeam}
-            onChange={handleTeamChange}
-            teams={teams}
-            loading={loadingTeams}
-            colorId={colorId}
-            onColorChange={handleColorChange}
-          />
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="flex-1 min-w-0">
+            <TeamPicker
+              label="Team"
+              value={selectedTeam}
+              onChange={handleTeamChange}
+              teams={teams}
+              loading={loadingTeams}
+              colorId={colorId}
+              onColorChange={handleColorChange}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <TeamPicker
+              label="Compare to (optional)"
+              value={selectedTeamB}
+              onChange={handleTeamBChange}
+              teams={teams}
+              loading={loadingTeams}
+              placeholder="e.g., Georgia"
+              colorId={colorB}
+              onColorChange={handleColorBChange}
+            />
+          </div>
         </div>
-      </div>
-
-      {teamsError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-red-700 text-sm">
+        {teamsError && (
+          <p className="text-sm text-red-700 mt-3">
             Couldn't load the team list. Check your connection and refresh to try again.
           </p>
-        </div>
-      )}
+        )}
+        {selectedTeam && selectedTeamB && selectedTeam.school === selectedTeamB.school && (
+          <p className="text-sm text-amber-700 mt-3">Pick two different teams to compare.</p>
+        )}
+      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 flex items-start gap-3">
@@ -235,51 +306,75 @@ const MultiYearSpTrends: React.FC = () => {
         </div>
       )}
 
-      {loading && (
+      {combinedLoading && (
         <div className="bg-neutral-100 border border-neutral-300 rounded-lg p-6 mb-8">
           <p className="text-neutral-700 font-medium">Loading SP+ history...</p>
         </div>
       )}
 
-      {!loading && !error && selectedTeam && ratings.length > 0 && (
+      {!combinedLoading && !error && selectedTeam && hasData && (
         <>
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-neutral-900">
-              {selectedTeam.school} - SP+ rating history
+              {compareMode && selectedTeamB
+                ? `${selectedTeam.school} vs. ${selectedTeamB.school} — SP+ ${aspectLabel}`
+                : `${selectedTeam.school} - SP+ rating history`}
             </h2>
             <p className="text-neutral-600">
               {ratings[0].year}–{ratings[ratings.length - 1].year}
-              {latest && typeof latest.ranking === 'number'
+              {!compareMode && latest && typeof latest.ranking === 'number'
                 ? ` • Most recent: ${latest.rating?.toFixed(1)} (No. ${latest.ranking})`
                 : ''}
             </p>
           </div>
 
           <div className="bg-white rounded-xl border border-neutral-200 shadow-sm pt-5 px-4 pb-4 sm:px-6 sm:pb-6 mb-4">
-            {/* Series toggle checklist */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4">
-              {SERIES.map((series, i) => (
-                <label
-                  key={series.key}
-                  className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer select-none"
-                >
-                  <input
-                    type="checkbox"
-                    checked={visibleSeries[series.key]}
-                    onChange={(e) =>
-                      setVisibleSeries((v) => ({ ...v, [series.key]: e.target.checked }))
-                    }
-                    className="h-4 w-4 rounded border-neutral-300 focus:ring-blue-500"
-                    style={{ accentColor: seriesColors[i] }}
-                  />
-                  <span
-                    className="inline-block w-3 h-3 rounded-sm"
-                    style={{ backgroundColor: seriesColors[i] }}
-                  />
-                  {series.label}
+            {compareMode ? (
+              /* Comparison mode: a single aspect dropdown keeps the legend to the
+                 two team names rather than eight series. */
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <label htmlFor="sp-aspect" className="text-sm font-medium text-neutral-700">
+                  Aspect
                 </label>
-              ))}
-            </div>
+                <select
+                  id="sp-aspect"
+                  value={aspect}
+                  onChange={(e) => handleAspectChange(e.target.value as SeriesKey)}
+                  className="bg-white border border-neutral-300 rounded-lg px-3 py-2 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  {SERIES.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              /* Single-team mode: per-series toggle checklist. */
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4">
+                {SERIES.map((series, i) => (
+                  <label
+                    key={series.key}
+                    className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer select-none"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleSeries[series.key]}
+                      onChange={(e) =>
+                        setVisibleSeries((v) => ({ ...v, [series.key]: e.target.checked }))
+                      }
+                      className="h-4 w-4 rounded border-neutral-300 focus:ring-blue-500"
+                      style={{ accentColor: seriesColors[i] }}
+                    />
+                    <span
+                      className="inline-block w-3 h-3 rounded-sm"
+                      style={{ backgroundColor: seriesColors[i] }}
+                    />
+                    {series.label}
+                  </label>
+                ))}
+              </div>
+            )}
             <div className="h-[420px]">
               <Line data={chartData} options={options} />
             </div>
@@ -292,7 +387,7 @@ const MultiYearSpTrends: React.FC = () => {
         </>
       )}
 
-      {!loading && !error && !selectedTeam && (
+      {!combinedLoading && !error && !selectedTeam && (
         <div className="text-center py-8">
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
             <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
@@ -301,20 +396,32 @@ const MultiYearSpTrends: React.FC = () => {
             </h3>
             <p className="text-neutral-600 max-w-md mx-auto">
               Track how a program's Overall, Offense, Defense, and Special Teams SP+ ratings have
-              changed across seasons.
+              changed across seasons — or add a second team to compare a single aspect head-to-head.
             </p>
           </div>
         </div>
       )}
 
-      {!loading && !error && selectedTeam && ratings.length === 0 && (
+      {!combinedLoading && !error && selectedTeam && ratings.length === 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-amber-800 text-sm">
-            No SP+ history found for {selectedTeam.school}.
-          </p>
+          <p className="text-amber-800 text-sm">No SP+ history found for {selectedTeam.school}.</p>
         </div>
       )}
+
+      {!combinedLoading &&
+        !error &&
+        compareMode &&
+        selectedTeamB &&
+        ratings.length > 0 &&
+        ratingsB.length === 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-amber-800 text-sm">
+              No SP+ history found for {selectedTeamB.school}.
+            </p>
+          </div>
+        )}
     </div>
   );
 };

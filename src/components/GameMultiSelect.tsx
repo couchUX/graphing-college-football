@@ -13,10 +13,11 @@ interface GameMultiSelectProps {
   disabled?: boolean;
 }
 
-// Compact game label, e.g. "Week 3: vs Georgia" or "Bowl: @ Texas".
+// Compact game label, e.g. "Week 3: vs Georgia" or "Bowl: @ Texas". Neutral-site
+// games have no true home team, so use "vs" rather than a misleading "@".
 const gameLabel = (game: TeamGame, teamName: string): string => {
   const isHome = game.homeTeam === teamName;
-  const prefix = isHome ? 'vs' : '@';
+  const prefix = game.neutralSite ? 'vs' : isHome ? 'vs' : '@';
   const opponent = isHome ? game.awayTeam : game.homeTeam;
   if (game.seasonType === 'regular') {
     return `Week ${game.week}: ${prefix} ${opponent}`;

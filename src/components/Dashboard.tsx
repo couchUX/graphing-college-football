@@ -94,7 +94,10 @@ const Dashboard: React.FC = () => {
           startDate: raw?.wallclock || plays[0]?.wallclock || undefined,
           homeTeam: raw?.home,
           awayTeam: raw?.away,
-          neutralSite: raw?.neutral_site,
+          // The CFBD plays endpoint doesn't carry neutral_site, so this column
+          // is left blank rather than silently always-empty from a missing
+          // field. Populating it would require a separate /games lookup.
+          neutralSite: undefined,
         }]
       : [];
     const csv = playsToCsv(plays, games);

@@ -262,6 +262,8 @@ const TeamCompareView: React.FC = () => {
     teamA.school !== teamB.school &&
     selectedA.length > 0 &&
     selectedB.length > 0 &&
+    !loadingGamesA &&
+    !loadingGamesB &&
     !loading;
 
   const handleCompare = async () => {

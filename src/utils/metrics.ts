@@ -387,8 +387,8 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
         // not a flat game-seconds-remaining field, so derive seconds left in
         // regulation. Prefer an explicit API value if one is ever present.
         // Overtime is untimed → 0.
-        const apiValue = play.time_remaining || play.timeRemaining;
-        if (apiValue) return apiValue;
+        const apiValue = play.time_remaining ?? play.timeRemaining;
+        if (apiValue !== undefined && apiValue !== null) return apiValue;
         const q = play.quarter || play.period || 0;
         if (q < 1 || q > 4) return 0;
         const clock = play.clock || {};

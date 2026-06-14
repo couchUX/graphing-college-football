@@ -244,7 +244,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
               </p>
             </div>
             <button
-              onClick={() => handleCopyEmbed('rush-rate-by-game', 'Rush Rate (each game)', chartData.rushRateByGame, 'line')}
+              onClick={() => handleCopyEmbed('rush-rate-by-game', 'Rush Rate (each game)', chartData.rushRateByGame, perGameChartType)}
               className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
                 copiedChart === 'rush-rate-by-game'
                   ? 'border-green-300 bg-green-50'
