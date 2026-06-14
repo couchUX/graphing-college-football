@@ -161,6 +161,10 @@ const TeamCompareView: React.FC = () => {
     if (!teamA) {
       setGamesA([]);
       setSelectedA([]);
+      // Clearing a team mid-restore must drop any pending URL selection and
+      // cancel auto-compare so stale indices aren't applied to the next pick.
+      setPendingGamesA(null);
+      autoCompareRef.current = false;
       return;
     }
     setLoadingGamesA(true);
@@ -195,6 +199,8 @@ const TeamCompareView: React.FC = () => {
     if (!teamB) {
       setGamesB([]);
       setSelectedB([]);
+      setPendingGamesB(null);
+      autoCompareRef.current = false;
       return;
     }
     setLoadingGamesB(true);
@@ -234,7 +240,7 @@ const TeamCompareView: React.FC = () => {
       school ? teams.find((t) => t.school.toLowerCase() === school.toLowerCase()) ?? null : null;
     const a = find(p.get('aTeam'));
     const b = find(p.get('bTeam'));
-    const y = Number(p.get('year'));
+    const y = Number(p.get('compareYear'));
     if (Number.isInteger(y) && y > 0) setYear(y);
     const ac = p.get('aColor');
     if (ac) setColorA(ac);
@@ -276,6 +282,11 @@ const TeamCompareView: React.FC = () => {
       // Sequentially to keep request bursts close to a single-team season fetch.
       const a = await loadTeamSeason(year, teamA.school, selGamesA, gamesA);
       const b = await loadTeamSeason(year, teamB.school, selGamesB, gamesB);
+      // useCompareChartData returns null (blank UI) if either side has no plays,
+      // so fail loudly with a clear message instead of rendering nothing.
+      if (!a.allPlays.length || !b.allPlays.length) {
+        throw new Error('No play-by-play data found for the selected games.');
+      }
       const boxA = await fetchSeasonBoxScores(a.games, a.team, () => {});
       const boxB = await fetchSeasonBoxScores(b.games, b.team, () => {});
       setResult({ a, b, year });
@@ -320,7 +331,7 @@ const TeamCompareView: React.FC = () => {
     writeParams({
       aTeam: teamA?.school ?? null,
       bTeam: teamB?.school ?? null,
-      year: String(year),
+      compareYear: String(year),
       aColor: colorA === 'default' ? null : colorA,
       bColor: colorB === 'default' ? null : colorB,
       aGames: teamA ? encodeGameSelection(selectedA, gamesA) : null,

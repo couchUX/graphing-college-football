@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Combobox } from '@headlessui/react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Team } from '../services/api';
 import { colorPalette } from '../utils/colorPalette';
@@ -18,6 +18,9 @@ interface TeamPickerProps {
   // swatch is rendered inside the input that opens a palette dropdown.
   colorId?: string;
   onColorChange?: (colorId: string) => void;
+  // When provided and a team is selected, a "Clear" link is shown in this
+  // field's label row so optional pickers can be reset back to empty.
+  onClear?: () => void;
 }
 
 // Solid CSS color for a team's default swatch (team colors are stored as rgba).
@@ -37,6 +40,7 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
   placeholder = 'e.g., Alabama',
   colorId,
   onColorChange,
+  onClear,
 }) => {
   const inputId = useId();
   const [query, setQuery] = useState('');
@@ -44,6 +48,10 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
   const showColors = !!colorId && !!onColorChange && !!value;
+  const showClear = !!onClear && !!value;
+  // Right padding clears the chevron plus any inline adornments (clear ×, swatch).
+  const adornments = (showColors ? 1 : 0) + (showClear ? 1 : 0);
+  const inputRightPad = adornments === 2 ? 'pr-24' : adornments === 1 ? 'pr-16' : 'pr-10';
 
   // Close the color dropdown on outside click.
   useEffect(() => {
@@ -79,29 +87,45 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
         <div className="relative">
           <Combobox.Input
             id={inputId}
-            className={`w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 ${
-              showColors ? 'pr-16' : 'pr-10'
-            } shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+            className={`w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 ${inputRightPad} shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
             displayValue={(team: Team | null) => team?.school || ''}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={placeholder}
           />
 
-          {/* Inline color swatch (inside the input, like /games) */}
-          {showColors && (
-            <div className="absolute inset-y-0 right-10 flex items-center">
-              <button
-                type="button"
-                className="w-5 h-5 rounded border border-neutral-200 cursor-pointer hover:scale-110 transition-transform"
-                style={{ backgroundColor: swatchColor }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowColorPicker((s) => !s);
-                }}
-                title="Team chart color"
-                aria-label="Choose team chart color"
-              />
+          {/* Inline adornments (inside the input, left of the chevron): an
+              optional clear "×" and the color swatch, like the /games picker. */}
+          {(showClear || showColors) && (
+            <div className="absolute inset-y-0 right-9 flex items-center gap-1.5">
+              {showClear && (
+                <button
+                  type="button"
+                  className="text-neutral-400 hover:text-neutral-700 transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClear?.();
+                  }}
+                  title="Clear selection"
+                  aria-label="Clear selection"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              )}
+              {showColors && (
+                <button
+                  type="button"
+                  className="w-5 h-5 rounded border border-neutral-200 cursor-pointer hover:scale-110 transition-transform"
+                  style={{ backgroundColor: swatchColor }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowColorPicker((s) => !s);
+                  }}
+                  title="Team chart color"
+                  aria-label="Choose team chart color"
+                />
+              )}
             </div>
           )}
 

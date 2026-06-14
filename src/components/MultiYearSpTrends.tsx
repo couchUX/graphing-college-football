@@ -198,8 +198,8 @@ const MultiYearSpTrends: React.FC = () => {
             borderColor: teamAColor,
             backgroundColor: teamAColor,
             borderWidth: 2,
-            pointRadius: 2,
-            pointHoverRadius: 4,
+            pointRadius: 3,
+            pointHoverRadius: 5,
             spanGaps: true,
           },
           {
@@ -211,8 +211,8 @@ const MultiYearSpTrends: React.FC = () => {
             borderColor: teamBColor,
             backgroundColor: teamBColor,
             borderWidth: 2,
-            pointRadius: 2,
-            pointHoverRadius: 4,
+            pointRadius: 3,
+            pointHoverRadius: 5,
             spanGaps: true,
           },
         ],
@@ -229,8 +229,8 @@ const MultiYearSpTrends: React.FC = () => {
           borderColor: color,
           backgroundColor: color,
           borderWidth: 2,
-          pointRadius: 2,
-          pointHoverRadius: 4,
+          pointRadius: 3,
+          pointHoverRadius: 5,
           spanGaps: true,
         })),
     };
@@ -243,7 +243,7 @@ const MultiYearSpTrends: React.FC = () => {
       interaction: { mode: 'index', intersect: false },
       // Slightly smaller point markers than the global default — the dots were
       // looking exaggerated on these multi-year lines.
-      elements: { point: { radius: 2, hoverRadius: 5 } },
+      elements: { point: { radius: 3, hoverRadius: 5 } },
       plugins: {
         legend: { position: 'top', align: 'center' },
         datalabels: { display: false },
@@ -269,7 +269,10 @@ const MultiYearSpTrends: React.FC = () => {
   const latest = ratings.length > 0 ? ratings[ratings.length - 1] : null;
   const combinedLoading = loading || (compareMode && loadingB);
   const combinedError = error || (compareMode ? errorB : null);
-  const hasData = ratings.length > 0 && (!compareMode || ratingsB.length > 0);
+  // Team A's history is enough to render; if a second team is added but has no
+  // SP+ data we still show Team A and surface an inline notice for Team B.
+  const hasData = ratings.length > 0;
+  const teamBMissing = compareMode && !!selectedTeamB && ratingsB.length === 0;
 
   return (
     <div>
@@ -287,30 +290,17 @@ const MultiYearSpTrends: React.FC = () => {
             />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-end gap-2">
-              <div className="flex-1 min-w-0">
-                <TeamPicker
-                  label="Compare to (optional)"
-                  value={selectedTeamB}
-                  onChange={handleTeamBChange}
-                  teams={teams}
-                  loading={loadingTeams}
-                  placeholder="e.g., Georgia"
-                  colorId={colorB}
-                  onColorChange={handleColorBChange}
-                />
-              </div>
-              {selectedTeamB && (
-                <button
-                  type="button"
-                  onClick={() => handleTeamBChange(null)}
-                  className="flex-shrink-0 px-3 py-2.5 text-sm font-medium text-neutral-600 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
-                  title="Clear the second team and return to the single-team view"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+            <TeamPicker
+              label="Compare to (optional)"
+              value={selectedTeamB}
+              onChange={handleTeamBChange}
+              teams={teams}
+              loading={loadingTeams}
+              placeholder="e.g., Georgia"
+              colorId={colorB}
+              onColorChange={handleColorBChange}
+              onClear={() => handleTeamBChange(null)}
+            />
           </div>
         </div>
         {teamsError && (
@@ -351,6 +341,15 @@ const MultiYearSpTrends: React.FC = () => {
                 : ''}
             </p>
           </div>
+
+          {teamBMissing && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-amber-800 text-sm">
+                No SP+ history found for {selectedTeamB?.school} — showing {selectedTeam.school} only.
+              </p>
+            </div>
+          )}
 
           <div className="bg-white rounded-xl border border-neutral-200 shadow-sm pt-5 px-4 pb-4 sm:px-6 sm:pb-6 mb-4">
             {compareMode ? (
@@ -432,20 +431,6 @@ const MultiYearSpTrends: React.FC = () => {
           <p className="text-amber-800 text-sm">No SP+ history found for {selectedTeam.school}.</p>
         </div>
       )}
-
-      {!combinedLoading &&
-        !combinedError &&
-        compareMode &&
-        selectedTeamB &&
-        ratings.length > 0 &&
-        ratingsB.length === 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-amber-800 text-sm">
-              No SP+ history found for {selectedTeamB.school}.
-            </p>
-          </div>
-        )}
     </div>
   );
 };
