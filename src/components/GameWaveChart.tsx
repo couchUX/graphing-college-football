@@ -1,7 +1,13 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { buildGameWave, extractFieldGoals, type RawPlayLike, type WavePoint } from '../utils/gameWave';
+import {
+  buildGameWave,
+  DEFAULT_SEGMENTS_PER_QUARTER,
+  extractFieldGoals,
+  type RawPlayLike,
+  type WavePoint,
+} from '../utils/gameWave';
 
 interface GameWaveChartProps {
   plays: PlayData[];
@@ -23,6 +29,42 @@ const DOT_R = 0.4;
 const QUARTER_GAP = 0.7;
 const LABEL_BAND = 1.9;
 const RIGHT_PAD = 0.6;
+const REGULATION_QUARTERS = 4;
+
+// Responsive time-binning. As the container gets wider we subdivide each
+// quarter into more (finer) clock tranches so the wave fills the horizontal
+// space and the stacks flatten out, rather than blowing the dots up huge.
+// Candidates run from 3/quarter (~5 min bins) to 15/quarter (~1 min bins).
+const SEGMENT_CANDIDATES = [3, 4, 5, 6, 7, 8, 9, 10, 12, 15];
+const MIN_CELL_PX = 18; // don't let a single dot cell render narrower than this
+const MIN_PLAYS_PER_CELL = 0.9; // and don't subdivide so far the wave goes sparse/flat
+
+// Width of the viewBox (in dot-cell units) for a given granularity. Mirrors the
+// xOf math in `geom` so the px-per-cell estimate used for selection is accurate.
+const vbWidthUnits = (segmentsPerQuarter: number, hasOvertime: boolean): number => {
+  if (!hasOvertime) {
+    const lastRegColumn = REGULATION_QUARTERS * segmentsPerQuarter - 1;
+    return lastRegColumn + 0.5 + (REGULATION_QUARTERS - 1) * QUARTER_GAP + RIGHT_PAD;
+  }
+  const otColumn = REGULATION_QUARTERS * segmentsPerQuarter;
+  return otColumn + 0.5 + REGULATION_QUARTERS * QUARTER_GAP + RIGHT_PAD;
+};
+
+// Pick the finest granularity whose dots stay legible and whose bins stay dense
+// enough. Candidates are ascending and px-per-cell is monotonically decreasing,
+// so the first candidate that fails either guard ends the search.
+const chooseSegmentsPerQuarter = (width: number, hasOvertime: boolean, totalPlays: number): number => {
+  if (!width) return DEFAULT_SEGMENTS_PER_QUARTER;
+  let chosen = SEGMENT_CANDIDATES[0];
+  for (const n of SEGMENT_CANDIDATES) {
+    const cellPx = width / vbWidthUnits(n, hasOvertime);
+    if (cellPx < MIN_CELL_PX) break;
+    const columns = REGULATION_QUARTERS * n + (hasOvertime ? 1 : 0);
+    if (totalPlays > 0 && totalPlays / (2 * columns) < MIN_PLAYS_PER_CELL) break;
+    chosen = n;
+  }
+  return chosen;
+};
 
 const GameWaveChart = ({
   plays,
@@ -32,8 +74,38 @@ const GameWaveChart = ({
   opponentColorId,
   rawPlays = [],
 }: GameWaveChartProps) => {
+  // Measure the container so the wave can re-bin as it grows/shrinks.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const measure = () => setContainerWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const fieldGoals = useMemo(() => extractFieldGoals(rawPlays), [rawPlays]);
-  const model = useMemo(() => buildGameWave(plays, team, fieldGoals), [plays, team, fieldGoals]);
+
+  const hasOvertime = useMemo(
+    () =>
+      plays.some((p) => p.quarter > REGULATION_QUARTERS) ||
+      fieldGoals.some((fg) => fg.quarter > REGULATION_QUARTERS),
+    [plays, fieldGoals],
+  );
+
+  const segmentsPerQuarter = useMemo(
+    () => chooseSegmentsPerQuarter(containerWidth, hasOvertime, plays.length + fieldGoals.length),
+    [containerWidth, hasOvertime, plays.length, fieldGoals.length],
+  );
+
+  const model = useMemo(
+    () => buildGameWave(plays, team, fieldGoals, segmentsPerQuarter),
+    [plays, team, fieldGoals, segmentsPerQuarter],
+  );
 
   const topColors = useMemo<ShadeColors>(() => getDisplayTeamColors(team, teamColorId), [team, teamColorId]);
   const bottomColors = useMemo<ShadeColors>(
@@ -88,7 +160,8 @@ const GameWaveChart = ({
     return colors.light;
   };
 
-  const maxWidthPx = Math.min(900, Math.round(geom.vbWidth * 24));
+  // Effective rendered size of one dot cell, for the temporary debug readout.
+  const cellPx = containerWidth > 0 ? containerWidth / geom.vbWidth : 0;
 
   if (model.points.length === 0) return null;
 
@@ -109,7 +182,7 @@ const GameWaveChart = ({
         </p>
       </div>
 
-      <div className="w-full mx-auto" style={{ maxWidth: `${maxWidthPx}px` }}>
+      <div ref={wrapperRef} className="w-full">
         <svg
           viewBox={`0 0 ${geom.vbWidth} ${geom.vbHeight}`}
           style={{ width: '100%', height: 'auto' }}
@@ -209,6 +282,11 @@ const GameWaveChart = ({
           <Swatch color={bottomColors.light} label="Unsuccessful" />
         </div>
         <span className="text-xs text-neutral-400">Numbers mark scoring plays (7 = TD, 3 = FG); i = interception.</span>
+        {/* TEMP debug: responsive-binning readout — remove once dimensions are dialed in. */}
+        <div className="text-[10px] font-mono text-neutral-300">
+          {segmentsPerQuarter} bins/qtr · ~{(15 / segmentsPerQuarter).toFixed(1)} min · {Math.round(cellPx)}px cells ·{' '}
+          {Math.round(containerWidth)}px wide
+        </div>
       </div>
     </div>
   );

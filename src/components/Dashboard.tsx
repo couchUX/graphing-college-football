@@ -1015,14 +1015,24 @@ const Dashboard: React.FC = () => {
         {plays.length > 0 && currentParams && (
           <div className="space-y-8">
             {/* Game Wave */}
-            <GameWaveChart
-              plays={filteredPlays}
-              team={currentParams.team}
-              opponent={opponentTeam}
-              teamColorId={selectedTeamColor}
-              opponentColorId={selectedOpponentColor}
-              rawPlays={rawApiData}
-            />
+            {/* TEMP test rig: drag the handle at the bottom-right to resize the Game Wave's
+                container and watch it re-bin live. The outer div scrolls so you can drag it
+                wider than the page. Remove this wrapper (keep <GameWaveChart/>) before shipping. */}
+            <div className="overflow-x-auto">
+              <div
+                className="rounded-2xl"
+                style={{ resize: 'horizontal', overflow: 'auto', width: 760, minWidth: 320, maxWidth: 2000 }}
+              >
+                <GameWaveChart
+                  plays={filteredPlays}
+                  team={currentParams.team}
+                  opponent={opponentTeam}
+                  teamColorId={selectedTeamColor}
+                  opponentColorId={selectedOpponentColor}
+                  rawPlays={rawApiData}
+                />
+              </div>
+            </div>
 
             {/* Charts Grid */}
             <ChartsGrid

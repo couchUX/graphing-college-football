@@ -35,21 +35,23 @@ export interface GameWaveModel {
 }
 
 const QUARTER_MINUTES = 15;
-const SEGMENTS_PER_QUARTER = 7; // clock tranches per quarter (~2.1 min each)
-const SEGMENT_MINUTES = QUARTER_MINUTES / SEGMENTS_PER_QUARTER;
+// Default clock tranches per quarter (~2.1 min each). The chart picks a finer
+// or coarser value at render time based on how wide its container is.
+export const DEFAULT_SEGMENTS_PER_QUARTER = 7;
 const REGULATION_QUARTERS = 4;
-const OT_COLUMN = REGULATION_QUARTERS * SEGMENTS_PER_QUARTER;
 
-const segmentIndex = (minutes: number, seconds: number): number => {
+const segmentIndex = (minutes: number, seconds: number, segmentsPerQuarter: number): number => {
+  const segmentMinutes = QUARTER_MINUTES / segmentsPerQuarter;
   const elapsed = QUARTER_MINUTES - (minutes + seconds / 60);
-  const idx = Math.floor(elapsed / SEGMENT_MINUTES);
-  return Math.max(0, Math.min(SEGMENTS_PER_QUARTER - 1, idx));
+  const idx = Math.floor(elapsed / segmentMinutes);
+  return Math.max(0, Math.min(segmentsPerQuarter - 1, idx));
 };
 
-const columnFor = (quarter: number, minutes: number, seconds: number): number => {
-  if (quarter > REGULATION_QUARTERS) return OT_COLUMN;
+const columnFor = (quarter: number, minutes: number, seconds: number, segmentsPerQuarter: number): number => {
+  const otColumn = REGULATION_QUARTERS * segmentsPerQuarter;
+  if (quarter > REGULATION_QUARTERS) return otColumn;
   const q = Math.max(1, Math.min(REGULATION_QUARTERS, quarter));
-  return (q - 1) * SEGMENTS_PER_QUARTER + segmentIndex(minutes, seconds);
+  return (q - 1) * segmentsPerQuarter + segmentIndex(minutes, seconds, segmentsPerQuarter);
 };
 
 const outcomeOf = (play: PlayData): WaveOutcome =>
@@ -57,6 +59,13 @@ const outcomeOf = (play: PlayData): WaveOutcome =>
 
 // Scoring / turnover marker from play text. Special teams (field goals) are
 // excluded upstream, so those are supplied separately as ScoringEvents.
+//
+// TODO(game-wave numbers): TD detection is currently broken because CFBD usually
+// carries the TD signal in play_type ("Rushing Touchdown" / "Passing Touchdown")
+// rather than the word "touchdown" in the text. The proper fix (deferred to the
+// numbers pass) is to read playType here, decide the per-play value (6 vs 7),
+// and treat defensive scores (interception-return / fumble-return touchdowns) as
+// turnovers for the offense rather than a TD for the stacked team.
 const playMarker = (text: string): { label: string | null; isScore: boolean } => {
   const t = (text || '').toLowerCase();
   if (t.includes('touchdown')) return { label: '7', isScore: true };
@@ -90,7 +99,9 @@ export const buildGameWave = (
   plays: PlayData[],
   topTeam: string,
   fieldGoals: ScoringEvent[] = [],
+  segmentsPerQuarter: number = DEFAULT_SEGMENTS_PER_QUARTER,
 ): GameWaveModel => {
+  const otColumn = REGULATION_QUARTERS * segmentsPerQuarter;
   const entries: Entry[] = [];
   let seq = 0;
 
@@ -98,7 +109,7 @@ export const buildGameWave = (
     const marker = playMarker(play.playText);
     entries.push({
       side: play.offense === topTeam ? 'top' : 'bottom',
-      column: columnFor(play.quarter, play.clock?.minutes ?? 0, play.clock?.seconds ?? 0),
+      column: columnFor(play.quarter, play.clock?.minutes ?? 0, play.clock?.seconds ?? 0, segmentsPerQuarter),
       team: play.offense,
       outcome: outcomeOf(play),
       label: marker.label,
@@ -114,7 +125,7 @@ export const buildGameWave = (
   for (const fg of fieldGoals) {
     entries.push({
       side: fg.team === topTeam ? 'top' : 'bottom',
-      column: columnFor(fg.quarter, fg.minutes, fg.seconds),
+      column: columnFor(fg.quarter, fg.minutes, fg.seconds, segmentsPerQuarter),
       team: fg.team,
       outcome: 'fieldGoal',
       label: '3',
@@ -127,8 +138,8 @@ export const buildGameWave = (
     });
   }
 
-  const hasOvertime = entries.some((e) => e.column === OT_COLUMN);
-  const columnCount = OT_COLUMN + (hasOvertime ? 1 : 0);
+  const hasOvertime = entries.some((e) => e.column === otColumn);
+  const columnCount = otColumn + (hasOvertime ? 1 : 0);
 
   const groups = new Map<string, Entry[]>();
   for (const entry of entries) {
@@ -167,7 +178,7 @@ export const buildGameWave = (
   return {
     points,
     columnCount,
-    segmentsPerQuarter: SEGMENTS_PER_QUARTER,
+    segmentsPerQuarter,
     regulationQuarters: REGULATION_QUARTERS,
     topMax,
     bottomMax,
