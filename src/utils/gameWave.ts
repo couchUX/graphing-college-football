@@ -57,19 +57,25 @@ const columnFor = (quarter: number, minutes: number, seconds: number, segmentsPe
 const outcomeOf = (play: PlayData): WaveOutcome =>
   play.explosiveness ? 'explosive' : play.success ? 'success' : 'other';
 
-// Scoring / turnover marker from play text. Special teams (field goals) are
-// excluded upstream, so those are supplied separately as ScoringEvents.
+// Scoring / turnover marker for an offensive play. Special teams (field goals)
+// are excluded upstream, so those are supplied separately as ScoringEvents.
 //
-// TODO(game-wave numbers): TD detection is currently broken because CFBD usually
-// carries the TD signal in play_type ("Rushing Touchdown" / "Passing Touchdown")
-// rather than the word "touchdown" in the text. The proper fix (deferred to the
-// numbers pass) is to read playType here, decide the per-play value (6 vs 7),
-// and treat defensive scores (interception-return / fumble-return touchdowns) as
-// turnovers for the offense rather than a TD for the stacked team.
-const playMarker = (text: string): { label: string | null; isScore: boolean } => {
+// CFBD usually carries the TD signal in play_type ("Rushing Touchdown" /
+// "Passing Touchdown") rather than the word "touchdown" in the text, so we read
+// both. A touchdown counts as 6 here — the PAT kick isn't a rush/pass play and a
+// 2-pt try comes through as its own play. Defensive scores (pick-sixes,
+// fumble-return TDs) are turnovers for the offense, not a TD for the stacked
+// team, so the interception check runs first and return/opponent TDs are skipped.
+const playMarker = (text: string, playType: string): { label: string | null; isScore: boolean } => {
   const t = (text || '').toLowerCase();
-  if (t.includes('touchdown')) return { label: '7', isScore: true };
-  if (t.includes('intercept')) return { label: 'i', isScore: false };
+  const pt = (playType || '').toLowerCase();
+
+  if (pt.includes('interception') || t.includes('intercept')) return { label: 'i', isScore: false };
+
+  const isTouchdown = pt.includes('touchdown') || t.includes('touchdown');
+  const isDefensiveScore = pt.includes('return') || pt.includes('opponent');
+  if (isTouchdown && !isDefensiveScore) return { label: '6', isScore: true };
+
   return { label: null, isScore: false };
 };
 
@@ -106,7 +112,7 @@ export const buildGameWave = (
   let seq = 0;
 
   for (const play of plays) {
-    const marker = playMarker(play.playText);
+    const marker = playMarker(play.playText, play.playType);
     entries.push({
       side: play.offense === topTeam ? 'top' : 'bottom',
       column: columnFor(play.quarter, play.clock?.minutes ?? 0, play.clock?.seconds ?? 0, segmentsPerQuarter),

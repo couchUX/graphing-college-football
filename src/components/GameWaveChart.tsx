@@ -178,7 +178,7 @@ const GameWaveChart = ({
         <h2 className="text-xl font-semibold text-neutral-900">Game wave</h2>
         <p className="text-sm text-neutral-500">
           Each dot is a play, binned by game clock. {team} stacks up, {opponent} stacks down.
-          Explosive plays sit nearest the center line; scoring plays show points (7 = TD, 3 = FG).
+          Explosive plays sit nearest the center line; scoring plays show points (6 = TD, 3 = FG).
         </p>
       </div>
 
@@ -236,11 +236,11 @@ const GameWaveChart = ({
                   <text
                     x={cx}
                     y={cy}
+                    dy="0.35em"
                     fontSize={0.5}
                     fontWeight="bold"
                     fill={point.isScore ? '#ffffff' : '#374151'}
                     textAnchor="middle"
-                    dominantBaseline="central"
                     pointerEvents="none"
                   >
                     {point.label}
@@ -281,7 +281,7 @@ const GameWaveChart = ({
           <Swatch color={bottomColors.success} label="Successful" />
           <Swatch color={bottomColors.light} label="Unsuccessful" />
         </div>
-        <span className="text-xs text-neutral-400">Numbers mark scoring plays (7 = TD, 3 = FG); i = interception.</span>
+        <span className="text-xs text-neutral-400">Numbers mark scoring plays (6 = TD, 3 = FG); i = interception.</span>
         {/* TEMP debug: responsive-binning readout — remove once dimensions are dialed in. */}
         <div className="text-[10px] font-mono text-neutral-300">
           {segmentsPerQuarter} bins/qtr · ~{(15 / segmentsPerQuarter).toFixed(1)} min · {Math.round(cellPx)}px cells ·{' '}
