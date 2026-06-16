@@ -6,6 +6,7 @@ import {
   buildGameWave,
   DEFAULT_SEGMENTS_PER_QUARTER,
   extractFieldGoals,
+  extractFumbles,
   type RawPlayLike,
   type WavePoint,
 } from '../utils/gameWave';
@@ -116,22 +117,24 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
   const chartWidth = containerWidth > 0 ? containerWidth - 2 * clampedInset : 0;
 
   const fieldGoals = useMemo(() => extractFieldGoals(rawPlays), [rawPlays]);
+  const fumbles = useMemo(() => extractFumbles(rawPlays), [rawPlays]);
 
   const hasOvertime = useMemo(
     () =>
       plays.some((p) => p.quarter > REGULATION_QUARTERS) ||
-      fieldGoals.some((fg) => fg.quarter > REGULATION_QUARTERS),
-    [plays, fieldGoals],
+      fieldGoals.some((fg) => fg.quarter > REGULATION_QUARTERS) ||
+      fumbles.some((f) => f.quarter > REGULATION_QUARTERS),
+    [plays, fieldGoals, fumbles],
   );
 
   const segmentsPerQuarter = useMemo(
-    () => chooseSegmentsPerQuarter(chartWidth, hasOvertime, plays.length + fieldGoals.length),
-    [chartWidth, hasOvertime, plays.length, fieldGoals.length],
+    () => chooseSegmentsPerQuarter(chartWidth, hasOvertime, plays.length + fieldGoals.length + fumbles.length),
+    [chartWidth, hasOvertime, plays.length, fieldGoals.length, fumbles.length],
   );
 
   const model = useMemo(
-    () => buildGameWave(plays, team, fieldGoals, segmentsPerQuarter),
-    [plays, team, fieldGoals, segmentsPerQuarter],
+    () => buildGameWave(plays, team, fieldGoals, segmentsPerQuarter, fumbles),
+    [plays, team, fieldGoals, segmentsPerQuarter, fumbles],
   );
 
   const topColors = useMemo<ShadeColors>(() => getDisplayTeamColors(team, teamColorId), [team, teamColorId]);
@@ -206,14 +209,16 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     e.currentTarget.releasePointerCapture?.(e.pointerId);
     setDraggingSide(null);
   };
-  const onHandleKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      setInset((i) => Math.max(0, Math.min(i - RESIZE_STEP, maxInset))); // widen
-    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      setInset((i) => Math.max(0, Math.min(i + RESIZE_STEP, maxInset))); // narrow
-    }
+  // Arrow keys move the handle in its own direction, so the meaning of left/right
+  // is mirrored per side: moving a handle toward the page edge widens the chart
+  // (less margin), moving it toward the center narrows it (more margin).
+  const onHandleKey = (side: 'left' | 'right') => (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const direction = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+    if (direction === 0) return;
+    e.preventDefault();
+    // Left handle: moving right (+1) adds margin; right handle: moving right widens.
+    const insetDelta = (side === 'left' ? direction : -direction) * RESIZE_STEP;
+    setInset((i) => Math.max(0, Math.min(i + insetDelta, maxInset)));
   };
 
   if (model.points.length === 0) return null;
@@ -291,9 +296,11 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                           ? 'Explosive'
                           : point.outcome === 'fieldGoal'
                             ? 'Field goal'
-                            : point.outcome === 'success'
-                              ? 'Successful'
-                              : 'Unsuccessful'
+                            : point.outcome === 'fumble'
+                              ? 'Fumble lost'
+                              : point.outcome === 'success'
+                                ? 'Successful'
+                                : 'Unsuccessful'
                       }${point.down ? ` (${point.yardsGained} yds on ${point.down} & ${point.distance})` : ''}\n${point.playText}`}
                     </title>
                   </circle>
@@ -340,11 +347,14 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
               role="separator"
               aria-orientation="vertical"
               aria-label="Resize chart from the left"
+              aria-valuemin={MIN_CHART_WIDTH}
+              aria-valuemax={Math.round(containerWidth)}
+              aria-valuenow={Math.round(chartWidth)}
               tabIndex={0}
               onPointerDown={startDrag('left')}
               onPointerMove={onDragMove('left')}
               onPointerUp={endDrag}
-              onKeyDown={onHandleKey}
+              onKeyDown={onHandleKey('left')}
               className={HANDLE_CLASS}
               style={{ left: clampedInset, top: '50%', transform: 'translate(-50%, -50%)', touchAction: 'none' }}
             >
@@ -354,11 +364,14 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
               role="separator"
               aria-orientation="vertical"
               aria-label="Resize chart from the right"
+              aria-valuemin={MIN_CHART_WIDTH}
+              aria-valuemax={Math.round(containerWidth)}
+              aria-valuenow={Math.round(chartWidth)}
               tabIndex={0}
               onPointerDown={startDrag('right')}
               onPointerMove={onDragMove('right')}
               onPointerUp={endDrag}
-              onKeyDown={onHandleKey}
+              onKeyDown={onHandleKey('right')}
               className={HANDLE_CLASS}
               style={{ right: clampedInset, top: '50%', transform: 'translate(50%, -50%)', touchAction: 'none' }}
             >

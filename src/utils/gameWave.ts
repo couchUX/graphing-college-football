@@ -1,7 +1,7 @@
 import type { PlayData } from '../types';
 
 export type WaveSide = 'top' | 'bottom';
-export type WaveOutcome = 'explosive' | 'success' | 'other' | 'fieldGoal';
+export type WaveOutcome = 'explosive' | 'success' | 'other' | 'fieldGoal' | 'fumble';
 
 export interface WavePoint {
   column: number; // 0-based time bin
@@ -106,6 +106,7 @@ export const buildGameWave = (
   topTeam: string,
   fieldGoals: ScoringEvent[] = [],
   segmentsPerQuarter: number = DEFAULT_SEGMENTS_PER_QUARTER,
+  fumbles: ScoringEvent[] = [],
 ): GameWaveModel => {
   const otColumn = REGULATION_QUARTERS * segmentsPerQuarter;
   const entries: Entry[] = [];
@@ -137,6 +138,22 @@ export const buildGameWave = (
       label: '3',
       isScore: true,
       playText: 'Field goal good',
+      yardsGained: 0,
+      down: 0,
+      distance: 0,
+      seq: seq++,
+    });
+  }
+
+  for (const fumble of fumbles) {
+    entries.push({
+      side: fumble.team === topTeam ? 'top' : 'bottom',
+      column: columnFor(fumble.quarter, fumble.minutes, fumble.seconds, segmentsPerQuarter),
+      team: fumble.team,
+      outcome: 'fumble',
+      label: 'f',
+      isScore: false,
+      playText: 'Fumble lost',
       yardsGained: 0,
       down: 0,
       distance: 0,
@@ -213,6 +230,27 @@ export const extractFieldGoals = (rawPlays: RawPlayLike[] = []): ScoringEvent[] 
       ? type.includes('good')
       : text.includes('field goal') && text.includes('good');
     if (!isMade || !play.offense) continue;
+    events.push({
+      team: play.offense,
+      quarter: play.quarter ?? play.period ?? 1,
+      minutes: play.clock?.minutes ?? 0,
+      seconds: play.clock?.seconds ?? 0,
+    });
+  }
+  return events;
+};
+
+// Lost fumbles (a turnover charged to the offense). CFBD classifies these with a
+// dedicated play_type — "Fumble Recovery (Opponent)" or "Fumble Return
+// Touchdown" — so they're filtered out of the rush/pass plays and, like field
+// goals, are pulled from the raw feed instead. A "Fumble Recovery (Own)" is not
+// a turnover and is intentionally excluded.
+export const extractFumbles = (rawPlays: RawPlayLike[] = []): ScoringEvent[] => {
+  const events: ScoringEvent[] = [];
+  for (const play of rawPlays) {
+    const type = (play.play_type ?? play.playType ?? '').toLowerCase();
+    const isLost = type.includes('fumble') && (type.includes('opponent') || type.includes('return'));
+    if (!isLost || !play.offense) continue;
     events.push({
       team: play.offense,
       quarter: play.quarter ?? play.period ?? 1,
