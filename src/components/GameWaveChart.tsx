@@ -172,7 +172,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     const labelY = contentBottom + 1.05;
     // Minute ticks sit in the reserved central lane between the two stacks,
     // nudged below the exact center to sit optically right.
-    const minuteLabelY = centerY + 0.25;
+    const minuteLabelY = centerY + 0.2;
 
     // Quarter labels centered under each quarter's columns.
     const quarterMarks: { x: number; label: string }[] = [];
