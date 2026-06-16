@@ -29,9 +29,10 @@ interface ShadeColors {
 // Geometry, in viewBox units where 1 unit = one dot cell.
 const DOT_R = 0.4;
 const QUARTER_GAP = 0.7;
-const LABEL_BAND = 1.9;
+const LABEL_BAND = 2.0;
 const RIGHT_PAD = 0.6;
 const REGULATION_QUARTERS = 4;
+const QUARTER_MINUTES = 15;
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
@@ -161,7 +162,8 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
 
     const vbWidth = xOf(columnCount - 1) + RIGHT_PAD;
     const vbHeight = displayTop + displayBottom + LABEL_BAND;
-    const labelY = displayTop + displayBottom + 1.05;
+    const minuteLabelY = displayTop + displayBottom + 0.5;
+    const labelY = displayTop + displayBottom + 1.2;
 
     // Quarter labels centered under each quarter's columns.
     const quarterMarks: { x: number; label: string }[] = [];
@@ -172,6 +174,17 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     }
     if (hasOvertime) quarterMarks.push({ x: xOf(otColumn), label: 'OT' });
 
+    // Subtle game-clock ticks above the quarter labels: one per bin boundary
+    // (the start of each segment), skipping each quarter's 15:00 start since the
+    // quarter label already marks it. Rounded to whole minutes to stay tidy.
+    const minuteMarks: { x: number; label: string }[] = [];
+    for (let qi = 0; qi < reg; qi += 1) {
+      for (let s = 1; s < spq; s += 1) {
+        const remaining = Math.round((QUARTER_MINUTES * (spq - s)) / spq);
+        minuteMarks.push({ x: xOf(qi * spq + s), label: `${remaining}:` });
+      }
+    }
+
     // Faint dividers between quarters (and before OT).
     const dividers: number[] = [];
     for (let qi = 1; qi < reg; qi += 1) {
@@ -179,7 +192,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     }
     if (hasOvertime) dividers.push((xOf(otColumn - 1) + xOf(otColumn)) / 2);
 
-    return { xOf, yOf, vbWidth, vbHeight, centerY, labelY, quarterMarks, dividers };
+    return { xOf, yOf, vbWidth, vbHeight, centerY, labelY, minuteLabelY, quarterMarks, minuteMarks, dividers };
   }, [model]);
 
   const colorOf = (point: WavePoint): string => {
@@ -324,6 +337,21 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 </g>
               );
             })}
+
+            {/* Game-clock minute ticks (subtle, above the quarter labels) */}
+            {geom.minuteMarks.map((mark, i) => (
+              <text
+                key={`min-${i}`}
+                x={mark.x}
+                y={geom.minuteLabelY}
+                fontSize={0.34}
+                fill="#b8b8b8"
+                textAnchor="middle"
+                dominantBaseline="central"
+              >
+                {mark.label}
+              </text>
+            ))}
 
             {/* Quarter marks */}
             {geom.quarterMarks.map((mark) => (
