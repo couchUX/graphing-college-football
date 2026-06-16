@@ -12,7 +12,6 @@ import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { useBoxScore } from '../hooks/useBoxScore';
 import { createShareableUrl, copyToClipboard } from '../services/urlShortener';
 import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
-import GameWaveChart from './GameWaveChart';
 import MainNav from './MainNav';
 import logo from '../assets/graphing-cfb-logo-2.png';
 
@@ -1025,17 +1024,7 @@ const Dashboard: React.FC = () => {
         {/* Analytics Dashboard */}
         {plays.length > 0 && currentParams && (
           <div className="space-y-8">
-            {/* Game Wave */}
-            <GameWaveChart
-              plays={filteredPlays}
-              team={currentParams.team}
-              opponent={opponentTeam}
-              teamColorId={selectedTeamColor}
-              opponentColorId={selectedOpponentColor}
-              rawPlays={rawApiData}
-            />
-
-            {/* Charts Grid */}
+            {/* Charts Grid (includes Game Wave + Win Probability under "Game charts") */}
             <ChartsGrid
               plays={filteredPlays}
               team={currentParams.team}

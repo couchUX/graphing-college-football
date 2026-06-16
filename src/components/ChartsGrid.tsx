@@ -3,6 +3,7 @@ import { Copy, Check, AlertCircle } from 'lucide-react';
 import { Line, Bar } from 'react-chartjs-2';
 import { PlayData } from '../types';
 import { useChartData } from '../hooks/useChartData';
+import GameWaveChart from './GameWaveChart';
 import Toast from './Toast';
 import {
   createLineOptionsPlayNumberSRXR,
@@ -1385,9 +1386,21 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
         onClose={() => setShowToast(false)}
       />
       <div className="space-y-8">
-        {/* Win Probability Chart - Full Width */}
+        {/* Game charts - Full Width */}
         <div>
-          <h2 className="text-2xl font-bold text-neutral-900 mb-6">Win Probability</h2>
+          <h2 className="text-2xl font-bold text-neutral-900 mb-6">Game charts</h2>
+
+          <div className="mb-6">
+            <GameWaveChart
+              plays={plays}
+              team={team}
+              opponent={opponentTeam}
+              teamColorId={selectedTeamColor}
+              opponentColorId={selectedOpponentColor}
+              rawPlays={rawApiData}
+            />
+          </div>
+
           <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
             <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
               <div className="flex items-center space-x-3">

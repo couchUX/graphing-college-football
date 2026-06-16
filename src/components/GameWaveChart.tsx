@@ -225,11 +225,14 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
 
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
-      <h2 className="text-xl font-semibold text-neutral-900">Game Wave</h2>
+    <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+      <div className="px-6 py-4 border-b border-neutral-200">
+        <h3 className="text-lg font-semibold text-neutral-900">Game Wave</h3>
+      </div>
 
+      <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
       {/* Inline legend */}
-      <div className="mb-3 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-neutral-500">
+      <div className="mb-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-neutral-500">
         <span className="text-neutral-400">Plays binned by game clock</span>
         <span className="text-neutral-300">·</span>
         <span className="inline-flex items-center gap-1">
@@ -379,6 +382,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   );
