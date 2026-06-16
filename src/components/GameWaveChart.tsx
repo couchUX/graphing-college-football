@@ -170,8 +170,9 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     const contentBottom = displayTop + displayBottom + 2 * AXIS_HALF;
     const vbHeight = contentBottom + LABEL_BAND;
     const labelY = contentBottom + 1.05;
-    // Minute ticks sit in the reserved central lane between the two stacks.
-    const minuteLabelY = centerY;
+    // Minute ticks sit in the reserved central lane between the two stacks,
+    // nudged ~3px below the exact center to sit optically right.
+    const minuteLabelY = centerY + 0.15;
 
     // Quarter labels centered under each quarter's columns.
     const quarterMarks: { x: number; label: string }[] = [];
@@ -348,7 +349,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 key={`min-${i}`}
                 x={mark.x}
                 y={geom.minuteLabelY}
-                fontSize={0.6}
+                fontSize={0.55}
                 fill="#9ca3af"
                 textAnchor="middle"
                 dominantBaseline="central"
