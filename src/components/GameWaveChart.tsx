@@ -36,8 +36,6 @@ const QUARTER_MINUTES = 15;
 // Half-height of the central axis lane reserved for the minute labels; the two
 // teams' dots stack above and below it (never into it).
 const AXIS_HALF = 0.625;
-// Rightward nudge applied to minute-label x positions for optical centering.
-const MINUTE_LABEL_X_NUDGE = 0.05;
 // Light gray for the quarter dividers, matching the card border / chart axes.
 const GRID_COLOR = '#e5e5e5';
 
@@ -352,7 +350,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
             {geom.minuteMarks.map((mark, i) => (
               <text
                 key={`min-${i}`}
-                x={mark.x + MINUTE_LABEL_X_NUDGE}
+                x={mark.x}
                 y={geom.minuteLabelY}
                 fontSize={0.55}
                 fill="#9ca3af"
