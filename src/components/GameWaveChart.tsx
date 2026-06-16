@@ -188,12 +188,13 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     if (hasOvertime) quarterMarks.push({ x: xOf(otColumn), label: 'OT' });
 
     // Game-clock ticks down the center lane: one per bin (segment start),
-    // including each quarter's 15:00. Rounded to whole minutes to stay tidy.
+    // including each quarter's 15:00. Rounded to whole minutes; shown without a
+    // colon so 3-char labels can't crowd adjacent ticks at the finest binning.
     const minuteMarks: { x: number; label: string }[] = [];
     for (let qi = 0; qi < reg; qi += 1) {
       for (let s = 0; s < spq; s += 1) {
         const remaining = Math.round((QUARTER_MINUTES * (spq - s)) / spq);
-        minuteMarks.push({ x: xOf(qi * spq + s), label: `${remaining}:` });
+        minuteMarks.push({ x: xOf(qi * spq + s), label: `${remaining}` });
       }
     }
 
