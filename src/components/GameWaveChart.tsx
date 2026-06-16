@@ -79,6 +79,19 @@ const LegendSwatch = ({ dotClass, label }: { dotClass: string; label: string }) 
   </span>
 );
 
+const HANDLE_CLASS =
+  'absolute z-10 flex h-11 w-2.5 cursor-ew-resize items-center justify-center rounded-full border ' +
+  'border-neutral-300 bg-white shadow-sm transition-colors hover:border-neutral-400 hover:shadow ' +
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+
+// Two short vertical bars — the grip texture inside each resize handle.
+const Grip = () => (
+  <span className="flex gap-[2px]">
+    <span className="h-3.5 w-px bg-neutral-400" />
+    <span className="h-3.5 w-px bg-neutral-400" />
+  </span>
+);
+
 const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, rawPlays = [] }: GameWaveChartProps) => {
   // Measure the available width so the wave can re-bin as it grows/shrinks.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -205,16 +218,6 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
 
   if (model.points.length === 0) return null;
 
-  const handleClass =
-    'absolute z-10 flex h-11 w-2.5 cursor-ew-resize items-center justify-center rounded-full border ' +
-    'border-neutral-300 bg-white shadow-sm transition-colors hover:border-neutral-400 hover:shadow ' +
-    'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
-  const Grip = () => (
-    <span className="flex gap-[2px]">
-      <span className="h-3.5 w-px bg-neutral-400" />
-      <span className="h-3.5 w-px bg-neutral-400" />
-    </span>
-  );
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -342,7 +345,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
               onPointerMove={onDragMove('left')}
               onPointerUp={endDrag}
               onKeyDown={onHandleKey}
-              className={handleClass}
+              className={HANDLE_CLASS}
               style={{ left: clampedInset, top: '50%', transform: 'translate(-50%, -50%)', touchAction: 'none' }}
             >
               <Grip />
@@ -356,7 +359,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
               onPointerMove={onDragMove('right')}
               onPointerUp={endDrag}
               onKeyDown={onHandleKey}
-              className={handleClass}
+              className={HANDLE_CLASS}
               style={{ right: clampedInset, top: '50%', transform: 'translate(50%, -50%)', touchAction: 'none' }}
             >
               <Grip />
