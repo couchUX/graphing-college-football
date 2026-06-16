@@ -182,12 +182,11 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     }
     if (hasOvertime) quarterMarks.push({ x: xOf(otColumn), label: 'OT' });
 
-    // Subtle game-clock ticks down the center line: one per bin boundary (the
-    // start of each segment), skipping each quarter's 15:00 start since the
-    // quarter label already marks it. Rounded to whole minutes to stay tidy.
+    // Game-clock ticks down the center lane: one per bin (segment start),
+    // including each quarter's 15:00. Rounded to whole minutes to stay tidy.
     const minuteMarks: { x: number; label: string }[] = [];
     for (let qi = 0; qi < reg; qi += 1) {
-      for (let s = 1; s < spq; s += 1) {
+      for (let s = 0; s < spq; s += 1) {
         const remaining = Math.round((QUARTER_MINUTES * (spq - s)) / spq);
         minuteMarks.push({ x: xOf(qi * spq + s), label: `${remaining}:` });
       }
@@ -349,7 +348,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 key={`min-${i}`}
                 x={mark.x}
                 y={geom.minuteLabelY}
-                fontSize={0.5}
+                fontSize={0.6}
                 fill="#9ca3af"
                 textAnchor="middle"
                 dominantBaseline="central"
