@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import type { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import {
@@ -70,13 +71,6 @@ const chooseSegmentsPerQuarter = (width: number, hasOvertime: boolean, totalPlay
   }
   return chosen;
 };
-
-// Small filled triangle used as a team direction marker in the legend.
-const Triangle = ({ dir, color }: { dir: 'up' | 'down'; color: string }) => (
-  <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true">
-    <path d={dir === 'up' ? 'M5 1 9 9 1 9Z' : 'M1 1 9 1 5 9Z'} fill={color} />
-  </svg>
-);
 
 const LegendSwatch = ({ dotClass, label }: { dotClass: string; label: string }) => (
   <span className="inline-flex items-center gap-1.5">
@@ -224,7 +218,25 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
-      <h2 className="mb-3 text-xl font-semibold text-neutral-900">Game wave</h2>
+      <h2 className="text-xl font-semibold text-neutral-900">Game wave</h2>
+
+      {/* Inline legend */}
+      <div className="mb-3 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500">
+        <span className="text-neutral-400">Plays binned by game clock</span>
+        <span className="text-neutral-300">·</span>
+        <span className="inline-flex items-center gap-1">
+          <ArrowUp size={13} strokeWidth={2.5} style={{ color: topColors.explosive }} />
+          <span className="font-medium text-neutral-700">{team}</span>
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <ArrowDown size={13} strokeWidth={2.5} style={{ color: bottomColors.explosive }} />
+          <span className="font-medium text-neutral-700">{opponent}</span>
+        </span>
+        <span className="text-neutral-300">·</span>
+        <LegendSwatch dotClass="bg-neutral-700" label="Explosive" />
+        <LegendSwatch dotClass="bg-neutral-400" label="Successful" />
+        <LegendSwatch dotClass="bg-neutral-200 ring-1 ring-inset ring-neutral-300" label="Unsuccessful" />
+      </div>
 
       {/* Resizable chart area: drag either handle to size the wave. It stays
           centered and the revealed margins fill with a faint dotted backdrop. */}
@@ -237,7 +249,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
         }}
       >
         <div
-          className="mx-auto rounded-lg border border-neutral-100 bg-white"
+          className="mx-auto rounded-lg border border-neutral-100 bg-white px-3 py-2.5"
           style={{ width: chartWidth ? `${chartWidth}px` : '100%' }}
         >
           <svg
@@ -351,24 +363,6 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
             </div>
           </>
         )}
-      </div>
-
-      {/* Inline legend */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500">
-        <span className="text-neutral-400">Plays binned by game clock</span>
-        <span className="text-neutral-300">·</span>
-        <span className="inline-flex items-center gap-1.5">
-          <Triangle dir="up" color={topColors.explosive} />
-          <span className="font-medium text-neutral-700">{team}</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Triangle dir="down" color={bottomColors.explosive} />
-          <span className="font-medium text-neutral-700">{opponent}</span>
-        </span>
-        <span className="text-neutral-300">·</span>
-        <LegendSwatch dotClass="bg-neutral-700" label="Explosive" />
-        <LegendSwatch dotClass="bg-neutral-400" label="Successful" />
-        <LegendSwatch dotClass="bg-neutral-200 ring-1 ring-inset ring-neutral-300" label="Unsuccessful" />
       </div>
     </div>
   );
