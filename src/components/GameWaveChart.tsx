@@ -35,7 +35,7 @@ const REGULATION_QUARTERS = 4;
 const QUARTER_MINUTES = 15;
 // Half-height of the central axis lane reserved for the minute labels; the two
 // teams' dots stack above and below it (never into it).
-const AXIS_HALF = 0.5;
+const AXIS_HALF = 0.6;
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
@@ -171,8 +171,8 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     const vbHeight = contentBottom + LABEL_BAND;
     const labelY = contentBottom + 1.05;
     // Minute ticks sit in the reserved central lane between the two stacks,
-    // nudged ~3px below the exact center to sit optically right.
-    const minuteLabelY = centerY + 0.15;
+    // nudged below the exact center to sit optically right.
+    const minuteLabelY = centerY + 0.25;
 
     // Quarter labels centered under each quarter's columns.
     const quarterMarks: { x: number; label: string }[] = [];
@@ -347,7 +347,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
             {geom.minuteMarks.map((mark, i) => (
               <text
                 key={`min-${i}`}
-                x={mark.x}
+                x={mark.x + 0.05}
                 y={geom.minuteLabelY}
                 fontSize={0.55}
                 fill="#9ca3af"
