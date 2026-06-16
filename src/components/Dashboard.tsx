@@ -1024,7 +1024,7 @@ const Dashboard: React.FC = () => {
         {/* Analytics Dashboard */}
         {plays.length > 0 && currentParams && (
           <div className="space-y-8">
-            {/* Charts Grid */}
+            {/* Charts Grid (includes Game Wave + Win Probability under "Game charts") */}
             <ChartsGrid
               plays={filteredPlays}
               team={currentParams.team}

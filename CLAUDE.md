@@ -80,3 +80,9 @@ npm run lint
 - User will review changes before they go live on production
 
 This ensures the user maintains control over what gets deployed and when.
+
+## Code Review
+
+- **Greptile is the only code reviewer** for this repo. Trigger it with a
+  `@greptile review` comment on the PR and iterate to a 5/5 score.
+- **CodeRabbit is disabled** — don't trigger it or wait on its reviews.
