@@ -35,7 +35,7 @@ const REGULATION_QUARTERS = 4;
 const QUARTER_MINUTES = 15;
 // Half-height of the central axis lane reserved for the minute labels; the two
 // teams' dots stack above and below it (never into it).
-const AXIS_HALF = 0.6;
+const AXIS_HALF = 0.625;
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
