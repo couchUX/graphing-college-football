@@ -32,6 +32,12 @@ const QUARTER_GAP = 0.7;
 const LABEL_BAND = 1.9;
 const RIGHT_PAD = 0.6;
 const REGULATION_QUARTERS = 4;
+const QUARTER_MINUTES = 15;
+// Half-height of the central axis lane reserved for the minute labels; the two
+// teams' dots stack above and below it (never into it).
+const AXIS_HALF = 0.625;
+// Light gray for the quarter dividers, matching the card border / chart axes.
+const GRID_COLOR = '#e5e5e5';
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
@@ -154,14 +160,21 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
 
     const displayTop = Math.max(model.topMax, 1);
     const displayBottom = Math.max(model.bottomMax, 1);
-    const centerY = displayTop;
+    // Center of the reserved axis lane; top dots stack above it, bottom below.
+    const centerY = displayTop + AXIS_HALF;
 
     const yOf = (point: WavePoint) =>
-      point.side === 'top' ? centerY - point.position + 0.5 : centerY + point.position - 0.5;
+      point.side === 'top'
+        ? centerY - AXIS_HALF - point.position + 0.5
+        : centerY + AXIS_HALF + point.position - 0.5;
 
     const vbWidth = xOf(columnCount - 1) + RIGHT_PAD;
-    const vbHeight = displayTop + displayBottom + LABEL_BAND;
-    const labelY = displayTop + displayBottom + 1.05;
+    const contentBottom = displayTop + displayBottom + 2 * AXIS_HALF;
+    const vbHeight = contentBottom + LABEL_BAND;
+    const labelY = contentBottom + 1.05;
+    // Minute ticks sit in the reserved central lane between the two stacks,
+    // nudged below the exact center to sit optically right.
+    const minuteLabelY = centerY + 0.2;
 
     // Quarter labels centered under each quarter's columns.
     const quarterMarks: { x: number; label: string }[] = [];
@@ -172,6 +185,17 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     }
     if (hasOvertime) quarterMarks.push({ x: xOf(otColumn), label: 'OT' });
 
+    // Game-clock ticks down the center lane: one per bin (segment start),
+    // including each quarter's 15:00. Rounded to whole minutes; shown without a
+    // colon so 3-char labels can't crowd adjacent ticks at the finest binning.
+    const minuteMarks: { x: number; label: string }[] = [];
+    for (let qi = 0; qi < reg; qi += 1) {
+      for (let s = 0; s < spq; s += 1) {
+        const remaining = Math.round((QUARTER_MINUTES * (spq - s)) / spq);
+        minuteMarks.push({ x: xOf(qi * spq + s), label: `${remaining}` });
+      }
+    }
+
     // Faint dividers between quarters (and before OT).
     const dividers: number[] = [];
     for (let qi = 1; qi < reg; qi += 1) {
@@ -179,7 +203,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     }
     if (hasOvertime) dividers.push((xOf(otColumn - 1) + xOf(otColumn)) / 2);
 
-    return { xOf, yOf, vbWidth, vbHeight, centerY, labelY, quarterMarks, dividers };
+    return { xOf, yOf, vbWidth, vbHeight, centerY, labelY, minuteLabelY, quarterMarks, minuteMarks, dividers };
   }, [model]);
 
   const colorOf = (point: WavePoint): string => {
@@ -260,7 +284,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
         }}
       >
         <div
-          className="mx-auto rounded-lg border border-neutral-100 bg-white px-3 py-2.5"
+          className="mx-auto rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
           style={{ width: chartWidth ? `${chartWidth}px` : '100%' }}
         >
           <svg
@@ -278,13 +302,10 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 x2={x}
                 y1={0.2}
                 y2={geom.vbHeight - LABEL_BAND + 0.4}
-                stroke="#e5e5e5"
-                strokeWidth={0.03}
+                stroke={GRID_COLOR}
+                strokeWidth={0.05}
               />
             ))}
-
-            {/* Center line */}
-            <line x1={0} x2={geom.vbWidth} y1={geom.centerY} y2={geom.centerY} stroke="#d4d4d4" strokeWidth={0.04} />
 
             {/* Dots */}
             {model.points.map((point, i) => {
@@ -324,6 +345,21 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 </g>
               );
             })}
+
+            {/* Game-clock minute ticks in the reserved central axis lane */}
+            {geom.minuteMarks.map((mark, i) => (
+              <text
+                key={`min-${i}`}
+                x={mark.x}
+                y={geom.minuteLabelY}
+                fontSize={0.55}
+                fill="#9ca3af"
+                textAnchor="middle"
+                dominantBaseline="central"
+              >
+                {mark.label}
+              </text>
+            ))}
 
             {/* Quarter marks */}
             {geom.quarterMarks.map((mark) => (
