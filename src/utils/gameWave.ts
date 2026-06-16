@@ -228,7 +228,7 @@ export const extractFieldGoals = (rawPlays: RawPlayLike[] = []): ScoringEvent[] 
     const text = (play.play_text ?? play.playText ?? '').toLowerCase();
     const isMade = type.includes('field goal')
       ? type.includes('good')
-      : text.includes('field goal') && text.includes('good');
+      : text.includes('field goal') && text.includes('good') && !text.includes('no good');
     if (!isMade || !play.offense) continue;
     events.push({
       team: play.offense,
