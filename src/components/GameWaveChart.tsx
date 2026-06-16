@@ -36,6 +36,10 @@ const QUARTER_MINUTES = 15;
 // Half-height of the central axis lane reserved for the minute labels; the two
 // teams' dots stack above and below it (never into it).
 const AXIS_HALF = 0.625;
+// Rightward nudge applied to minute-label x positions for optical centering.
+const MINUTE_LABEL_X_NUDGE = 0.05;
+// Light gray for the quarter dividers, matching the card border / chart axes.
+const GRID_COLOR = '#e5e5e5';
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
@@ -281,7 +285,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
         }}
       >
         <div
-          className="mx-auto rounded-lg border border-neutral-100 bg-white px-3 py-2.5"
+          className="mx-auto rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
           style={{ width: chartWidth ? `${chartWidth}px` : '100%' }}
         >
           <svg
@@ -299,8 +303,8 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 x2={x}
                 y1={0.2}
                 y2={geom.vbHeight - LABEL_BAND + 0.4}
-                stroke="#e5e5e5"
-                strokeWidth={0.03}
+                stroke={GRID_COLOR}
+                strokeWidth={0.05}
               />
             ))}
 
@@ -347,7 +351,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
             {geom.minuteMarks.map((mark, i) => (
               <text
                 key={`min-${i}`}
-                x={mark.x + 0.05}
+                x={mark.x + MINUTE_LABEL_X_NUDGE}
                 y={geom.minuteLabelY}
                 fontSize={0.55}
                 fill="#9ca3af"
