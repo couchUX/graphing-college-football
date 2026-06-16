@@ -33,6 +33,9 @@ const LABEL_BAND = 1.9;
 const RIGHT_PAD = 0.6;
 const REGULATION_QUARTERS = 4;
 const QUARTER_MINUTES = 15;
+// Half-height of the central axis lane reserved for the minute labels; the two
+// teams' dots stack above and below it (never into it).
+const AXIS_HALF = 0.5;
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
@@ -155,15 +158,19 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
 
     const displayTop = Math.max(model.topMax, 1);
     const displayBottom = Math.max(model.bottomMax, 1);
-    const centerY = displayTop;
+    // Center of the reserved axis lane; top dots stack above it, bottom below.
+    const centerY = displayTop + AXIS_HALF;
 
     const yOf = (point: WavePoint) =>
-      point.side === 'top' ? centerY - point.position + 0.5 : centerY + point.position - 0.5;
+      point.side === 'top'
+        ? centerY - AXIS_HALF - point.position + 0.5
+        : centerY + AXIS_HALF + point.position - 0.5;
 
     const vbWidth = xOf(columnCount - 1) + RIGHT_PAD;
-    const vbHeight = displayTop + displayBottom + LABEL_BAND;
-    const labelY = displayTop + displayBottom + 1.05;
-    // Minute ticks ride the center line, between the two teams' stacks.
+    const contentBottom = displayTop + displayBottom + 2 * AXIS_HALF;
+    const vbHeight = contentBottom + LABEL_BAND;
+    const labelY = contentBottom + 1.05;
+    // Minute ticks sit in the reserved central lane between the two stacks.
     const minuteLabelY = centerY;
 
     // Quarter labels centered under each quarter's columns.
@@ -336,8 +343,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
               );
             })}
 
-            {/* Game-clock minute ticks down the center line (white halo keeps them
-                legible over the near-center dots) */}
+            {/* Game-clock minute ticks in the reserved central axis lane */}
             {geom.minuteMarks.map((mark, i) => (
               <text
                 key={`min-${i}`}
@@ -345,9 +351,6 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 y={geom.minuteLabelY}
                 fontSize={0.5}
                 fill="#9ca3af"
-                stroke="#ffffff"
-                strokeWidth={0.14}
-                paintOrder="stroke"
                 textAnchor="middle"
                 dominantBaseline="central"
               >
