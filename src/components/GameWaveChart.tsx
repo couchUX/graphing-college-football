@@ -16,8 +16,6 @@ interface GameWaveChartProps {
   teamColorId: string;
   opponentColorId: string;
   rawPlays?: RawPlayLike[];
-  /** Tuning-only: render the binning debug readout under the legend. */
-  debug?: boolean;
 }
 
 interface ShadeColors {
@@ -33,7 +31,12 @@ const LABEL_BAND = 1.9;
 const RIGHT_PAD = 0.6;
 const REGULATION_QUARTERS = 4;
 
-// Responsive time-binning. As the container gets wider we subdivide each
+// Smallest the (centered) chart area can be dragged to.
+const MIN_CHART_WIDTH = 240;
+// Keyboard nudge step for the resize handles, in px of margin per arrow press.
+const RESIZE_STEP = 24;
+
+// Responsive time-binning. As the chart area gets wider we subdivide each
 // quarter into more (finer) clock tranches so the wave fills the horizontal
 // space and the stacks flatten out, rather than blowing the dots up huge.
 // Candidates run from 3/quarter (~5 min bins) to 15/quarter (~1 min bins).
@@ -68,21 +71,31 @@ const chooseSegmentsPerQuarter = (width: number, hasOvertime: boolean, totalPlay
   return chosen;
 };
 
-const GameWaveChart = ({
-  plays,
-  team,
-  opponent,
-  teamColorId,
-  opponentColorId,
-  rawPlays = [],
-  debug = false,
-}: GameWaveChartProps) => {
-  // Measure the container so the wave can re-bin as it grows/shrinks.
-  const wrapperRef = useRef<HTMLDivElement>(null);
+// Small filled triangle used as a team direction marker in the legend.
+const Triangle = ({ dir, color }: { dir: 'up' | 'down'; color: string }) => (
+  <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true">
+    <path d={dir === 'up' ? 'M5 1 9 9 1 9Z' : 'M1 1 9 1 5 9Z'} fill={color} />
+  </svg>
+);
+
+const LegendSwatch = ({ dotClass, label }: { dotClass: string; label: string }) => (
+  <span className="inline-flex items-center gap-1.5">
+    <span className={`inline-block h-2.5 w-2.5 rounded-full ${dotClass}`} />
+    {label}
+  </span>
+);
+
+const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, rawPlays = [] }: GameWaveChartProps) => {
+  // Measure the available width so the wave can re-bin as it grows/shrinks.
+  const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
+  // User-controlled margin (px) on each side; the chart stays centered between.
+  const [inset, setInset] = useState(0);
+  const [draggingSide, setDraggingSide] = useState<'left' | 'right' | null>(null);
+
   useLayoutEffect(() => {
-    const el = wrapperRef.current;
+    const el = containerRef.current;
     if (!el) return;
     const measure = () => setContainerWidth(el.clientWidth);
     measure();
@@ -90,6 +103,10 @@ const GameWaveChart = ({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  const maxInset = Math.max(0, (containerWidth - MIN_CHART_WIDTH) / 2);
+  const clampedInset = Math.min(inset, maxInset);
+  const chartWidth = containerWidth > 0 ? containerWidth - 2 * clampedInset : 0;
 
   const fieldGoals = useMemo(() => extractFieldGoals(rawPlays), [rawPlays]);
 
@@ -101,8 +118,8 @@ const GameWaveChart = ({
   );
 
   const segmentsPerQuarter = useMemo(
-    () => chooseSegmentsPerQuarter(containerWidth, hasOvertime, plays.length + fieldGoals.length),
-    [containerWidth, hasOvertime, plays.length, fieldGoals.length],
+    () => chooseSegmentsPerQuarter(chartWidth, hasOvertime, plays.length + fieldGoals.length),
+    [chartWidth, hasOvertime, plays.length, fieldGoals.length],
   );
 
   const model = useMemo(
@@ -163,135 +180,195 @@ const GameWaveChart = ({
     return colors.light;
   };
 
-  // Effective rendered size of one dot cell, for the temporary debug readout.
-  const cellPx = containerWidth > 0 ? containerWidth / geom.vbWidth : 0;
+  // Resize handles: dragging either side adjusts the symmetric margin so the
+  // chart grows/shrinks about its center. Pointer capture keeps the drag alive
+  // outside the handle; the side guard ignores plain hover-move events.
+  const startDrag = (side: 'left' | 'right') => (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDraggingSide(side);
+  };
+  const onDragMove = (side: 'left' | 'right') => (e: React.PointerEvent<HTMLDivElement>) => {
+    if (draggingSide !== side) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const fromEdge = side === 'left' ? e.clientX - rect.left : rect.right - e.clientX;
+    setInset(Math.max(0, Math.min(fromEdge, maxInset)));
+  };
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    setDraggingSide(null);
+  };
+  const onHandleKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setInset((i) => Math.max(0, Math.min(i - RESIZE_STEP, maxInset))); // widen
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      setInset((i) => Math.max(0, Math.min(i + RESIZE_STEP, maxInset))); // narrow
+    }
+  };
 
   if (model.points.length === 0) return null;
 
-  const Swatch = ({ color, label }: { color: string; label: string }) => (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-      <span className="text-xs text-neutral-500">{label}</span>
+  const handleClass =
+    'absolute z-10 flex h-11 w-2.5 cursor-ew-resize items-center justify-center rounded-full border ' +
+    'border-neutral-300 bg-white shadow-sm transition-colors hover:border-neutral-400 hover:shadow ' +
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+  const Grip = () => (
+    <span className="flex gap-[2px]">
+      <span className="h-3.5 w-px bg-neutral-400" />
+      <span className="h-3.5 w-px bg-neutral-400" />
     </span>
   );
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold text-neutral-900">Game wave</h2>
-        <p className="text-sm text-neutral-500">
-          Each dot is a play, binned by game clock. {team} stacks up, {opponent} stacks down.
-          Explosive plays sit nearest the center line; scoring plays show points (6 = TD, 3 = FG).
-        </p>
-      </div>
+      <h2 className="mb-3 text-xl font-semibold text-neutral-900">Game wave</h2>
 
-      <div ref={wrapperRef} className="w-full">
-        <svg
-          viewBox={`0 0 ${geom.vbWidth} ${geom.vbHeight}`}
-          style={{ width: '100%', height: 'auto' }}
-          preserveAspectRatio="xMidYMid meet"
-          role="img"
-          aria-label={`Game wave: ${team} versus ${opponent}`}
+      {/* Resizable chart area: drag either handle to size the wave. It stays
+          centered and the revealed margins fill with a faint dotted backdrop. */}
+      <div
+        ref={containerRef}
+        className={`relative w-full ${draggingSide ? 'select-none' : ''}`}
+        style={{
+          backgroundImage: 'radial-gradient(circle, #e5e5e5 1.1px, transparent 1.1px)',
+          backgroundSize: '9px 9px',
+        }}
+      >
+        <div
+          className="mx-auto rounded-lg border border-neutral-100 bg-white"
+          style={{ width: chartWidth ? `${chartWidth}px` : '100%' }}
         >
-          {/* Quarter dividers */}
-          {geom.dividers.map((x, i) => (
-            <line
-              key={`div-${i}`}
-              x1={x}
-              x2={x}
-              y1={0.2}
-              y2={geom.vbHeight - LABEL_BAND + 0.4}
-              stroke="#e5e5e5"
-              strokeWidth={0.03}
-            />
-          ))}
+          <svg
+            viewBox={`0 0 ${geom.vbWidth} ${geom.vbHeight}`}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label={`Game wave: ${team} versus ${opponent}`}
+          >
+            {/* Quarter dividers */}
+            {geom.dividers.map((x, i) => (
+              <line
+                key={`div-${i}`}
+                x1={x}
+                x2={x}
+                y1={0.2}
+                y2={geom.vbHeight - LABEL_BAND + 0.4}
+                stroke="#e5e5e5"
+                strokeWidth={0.03}
+              />
+            ))}
 
-          {/* Center line */}
-          <line
-            x1={0}
-            x2={geom.vbWidth}
-            y1={geom.centerY}
-            y2={geom.centerY}
-            stroke="#d4d4d4"
-            strokeWidth={0.04}
-          />
+            {/* Center line */}
+            <line x1={0} x2={geom.vbWidth} y1={geom.centerY} y2={geom.centerY} stroke="#d4d4d4" strokeWidth={0.04} />
 
-          {/* Dots */}
-          {model.points.map((point, i) => {
-            const cx = geom.xOf(point.column);
-            const cy = geom.yOf(point);
-            return (
-              <g key={`pt-${i}`}>
-                <circle cx={cx} cy={cy} r={DOT_R} fill={colorOf(point)} stroke="#ffffff" strokeWidth={0.05}>
-                  <title>
-                    {`${point.team} — ${
-                      point.outcome === 'explosive'
-                        ? 'Explosive'
-                        : point.outcome === 'fieldGoal'
-                          ? 'Field goal'
-                          : point.outcome === 'success'
-                            ? 'Successful'
-                            : 'Unsuccessful'
-                    }${point.down ? ` (${point.yardsGained} yds on ${point.down} & ${point.distance})` : ''}\n${point.playText}`}
-                  </title>
-                </circle>
-                {point.label && (
-                  <text
-                    x={cx}
-                    y={cy}
-                    dy="0.35em"
-                    fontSize={0.5}
-                    fontWeight="bold"
-                    fill={point.isScore ? '#ffffff' : '#374151'}
-                    textAnchor="middle"
-                    pointerEvents="none"
-                  >
-                    {point.label}
-                  </text>
-                )}
-              </g>
-            );
-          })}
+            {/* Dots */}
+            {model.points.map((point, i) => {
+              const cx = geom.xOf(point.column);
+              const cy = geom.yOf(point);
+              return (
+                <g key={`pt-${i}`}>
+                  <circle cx={cx} cy={cy} r={DOT_R} fill={colorOf(point)} stroke="#ffffff" strokeWidth={0.05}>
+                    <title>
+                      {`${point.team} — ${
+                        point.outcome === 'explosive'
+                          ? 'Explosive'
+                          : point.outcome === 'fieldGoal'
+                            ? 'Field goal'
+                            : point.outcome === 'success'
+                              ? 'Successful'
+                              : 'Unsuccessful'
+                      }${point.down ? ` (${point.yardsGained} yds on ${point.down} & ${point.distance})` : ''}\n${point.playText}`}
+                    </title>
+                  </circle>
+                  {point.label && (
+                    <text
+                      x={cx}
+                      y={cy}
+                      dy="0.35em"
+                      fontSize={0.5}
+                      fontWeight="bold"
+                      fill={point.isScore ? '#ffffff' : '#374151'}
+                      textAnchor="middle"
+                      pointerEvents="none"
+                    >
+                      {point.label}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
 
-          {/* Quarter marks */}
-          {geom.quarterMarks.map((mark) => (
-            <text
-              key={`q-${mark.label}`}
-              x={mark.x}
-              y={geom.labelY}
-              fontSize={0.62}
-              fontWeight="bold"
-              fill="#737373"
-              textAnchor="middle"
-              dominantBaseline="central"
+            {/* Quarter marks */}
+            {geom.quarterMarks.map((mark) => (
+              <text
+                key={`q-${mark.label}`}
+                x={mark.x}
+                y={geom.labelY}
+                fontSize={0.62}
+                fontWeight="bold"
+                fill="#737373"
+                textAnchor="middle"
+                dominantBaseline="central"
+              >
+                {mark.label}
+              </text>
+            ))}
+          </svg>
+        </div>
+
+        {/* Drag handles, centered on each edge of the chart area. */}
+        {containerWidth > 0 && (
+          <>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize chart from the left"
+              tabIndex={0}
+              onPointerDown={startDrag('left')}
+              onPointerMove={onDragMove('left')}
+              onPointerUp={endDrag}
+              onKeyDown={onHandleKey}
+              className={handleClass}
+              style={{ left: clampedInset, top: '50%', transform: 'translate(-50%, -50%)', touchAction: 'none' }}
             >
-              {mark.label}
-            </text>
-          ))}
-        </svg>
+              <Grip />
+            </div>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize chart from the right"
+              tabIndex={0}
+              onPointerDown={startDrag('right')}
+              onPointerMove={onDragMove('right')}
+              onPointerUp={endDrag}
+              onKeyDown={onHandleKey}
+              className={handleClass}
+              style={{ right: clampedInset, top: '50%', transform: 'translate(50%, -50%)', touchAction: 'none' }}
+            >
+              <Grip />
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="mt-4 space-y-2">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="text-xs font-medium text-neutral-600 w-24 shrink-0">{team}</span>
-          <Swatch color={topColors.explosive} label="Explosive" />
-          <Swatch color={topColors.success} label="Successful" />
-          <Swatch color={topColors.light} label="Unsuccessful" />
-        </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="text-xs font-medium text-neutral-600 w-24 shrink-0">{opponent}</span>
-          <Swatch color={bottomColors.explosive} label="Explosive" />
-          <Swatch color={bottomColors.success} label="Successful" />
-          <Swatch color={bottomColors.light} label="Unsuccessful" />
-        </div>
-        <span className="text-xs text-neutral-400">Numbers mark scoring plays (6 = TD, 3 = FG); i = interception.</span>
-        {/* Tuning-only binning readout, gated behind ?wavetune=1 (see Dashboard). */}
-        {debug && (
-          <div className="text-[10px] font-mono text-neutral-300">
-            {segmentsPerQuarter} bins/qtr · ~{(15 / segmentsPerQuarter).toFixed(1)} min · {Math.round(cellPx)}px cells ·{' '}
-            {Math.round(containerWidth)}px wide
-          </div>
-        )}
+      {/* Inline legend */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500">
+        <span className="text-neutral-400">Plays binned by game clock</span>
+        <span className="text-neutral-300">·</span>
+        <span className="inline-flex items-center gap-1.5">
+          <Triangle dir="up" color={topColors.explosive} />
+          <span className="font-medium text-neutral-700">{team}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Triangle dir="down" color={bottomColors.explosive} />
+          <span className="font-medium text-neutral-700">{opponent}</span>
+        </span>
+        <span className="text-neutral-300">·</span>
+        <LegendSwatch dotClass="bg-neutral-700" label="Explosive" />
+        <LegendSwatch dotClass="bg-neutral-400" label="Successful" />
+        <LegendSwatch dotClass="bg-neutral-200 ring-1 ring-inset ring-neutral-300" label="Unsuccessful" />
       </div>
     </div>
   );
