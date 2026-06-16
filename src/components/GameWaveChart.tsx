@@ -29,7 +29,7 @@ interface ShadeColors {
 // Geometry, in viewBox units where 1 unit = one dot cell.
 const DOT_R = 0.4;
 const QUARTER_GAP = 0.7;
-const LABEL_BAND = 2.0;
+const LABEL_BAND = 1.9;
 const RIGHT_PAD = 0.6;
 const REGULATION_QUARTERS = 4;
 const QUARTER_MINUTES = 15;
@@ -162,8 +162,9 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
 
     const vbWidth = xOf(columnCount - 1) + RIGHT_PAD;
     const vbHeight = displayTop + displayBottom + LABEL_BAND;
-    const minuteLabelY = displayTop + displayBottom + 0.5;
-    const labelY = displayTop + displayBottom + 1.2;
+    const labelY = displayTop + displayBottom + 1.05;
+    // Minute ticks ride the center line, between the two teams' stacks.
+    const minuteLabelY = centerY;
 
     // Quarter labels centered under each quarter's columns.
     const quarterMarks: { x: number; label: string }[] = [];
@@ -174,8 +175,8 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
     }
     if (hasOvertime) quarterMarks.push({ x: xOf(otColumn), label: 'OT' });
 
-    // Subtle game-clock ticks above the quarter labels: one per bin boundary
-    // (the start of each segment), skipping each quarter's 15:00 start since the
+    // Subtle game-clock ticks down the center line: one per bin boundary (the
+    // start of each segment), skipping each quarter's 15:00 start since the
     // quarter label already marks it. Rounded to whole minutes to stay tidy.
     const minuteMarks: { x: number; label: string }[] = [];
     for (let qi = 0; qi < reg; qi += 1) {
@@ -296,9 +297,6 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
               />
             ))}
 
-            {/* Center line */}
-            <line x1={0} x2={geom.vbWidth} y1={geom.centerY} y2={geom.centerY} stroke="#d4d4d4" strokeWidth={0.04} />
-
             {/* Dots */}
             {model.points.map((point, i) => {
               const cx = geom.xOf(point.column);
@@ -338,14 +336,18 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
               );
             })}
 
-            {/* Game-clock minute ticks (subtle, above the quarter labels) */}
+            {/* Game-clock minute ticks down the center line (white halo keeps them
+                legible over the near-center dots) */}
             {geom.minuteMarks.map((mark, i) => (
               <text
                 key={`min-${i}`}
                 x={mark.x}
                 y={geom.minuteLabelY}
-                fontSize={0.34}
-                fill="#b8b8b8"
+                fontSize={0.5}
+                fill="#9ca3af"
+                stroke="#ffffff"
+                strokeWidth={0.14}
+                paintOrder="stroke"
                 textAnchor="middle"
                 dominantBaseline="central"
               >
