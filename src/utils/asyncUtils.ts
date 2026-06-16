@@ -21,49 +21,40 @@ export const mapWithConcurrency = async <T, R>(
   return results;
 };
 
-// Pull an HTTP status code off a thrown error. Callers throw
-// `Error("HTTP error! status: NNN")`, so fall back to parsing the message when
-// no numeric `status` property is present.
-const httpStatusOf = (error: unknown): number | undefined => {
-  if (typeof error === 'object' && error !== null) {
-    const maybeStatus = (error as { status?: unknown }).status;
-    if (typeof maybeStatus === 'number') return maybeStatus;
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string') {
-      const match = message.match(/status:\s*(\d{3})/i);
-      if (match) return Number(match[1]);
+// Only transient failures are worth retrying: rate limiting (429) and server
+// errors (5xx), plus network/timeout errors that carry no HTTP status. A
+// definitive 4xx (e.g. 401 bad key, 404 not found) will never succeed on retry,
+// so re-throw it immediately. Errors are thrown as `HTTP error! status: NNN`.
+const isRetriable = (error: unknown): boolean => {
+  if (error instanceof Error) {
+    const match = error.message.match(/status:\s*(\d+)/);
+    if (match) {
+      const status = Number(match[1]);
+      return status === 429 || status >= 500;
     }
   }
-  return undefined;
-};
-
-// Retry transient failures only: network/unknown errors (no HTTP status) plus
-// 408 (timeout), 429 (rate limit), and 5xx. Non-retriable 4xx (400/401/404…)
-// fail fast instead of burning backoff on an error that won't resolve itself.
-const isRetriableError = (error: unknown): boolean => {
-  const status = httpStatusOf(error);
-  if (status === undefined) return true;
-  return status === 408 || status === 429 || status >= 500;
+  return true; // network errors, timeouts, etc.
 };
 
 // Retry an async operation a few times with backoff + jitter. Useful for
-// transient API failures (429/5xx) when fetching many resources. Pass a custom
-// `shouldRetry` predicate to override which errors are considered retriable.
+// transient API failures (429/5xx) when fetching many resources.
 export const withRetry = async <T>(
   fn: () => Promise<T>,
-  attempts = 2,
+  maxRetries = 2,
   baseDelayMs = 700,
-  shouldRetry: (error: unknown) => boolean = isRetriableError,
 ): Promise<T> => {
   let lastError: unknown;
-  for (let attempt = 0; attempt <= attempts; attempt += 1) {
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      if (attempt >= attempts || !shouldRetry(error)) break;
-      const delay = baseDelayMs * (attempt + 1) + Math.random() * 200;
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      if (attempt < maxRetries && isRetriable(error)) {
+        const delay = baseDelayMs * (attempt + 1) + Math.random() * 200;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        break;
+      }
     }
   }
   throw lastError;

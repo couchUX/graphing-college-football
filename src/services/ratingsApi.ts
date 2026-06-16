@@ -35,7 +35,6 @@ export const fetchSPRatings = async (year: number): Promise<SPRating[]> => {
     }
 
     const data = await response.json();
-    console.log('Fetched SP+ ratings:', data.length, 'teams');
 
     return data;
   } catch (error) {
@@ -48,7 +47,6 @@ export const fetchSPRatings = async (year: number): Promise<SPRating[]> => {
 export const fetchSPRatingsHistory = async (team: string): Promise<SPRating[]> => {
   try {
     const url = `${API_BASE_URL}/ratings/sp?team=${encodeURIComponent(team)}`;
-    console.log('Fetching SP+ ratings history from:', url);
 
     const response = await withRetry(async () => {
       const res = await fetch(url, { headers: getApiHeaders() });
@@ -59,12 +57,21 @@ export const fetchSPRatingsHistory = async (team: string): Promise<SPRating[]> =
     });
 
     const data: SPRating[] = await response.json();
-    console.log('Fetched SP+ ratings history:', data.length, 'seasons');
 
-    // Guard against any aggregate rows without a real season year.
-    return data
-      .filter((rating) => typeof rating.year === 'number')
-      .sort((a, b) => a.year - b.year);
+    // Guard against aggregate rows without a real season year, and collapse any
+    // duplicate rows for the same year to a single point (the endpoint can
+    // return more than one record per season, which made the chart zig-zag
+    // within a year). Prefer the row that actually carries an overall rating.
+    const byYear = new Map<number, SPRating>();
+    for (const rating of data) {
+      if (typeof rating.year !== 'number') continue;
+      const existing = byYear.get(rating.year);
+      if (!existing || (existing.rating == null && rating.rating != null)) {
+        byYear.set(rating.year, rating);
+      }
+    }
+
+    return [...byYear.values()].sort((a, b) => a.year - b.year);
   } catch (error) {
     console.error('Error fetching SP+ ratings history:', error);
     throw error;

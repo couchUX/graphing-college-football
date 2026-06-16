@@ -372,16 +372,21 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 
 	// Update URL with current selections
 	const updateURL = () => {
-		const params = new URLSearchParams();
+		// Start from the current query so other sub-views' params (view, aTeam,
+		// bTeam, etc.) are preserved while editing the Season trends view.
+		const params = new URLSearchParams(window.location.search);
 
 		params.set("year", year.toString());
 
 		if (selectedTeam) {
 			params.set("team", selectedTeam.school);
+		} else {
+			params.delete("team");
 		}
 
 		// Use indices instead of game IDs for compact URLs
 		// Only add 'games' parameter if not all games are selected (default is all)
+		params.delete("games");
 		if (selectedGameIds.length > 0 && availableGames.length > 0) {
 			const allGameIds = availableGames.map((g) => g.id);
 			const selectedIndices = selectedGameIds
@@ -397,6 +402,8 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 
 		if (selectedTeamColor !== "default") {
 			params.set("teamColor", selectedTeamColor);
+		} else {
+			params.delete("teamColor");
 		}
 
 		const newURL = params.toString()

@@ -82,12 +82,23 @@ const Dashboard: React.FC = () => {
   const handleDownloadCsv = () => {
     if (!currentParams || plays.length === 0) return;
     const gameId = plays[0]?.gameId;
+    // Raw API plays carry home/away team names (and a wallclock we can use as the
+    // game date) so the per-game CSV's home_team/away_team/date columns aren't
+    // blank like the season export's.
+    const raw = rawApiData[0];
     const games = gameId
       ? [{
           id: gameId,
           season: currentParams.year,
           week: currentParams.week,
           seasonType: currentParams.seasonType,
+          startDate: raw?.wallclock || plays[0]?.wallclock || undefined,
+          homeTeam: raw?.home,
+          awayTeam: raw?.away,
+          // The CFBD plays endpoint doesn't carry neutral_site, so this column
+          // is left blank rather than silently always-empty from a missing
+          // field. Populating it would require a separate /games lookup.
+          neutralSite: undefined,
         }]
       : [];
     const csv = playsToCsv(plays, games);

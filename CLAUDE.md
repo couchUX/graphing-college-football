@@ -1,5 +1,8 @@
 # Claude Code Session History
 
+> **Pending TODOs live in [`TODO.md`](./TODO.md)** — check it for tracked
+> follow-up work (e.g. URL routing / shareable state for Team Trends sub-tabs).
+
 ## Latest Session Summary (Enhanced Refactoring)
 
 **Main Accomplishment: Enhanced ChartsGrid.tsx Refactoring with Bolt Improvements**

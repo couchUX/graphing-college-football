@@ -11,6 +11,11 @@ interface TrendsChartsGridProps {
   year: number;
   gamesCount: number;
   selectedTeamColor?: string;
+  // One-game Team vs. Team: Rush Rate renders as grouped columns when
+  // perGameChartType is 'bar', and the SR/XR-by-game and play-type line charts
+  // are hidden (a single point isn't meaningful) when hidePerGameLines is true.
+  perGameChartType?: 'line' | 'bar';
+  hidePerGameLines?: boolean;
 }
 
 // Chart options for bar charts (XR overlaps SR, matching Games page)
@@ -82,7 +87,9 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
   team,
   year,
   gamesCount,
-  selectedTeamColor = 'default'
+  selectedTeamColor = 'default',
+  perGameChartType = 'line',
+  hidePerGameLines = false
 }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
 
@@ -155,18 +162,19 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
           </div>
         </div>
         {/* SR & XR by Game */}
+        {!hidePerGameLines && (
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="text-lg font-semibold text-neutral-900">
-                SR and XR by Team
+                SR and XR by Team (each game)
               </h3>
               <p className="text-sm text-neutral-600">
                 Performance trends (vs = home, @ = away, * = postseason)
               </p>
             </div>
             <button
-              onClick={() => handleCopyEmbed('sr-xr-by-game', 'SR and XR by Team', chartData.srxrByGame, 'line')}
+              onClick={() => handleCopyEmbed('sr-xr-by-game', 'SR and XR by Team (each game)', chartData.srxrByGame, 'line')}
               className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
                 copiedChart === 'sr-xr-by-game'
                   ? 'border-green-300 bg-green-50'
@@ -185,23 +193,25 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             <Line data={chartData.srxrByGame} options={lineChartOptionsWithRotatedLabels} />
           </div>
         </div>
+        )}
       </div>
 
       {/* Second Row - 2 Columns on Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Rush vs Pass by Game */}
+        {!hidePerGameLines && (
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="text-lg font-semibold text-neutral-900">
-                SR and XR by Play Type
+                SR and XR by Play Type (each game)
               </h3>
               <p className="text-sm text-neutral-600">
                 Play type effectiveness trends throughout the season
               </p>
             </div>
             <button
-              onClick={() => handleCopyEmbed('rush-pass-by-game', 'SR and XR by Play Type', chartData.rushPassByGame, 'line')}
+              onClick={() => handleCopyEmbed('rush-pass-by-game', 'SR and XR by Play Type (each game)', chartData.rushPassByGame, 'line')}
               className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
                 copiedChart === 'rush-pass-by-game'
                   ? 'border-green-300 bg-green-50'
@@ -220,20 +230,21 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             <Line data={chartData.rushPassByGame} options={lineChartOptionsWithRotatedLabels} />
           </div>
         </div>
+        )}
 
         {/* Rush Rate by Game */}
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="text-lg font-semibold text-neutral-900">
-                Rush Rate
+                Rush Rate (each game)
               </h3>
               <p className="text-sm text-neutral-600">
                 Percentage of plays that are rushes vs passes
               </p>
             </div>
             <button
-              onClick={() => handleCopyEmbed('rush-rate-by-game', 'Rush Rate', chartData.rushRateByGame, 'line')}
+              onClick={() => handleCopyEmbed('rush-rate-by-game', 'Rush Rate (each game)', chartData.rushRateByGame, perGameChartType)}
               className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
                 copiedChart === 'rush-rate-by-game'
                   ? 'border-green-300 bg-green-50'
@@ -249,7 +260,11 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </button>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            <Line data={chartData.rushRateByGame} options={lineChartOptionsWithRotatedLabels} />
+            {perGameChartType === 'bar' ? (
+              <Bar data={chartData.rushRateByGame} options={lineChartOptionsWithRotatedLabels} />
+            ) : (
+              <Line data={chartData.rushRateByGame} options={lineChartOptionsWithRotatedLabels} />
+            )}
           </div>
         </div>
       </div>

@@ -107,7 +107,6 @@ export const fetchTeams = async (): Promise<Team[]> => {
     
     const data: Team[] = await response.json();
     const footballTeams = data.filter(isFootballTeam);
-    console.log('Fetched teams:', data.length, '→ FBS/FCS:', footballTeams.length);
 
     return footballTeams;
   } catch (error) {
