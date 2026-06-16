@@ -16,6 +16,8 @@ interface GameWaveChartProps {
   teamColorId: string;
   opponentColorId: string;
   rawPlays?: RawPlayLike[];
+  /** Tuning-only: render the binning debug readout under the legend. */
+  debug?: boolean;
 }
 
 interface ShadeColors {
@@ -73,6 +75,7 @@ const GameWaveChart = ({
   teamColorId,
   opponentColorId,
   rawPlays = [],
+  debug = false,
 }: GameWaveChartProps) => {
   // Measure the container so the wave can re-bin as it grows/shrinks.
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -282,11 +285,13 @@ const GameWaveChart = ({
           <Swatch color={bottomColors.light} label="Unsuccessful" />
         </div>
         <span className="text-xs text-neutral-400">Numbers mark scoring plays (6 = TD, 3 = FG); i = interception.</span>
-        {/* TEMP debug: responsive-binning readout — remove once dimensions are dialed in. */}
-        <div className="text-[10px] font-mono text-neutral-300">
-          {segmentsPerQuarter} bins/qtr · ~{(15 / segmentsPerQuarter).toFixed(1)} min · {Math.round(cellPx)}px cells ·{' '}
-          {Math.round(containerWidth)}px wide
-        </div>
+        {/* Tuning-only binning readout, gated behind ?wavetune=1 (see Dashboard). */}
+        {debug && (
+          <div className="text-[10px] font-mono text-neutral-300">
+            {segmentsPerQuarter} bins/qtr · ~{(15 / segmentsPerQuarter).toFixed(1)} min · {Math.round(cellPx)}px cells ·{' '}
+            {Math.round(containerWidth)}px wide
+          </div>
+        )}
       </div>
     </div>
   );

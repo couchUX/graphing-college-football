@@ -269,6 +269,11 @@ const Dashboard: React.FC = () => {
   // Plays are already filtered to rush/pass in processPlayData
   const filteredPlays = plays;
 
+  // Opt-in tuning mode (?wavetune=1): shows the Game Wave resize handle and a
+  // binning debug readout. Off for normal visitors; handy on the Vercel preview.
+  const waveTune =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('wavetune') === '1';
+
   // Sort raw API data by ascending ID for display
   const sortedRawApiData = [...rawApiData].sort((a, b) => String(a.id).localeCompare(String(b.id)));
 
@@ -1015,24 +1020,36 @@ const Dashboard: React.FC = () => {
         {plays.length > 0 && currentParams && (
           <div className="space-y-8">
             {/* Game Wave */}
-            {/* TEMP test rig: drag the handle at the bottom-right to resize the Game Wave's
-                container and watch it re-bin live. The outer div scrolls so you can drag it
-                wider than the page. Remove this wrapper (keep <GameWaveChart/>) before shipping. */}
-            <div className="overflow-x-auto">
-              <div
-                className="rounded-2xl"
-                style={{ resize: 'horizontal', overflow: 'auto', width: 760, minWidth: 320, maxWidth: 2000 }}
-              >
-                <GameWaveChart
-                  plays={filteredPlays}
-                  team={currentParams.team}
-                  opponent={opponentTeam}
-                  teamColorId={selectedTeamColor}
-                  opponentColorId={selectedOpponentColor}
-                  rawPlays={rawApiData}
-                />
+            {waveTune ? (
+              // Tuning-only (?wavetune=1) test rig: drag the handle at the bottom-right to
+              // resize the chart's container and watch it re-bin live. The outer div scrolls
+              // so it can be dragged wider than the page.
+              <div className="overflow-x-auto">
+                <div
+                  className="rounded-2xl"
+                  style={{ resize: 'horizontal', overflow: 'auto', width: 760, minWidth: 320, maxWidth: 2000 }}
+                >
+                  <GameWaveChart
+                    plays={filteredPlays}
+                    team={currentParams.team}
+                    opponent={opponentTeam}
+                    teamColorId={selectedTeamColor}
+                    opponentColorId={selectedOpponentColor}
+                    rawPlays={rawApiData}
+                    debug
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <GameWaveChart
+                plays={filteredPlays}
+                team={currentParams.team}
+                opponent={opponentTeam}
+                teamColorId={selectedTeamColor}
+                opponentColorId={selectedOpponentColor}
+                rawPlays={rawApiData}
+              />
+            )}
 
             {/* Charts Grid */}
             <ChartsGrid
