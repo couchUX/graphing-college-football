@@ -126,9 +126,11 @@ export const havocVsSPDetector: Detector = {
     // Evenly-spaced x ticks with a guaranteed center line (rough quadrants).
     const xTicks = buildQuadrantTicks(havocMin, havocMax);
 
+    // Span the trend line to the axis edges (not raw data bounds) so it doesn't
+    // float with whitespace on each side now that the axis extends a full step out.
     const trendLineData = [
-      { x: havocMin, y: slope * havocMin + intercept },
-      { x: havocMax, y: slope * havocMax + intercept },
+      { x: xTicks.min, y: slope * xTicks.min + intercept },
+      { x: xTicks.max, y: slope * xTicks.max + intercept },
     ];
 
     return {
