@@ -2,6 +2,7 @@ import { API_BASE_URL, getApiHeaders } from '../config/api';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { cachedFetch } from '../utils/apiCache';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
+import { buildQuadrantTicks } from '../utils/axisTicks';
 import type { Detector, DetectorFilters, DetectorResult } from './types';
 
 const POWER4 = ['ACC', 'SEC', 'Big 12', 'Big Ten'];
@@ -105,7 +106,8 @@ export const talentVsSPDetector: Detector = {
 
     const tMin = Math.min(...points.map(p => p.talent));
     const tMax = Math.max(...points.map(p => p.talent));
-    const tPad = (tMax - tMin || 1) * 0.05;
+    // Evenly-spaced x ticks with a guaranteed center line (rough quadrants).
+    const xTicks = buildQuadrantTicks(tMin, tMax);
 
     const trend = [
       { x: tMin, y: slope * tMin + intercept },
@@ -165,9 +167,10 @@ export const talentVsSPDetector: Detector = {
           scales: {
             x: {
               type: 'linear',
-              min: tMin - tPad,
-              max: tMax + tPad,
+              min: xTicks.min,
+              max: xTicks.max,
               title: { display: true, text: '247Sports Composite talent score' },
+              ticks: { stepSize: xTicks.stepSize },
               grid: { color: 'rgba(0,0,0,0.06)' },
             },
             y: {
