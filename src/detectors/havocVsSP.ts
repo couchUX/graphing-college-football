@@ -2,6 +2,7 @@ import { API_BASE_URL, getApiHeaders } from '../config/api';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { cachedFetch } from '../utils/apiCache';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
+import { buildQuadrantTicks } from '../utils/axisTicks';
 import type { Detector, DetectorFilters, DetectorResult } from './types';
 
 const POWER4 = ['ACC', 'SEC', 'Big 12', 'Big Ten'];
@@ -122,12 +123,14 @@ export const havocVsSPDetector: Detector = {
 
     const havocMin = Math.min(...points.map(p => p.havoc));
     const havocMax = Math.max(...points.map(p => p.havoc));
-    const havocRange = havocMax - havocMin || 0.01;
-    const havocPadding = havocRange * 0.06;
+    // Evenly-spaced x ticks with a guaranteed center line (rough quadrants).
+    const xTicks = buildQuadrantTicks(havocMin, havocMax);
 
+    // Span the trend line to the axis edges (not raw data bounds) so it doesn't
+    // float with whitespace on each side now that the axis extends a full step out.
     const trendLineData = [
-      { x: havocMin, y: slope * havocMin + intercept },
-      { x: havocMax, y: slope * havocMax + intercept },
+      { x: xTicks.min, y: slope * xTicks.min + intercept },
+      { x: xTicks.max, y: slope * xTicks.max + intercept },
     ];
 
     return {
@@ -183,10 +186,18 @@ export const havocVsSPDetector: Detector = {
           scales: {
             x: {
               type: 'linear',
-              min: havocMin - havocPadding,
-              max: havocMax + havocPadding,
+              min: xTicks.min,
+              max: xTicks.max,
               title: { display: true, text: 'Defensive havoc rate' },
-              ticks: { callback: (v: any) => `${(v * 100).toFixed(0)}%` },
+              ticks: {
+                stepSize: xTicks.stepSize,
+                callback: (v: any) => {
+                  // Round to one decimal first to absorb float drift (e.g. a tick
+                  // at 0.24999999999999997 would otherwise render as "25.0%").
+                  const pct = Math.round((v as number) * 1000) / 10;
+                  return `${Number.isInteger(pct) ? pct.toFixed(0) : pct.toFixed(1)}%`;
+                },
+              },
               grid: { color: 'rgba(0,0,0,0.06)' },
             },
             y: {

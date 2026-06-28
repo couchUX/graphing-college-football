@@ -4,8 +4,32 @@ import { AlertCircle, ChevronDown, Copy, Check, Search } from 'lucide-react';
 import type { Detector, DetectorFilters, DetectorResult } from '../detectors/types';
 import { buildStandaloneHtml } from '../utils/standaloneChartHtml';
 import { initializeChartDefaults } from '../utils/chartConfig';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 initializeChartDefaults();
+
+const DEFAULT_CHART_HEIGHT = 360;
+
+/**
+ * On phones, charts shouldn't sprawl vertically. Scatter/X-Y plots get the most
+ * aggressive cap — they read fine as a compact square — while listing bar charts
+ * keep more height so each row label stays legible (but still tighten vs desktop).
+ * Desktop heights are returned unchanged so the embed/standalone export and the
+ * large-screen layout are unaffected.
+ */
+const responsiveChartHeight = (
+  type: DetectorResult['chart']['type'],
+  desktopHeight: number,
+  isMobile: boolean
+): number => {
+  if (!isMobile) return desktopHeight;
+  if (type === 'bar') {
+    // Listing bars: tighten ~20% but keep a floor so short lists stay readable.
+    return Math.max(260, Math.round(desktopHeight * 0.8));
+  }
+  // Scatter and other proportional charts: a compact square is plenty on mobile.
+  return Math.min(desktopHeight, 280);
+};
 
 interface Props {
   detector: Detector;
@@ -93,6 +117,7 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCop
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState('');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     let cancelled = false;
@@ -212,7 +237,13 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCop
             )}
             <div
               className="relative"
-              style={{ height: displayResult.chart.height ?? 360 }}
+              style={{
+                height: responsiveChartHeight(
+                  displayResult.chart.type,
+                  displayResult.chart.height ?? DEFAULT_CHART_HEIGHT,
+                  isMobile
+                ),
+              }}
             >
               {renderChart(displayResult)}
             </div>
