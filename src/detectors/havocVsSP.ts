@@ -192,7 +192,9 @@ export const havocVsSPDetector: Detector = {
               ticks: {
                 stepSize: xTicks.stepSize,
                 callback: (v: any) => {
-                  const pct = (v as number) * 100;
+                  // Round to one decimal first to absorb float drift (e.g. a tick
+                  // at 0.24999999999999997 would otherwise render as "25.0%").
+                  const pct = Math.round((v as number) * 1000) / 10;
                   return `${Number.isInteger(pct) ? pct.toFixed(0) : pct.toFixed(1)}%`;
                 },
               },
