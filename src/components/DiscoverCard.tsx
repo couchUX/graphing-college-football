@@ -22,16 +22,16 @@ const responsiveChartHeight = (
   desktopHeight: number,
   isMobile: boolean
 ): number => {
+  // ~30% shorter on desktop for every chart.
+  const desktop = Math.round(desktopHeight * 0.7);
   if (type === 'bar') {
-    // Listing bars: ~30% shorter on desktop; a bit shorter still on mobile.
-    return isMobile
-      ? Math.max(247, Math.round(desktopHeight * 0.76))
-      : Math.round(desktopHeight * 0.7);
+    // Listing bars need row legibility, so on mobile they tighten only slightly
+    // (never below a floor) rather than taking the full desktop trim.
+    return isMobile ? Math.max(247, Math.round(desktopHeight * 0.76)) : desktop;
   }
-  // Scatter and other proportional charts: a compact square on mobile, otherwise
-  // the same ~30% desktop trim as everything else.
-  if (isMobile) return Math.min(desktopHeight, 280);
-  return Math.round(desktopHeight * 0.7);
+  // Scatter and other proportional charts: a compact square on mobile, but never
+  // taller than the (already trimmed) desktop height.
+  return isMobile ? Math.min(desktop, 280) : desktop;
 };
 
 interface Props {
