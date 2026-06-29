@@ -11,22 +11,25 @@ initializeChartDefaults();
 const DEFAULT_CHART_HEIGHT = 360;
 
 /**
- * On phones, charts shouldn't sprawl vertically. Scatter/X-Y plots get the most
- * aggressive cap — they read fine as a compact square — while listing bar charts
- * keep more height so each row label stays legible (but still tighten vs desktop).
- * Desktop heights are returned unchanged so the embed/standalone export and the
- * large-screen layout are unaffected.
+ * Charts shouldn't sprawl vertically. Listing bar charts run especially tall, so
+ * they're trimmed on both breakpoints: ~30% on desktop and a touch more on mobile
+ * (while keeping a floor so short lists stay legible). Scatter/X-Y plots keep
+ * their full desktop height but cap to a compact square on mobile. This only
+ * affects on-screen rendering — the embed/standalone export uses chart.height
+ * directly and is unaffected.
  */
 const responsiveChartHeight = (
   type: DetectorResult['chart']['type'],
   desktopHeight: number,
   isMobile: boolean
 ): number => {
-  if (!isMobile) return desktopHeight;
   if (type === 'bar') {
-    // Listing bars: tighten ~20% but keep a floor so short lists stay readable.
-    return Math.max(260, Math.round(desktopHeight * 0.8));
+    // Listing bars: ~30% shorter on desktop; a bit shorter still on mobile.
+    return isMobile
+      ? Math.max(247, Math.round(desktopHeight * 0.76))
+      : Math.round(desktopHeight * 0.7);
   }
+  if (!isMobile) return desktopHeight;
   // Scatter and other proportional charts: a compact square is plenty on mobile.
   return Math.min(desktopHeight, 280);
 };
