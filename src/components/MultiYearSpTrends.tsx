@@ -281,6 +281,10 @@ const MultiYearSpTrends: React.FC = () => {
 
   const handleCopyEmbed = async () => {
     if (!selectedTeam || ratings.length === 0) return;
+    if (!navigator.clipboard?.writeText) {
+      console.error('Clipboard not available in this browser');
+      return;
+    }
     try {
       // Link back to this exact view (same params the page persists to its URL).
       const params = new URLSearchParams();

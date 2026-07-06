@@ -409,7 +409,7 @@ export const generateChartEmbed = (spec: ChartEmbedSpec): string => {
         </div>
         <div class="embed-footer">
             <div class="embed-footer-top">
-                <a href="${sourceUrl}" class="embed-footer-link" target="_blank">${escapeHtml(sourceLabel)}</a>
+                <a href="${escapeHtml(sourceUrl)}" class="embed-footer-link" target="_blank">${escapeHtml(sourceLabel)}</a>
                 ${hasDetails ? `<button class="data-definitions-toggle" onclick="toggleDefinitions_${fnSuffix}()">
                     ${escapeHtml(detailsLabel)}
                     <span class="caret" id="caret_${uniqueId}">▼</span>

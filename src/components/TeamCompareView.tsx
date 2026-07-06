@@ -105,6 +105,33 @@ const PlayerTeamFilter: React.FC<{
   </FilterSelect>
 );
 
+// Copy-embed button for the player charts. Module scope (like the filters
+// above) so its identity is stable across renders.
+const PlayerEmbedButton: React.FC<{
+  chartId: string;
+  title: string;
+  data: unknown;
+  copiedChartId: string | null;
+  onCopy: (chartId: string, title: string, data: unknown) => void;
+}> = ({ chartId, title, data, copiedChartId, onCopy }) => {
+  const copied = copiedChartId === chartId;
+  return (
+    <button
+      onClick={() => onCopy(chartId, title, data)}
+      className={`ml-auto flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
+        copied ? 'border-green-300 bg-green-50' : 'border-neutral-300 hover:bg-neutral-50'
+      }`}
+      title={copied ? 'Copied!' : 'Copy embed code'}
+    >
+      {copied ? (
+        <Check className="h-4 w-4 text-green-600" />
+      ) : (
+        <Copy className="h-4 w-4 text-neutral-600" />
+      )}
+    </button>
+  );
+};
+
 const PlayerCountFilter: React.FC<{
   value: PlayerCount;
   onChange: (v: PlayerCount) => void;
@@ -374,9 +401,12 @@ const TeamCompareView: React.FC = () => {
     };
   }, [result, colorA, colorB, gamesA, gamesB]);
 
-  const handleCopyPlayerEmbed = async (chartId: string, title: string, data: any) => {
+  const handleCopyPlayerEmbed = async (chartId: string, title: string, data: unknown) => {
     if (!result) return;
-    setCopiedPlayerChart(chartId);
+    if (!navigator.clipboard?.writeText) {
+      console.error('Clipboard not available in this browser');
+      return;
+    }
     try {
       const embedCode = generateTrendsEmbedCode(
         chartId,
@@ -390,34 +420,13 @@ const TeamCompareView: React.FC = () => {
         compareEmbedOptions
       );
       await navigator.clipboard.writeText(embedCode);
+      setCopiedPlayerChart(chartId);
       setTimeout(() => setCopiedPlayerChart(null), 2000);
     } catch (err) {
       console.error('Failed to copy player chart embed code:', err);
       setCopiedPlayerChart(null);
     }
   };
-
-  const PlayerEmbedButton: React.FC<{ chartId: string; title: string; data: any }> = ({
-    chartId,
-    title,
-    data,
-  }) => (
-    <button
-      onClick={() => handleCopyPlayerEmbed(chartId, title, data)}
-      className={`ml-auto flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-        copiedPlayerChart === chartId
-          ? 'border-green-300 bg-green-50'
-          : 'border-neutral-300 hover:bg-neutral-50'
-      }`}
-      title={copiedPlayerChart === chartId ? 'Copied!' : 'Copy embed code'}
-    >
-      {copiedPlayerChart === chartId ? (
-        <Check className="h-4 w-4 text-green-600" />
-      ) : (
-        <Copy className="h-4 w-4 text-neutral-600" />
-      )}
-    </button>
-  );
 
   // Take the top-N per included team, then concatenate (players come pre-sorted
   // by total within each team). count 'all' shows every player for the team.
@@ -597,6 +606,8 @@ const TeamCompareView: React.FC = () => {
                       chartId="top-rushers"
                       title="Top Rushers"
                       data={createPlayerData(selectPlayers(chartData.allRushers, rushersFilter, rushersCount), 'rush')}
+                      copiedChartId={copiedPlayerChart}
+                      onCopy={handleCopyPlayerEmbed}
                     />
                   </div>
                   <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -623,6 +634,8 @@ const TeamCompareView: React.FC = () => {
                       chartId="top-passers"
                       title="Top Passers"
                       data={createPlayerData(selectPlayers(chartData.allPassers, passersFilter, passersCount), 'pass')}
+                      copiedChartId={copiedPlayerChart}
+                      onCopy={handleCopyPlayerEmbed}
                     />
                   </div>
                   <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -650,6 +663,8 @@ const TeamCompareView: React.FC = () => {
                     chartId="top-receivers"
                     title="Top Receivers"
                     data={createPlayerData(selectPlayers(chartData.allReceivers, receiversFilter, receiversCount), 'receive')}
+                    copiedChartId={copiedPlayerChart}
+                    onCopy={handleCopyPlayerEmbed}
                   />
                 </div>
                 <div className="pt-5 px-6 pb-6 sm:pt-5 sm:px-6 sm:pb-6">
