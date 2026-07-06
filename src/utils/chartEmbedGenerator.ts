@@ -68,7 +68,10 @@ const jsString = (s: string): string => JSON.stringify(s).replace(/</g, '\\u003c
 export const toJsLiteral = (value: unknown): string => {
   if (value === null || value === undefined) return 'null';
   const t = typeof value;
-  if (t === 'function') return String(value);
+  // '</script' can only occur inside a string or comment within a function
+  // body, where the '\/' escape is a no-op — but unescaped it would terminate
+  // the embed's inline <script> tag.
+  if (t === 'function') return String(value).replace(/<\/script/gi, '<\\/script');
   if (t === 'number') return Number.isFinite(value as number) ? String(value) : 'null';
   if (t === 'boolean') return String(value);
   if (t === 'string') return jsString(value as string);
