@@ -1,5 +1,16 @@
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
 
+// Optional overrides so views that reuse the trends charts (e.g. Team vs. Team)
+// can point the embed footer at the right page and adjust the copy.
+export interface TrendsEmbedOptions {
+  /** Overrides the "See all charts" footer link (defaults to the season-trends URL). */
+  url?: string;
+  /** Overrides the subtitle line under the chart title. */
+  subtitle?: string;
+  /** 'compare' swaps season-trends wording in the data definitions for Team vs. Team wording. */
+  mode?: 'season' | 'compare';
+}
+
 export const generateTrendsEmbedCode = (
   chartId: string,
   title: string,
@@ -8,13 +19,16 @@ export const generateTrendsEmbedCode = (
   team: string,
   year: number,
   gamesCount: number,
-  selectedTeamColor: string
+  selectedTeamColor: string,
+  embedOptions: TrendsEmbedOptions = {}
 ): string => {
+  const mode = embedOptions.mode ?? 'season';
+
   // Generate subtitle
-  const subtitle = `${team} - ${year} Season (${gamesCount} games)`;
+  const subtitle = embedOptions.subtitle ?? `${team} - ${year} Season (${gamesCount} games)`;
 
   // Generate URL to trends page
-  const trendsUrl = (() => {
+  const trendsUrl = embedOptions.url ?? (() => {
     const params = new URLSearchParams();
     params.set('year', year.toString());
     params.set('team', team);
@@ -79,8 +93,10 @@ export const generateTrendsEmbedCode = (
       return [
         ...baseDefinitions,
         '<strong># Plays:</strong> Numbers shown in bars represent total play counts across all games',
-        '<strong>Aggregate Data:</strong> Combined statistics across all season games',
-        '<strong>Opponents:</strong> Gray bars represent combined opponent performance',
+        '<strong>Aggregate Data:</strong> Combined statistics across all selected games',
+        mode === 'compare'
+          ? '<strong>Teams:</strong> Each team\'s bars use its own color'
+          : '<strong>Opponents:</strong> Gray bars represent combined opponent performance',
         '<strong>NCAA Avg:</strong> Dashed line shows 42% (roughly NCAA average) success rate'
       ];
     } else {
@@ -88,7 +104,9 @@ export const generateTrendsEmbedCode = (
       return [
         ...baseDefinitions,
         '<strong>Per-Game Trends:</strong> Each point represents a single game',
-        '<strong>X-Axis:</strong> Opponent names (@ = away game, * = postseason)'
+        mode === 'compare'
+          ? '<strong>X-Axis:</strong> Game number on each team\'s schedule (the teams don\'t share opponents)'
+          : '<strong>X-Axis:</strong> Opponent names (@ = away game, * = postseason)'
       ];
     }
   };
@@ -427,7 +445,7 @@ export const generateTrendsEmbedCode = (
                                 }` : ''}
                             },
                             y: {
-                                ${chartType === 'bar' ? 'stacked: true,' : ''}
+                                ${chartType === 'bar' ? 'stacked: false,' : ''}
                                 max: ${chartType === 'bar' ? '1' : '100'},
                                 min: 0,
                                 ticks: {

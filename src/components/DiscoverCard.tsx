@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Bar, Line, Pie, Doughnut, Scatter, Radar } from 'react-chartjs-2';
 import { AlertCircle, ChevronDown, Copy, Check, Search } from 'lucide-react';
 import type { Detector, DetectorFilters, DetectorResult } from '../detectors/types';
-import { buildStandaloneHtml } from '../utils/standaloneChartHtml';
+import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -162,7 +162,20 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCop
 
   const handleCopy = async () => {
     if (!result) return;
-    const html = buildStandaloneHtml(result);
+    // Embed the un-highlighted chart at its natural height — search dimming and
+    // the responsive on-screen trims are viewing aids, not part of the story.
+    const html = generateChartEmbed({
+      chartType: result.chart.type,
+      data: result.chart.data,
+      options: result.chart.options,
+      title: result.headline,
+      subtitle: result.subtext,
+      sourceUrl: 'https://graphingcollegefootball.com/discover',
+      sourceLabel: 'See all insights',
+      height: result.chart.height ?? DEFAULT_CHART_HEIGHT,
+      rows: result.rows ?? [],
+      detailsLabel: 'Show details',
+    });
     try {
       if (!navigator.clipboard?.writeText) {
         onCopyError('Clipboard not available in this browser');
