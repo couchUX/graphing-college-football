@@ -407,7 +407,32 @@ export const generateTrendsEmbedCode = (
                             tooltip: {
                                 enabled: true,
                                 mode: 'index',
-                                intersect: false
+                                intersect: false,
+                                ${isPlayerChart ? `
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label || '';
+                                        const value = context.parsed.x;
+                                        return label + ': ' + value + (value === 1 ? ' play' : ' plays');
+                                    }
+                                }
+                                ` : `
+                                filter: function(tooltipItem) {
+                                    const l = tooltipItem.dataset.label || '';
+                                    return !l.includes('NCAA Avg SR') &&
+                                           !l.includes('50/50') &&
+                                           !l.includes('< 0') &&
+                                           !l.includes('Quarters');
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label || '';
+                                        ${chartType === 'bar'
+                                          ? `return label + ': ' + Math.round(context.parsed.y * 100) + '%';`
+                                          : `return label + ': ' + context.parsed.y.toFixed(1) + '%';`}
+                                    }
+                                }
+                                `}
                             }
                         },
                         scales: {
