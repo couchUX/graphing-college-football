@@ -222,6 +222,47 @@ const bakeDynamicContent = (data: any, options: any, indexAxis: string) => {
   return { cleanedData, cleanedOptions };
 };
 
+const setIfAbsent = (obj: Record<string, unknown>, key: string, value: unknown) => {
+  if (obj[key] === undefined) obj[key] = value;
+};
+
+/**
+ * The app sets these values as global Chart.js defaults (initializeChartDefaults),
+ * so on-screen charts inherit them even when their options don't mention them.
+ * Merge them into the embed's own options at the same (lowest) priority —
+ * only where the chart doesn't already specify a value — so the embed renders
+ * identically WITHOUT mutating Chart.defaults on the host page, which would
+ * restyle any Chart.js charts the embedding site runs itself.
+ */
+const applyAppChartDefaults = (options: any): void => {
+  options.plugins = { ...(options.plugins ?? {}) };
+
+  const legend = { ...(options.plugins.legend ?? {}) };
+  setIfAbsent(legend, 'align', 'start');
+  legend.labels = { ...(legend.labels ?? {}) };
+  setIfAbsent(legend.labels, 'borderRadius', 15);
+  setIfAbsent(legend.labels, 'boxWidth', 8);
+  setIfAbsent(legend.labels, 'padding', 12);
+  setIfAbsent(legend.labels, 'usePointStyle', true);
+  options.plugins.legend = legend;
+
+  const datalabels = { ...(options.plugins.datalabels ?? {}) };
+  setIfAbsent(datalabels, 'color', 'white');
+  setIfAbsent(datalabels, 'backgroundColor', '#26262660');
+  setIfAbsent(datalabels, 'padding', 4);
+  setIfAbsent(datalabels, 'borderRadius', 4);
+  options.plugins.datalabels = datalabels;
+
+  options.elements = { ...(options.elements ?? {}) };
+  options.elements.line = { ...(options.elements.line ?? {}) };
+  setIfAbsent(options.elements.line, 'tension', 0.25);
+  setIfAbsent(options.elements.line, 'borderWidth', 1);
+  options.elements.point = { ...(options.elements.point ?? {}) };
+  setIfAbsent(options.elements.point, 'pointRadius', 4);
+  setIfAbsent(options.elements.point, 'pointHoverRadius', 8);
+  setIfAbsent(options.elements.point, 'pointBorderWidth', 1);
+};
+
 export const generateChartEmbed = (spec: ChartEmbedSpec): string => {
   const {
     chartType,
@@ -246,6 +287,7 @@ export const generateChartEmbed = (spec: ChartEmbedSpec): string => {
   cleanedOptions.responsive = true;
   cleanedOptions.maintainAspectRatio = false;
   cleanedOptions.animation = { duration: 1 };
+  applyAppChartDefaults(cleanedOptions);
 
   const serializedData = toJsLiteral(cleanedData);
   const serializedOptions = toJsLiteral(cleanedOptions);
@@ -413,7 +455,7 @@ export const generateChartEmbed = (spec: ChartEmbedSpec): string => {
         <div class="embed-footer">
             <div class="embed-footer-top">
                 <a href="${escapeHtml(sourceUrl)}" class="embed-footer-link" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceLabel)}</a>
-                ${hasDetails ? `<button class="data-definitions-toggle" onclick="toggleDefinitions_${fnSuffix}()">
+                ${hasDetails ? `<button type="button" class="data-definitions-toggle" onclick="toggleDefinitions_${fnSuffix}()">
                     ${escapeHtml(detailsLabel)}
                     <span class="caret" id="caret_${uniqueId}">▼</span>
                 </button>` : ''}
@@ -479,30 +521,15 @@ export const generateChartEmbed = (spec: ChartEmbedSpec): string => {
                 }
 
                 try {
-                    Chart.register(ChartDataLabels);
-
-                    // Match the app's global Chart.js defaults so the embed
-                    // renders identically to the on-screen chart.
-                    Chart.defaults.plugins.legend.align = 'start';
-                    Chart.defaults.maintainAspectRatio = false;
-                    Chart.defaults.plugins.legend.labels.borderRadius = 15;
-                    Chart.defaults.plugins.legend.labels.boxWidth = 8;
-                    Chart.defaults.plugins.legend.labels.padding = 12;
-                    Chart.defaults.plugins.legend.labels.usePointStyle = true;
-                    Chart.defaults.elements.line.tension = 0.25;
-                    Chart.defaults.elements.line.borderWidth = 1;
-                    Chart.defaults.elements.point.pointRadius = 4;
-                    Chart.defaults.elements.point.pointHoverRadius = 8;
-                    Chart.defaults.elements.point.pointBorderWidth = 1;
-                    Chart.defaults.plugins.datalabels.color = 'white';
-                    Chart.defaults.plugins.datalabels.backgroundColor = '#26262660';
-                    Chart.defaults.plugins.datalabels.padding = 4;
-                    Chart.defaults.plugins.datalabels.borderRadius = 4;
-
+                    // The app's global Chart.js defaults are pre-merged into the
+                    // options below, and the datalabels plugin is attached to
+                    // this chart only — nothing global is touched, so the host
+                    // page's own Chart.js charts stay unaffected.
                     const chart = new Chart(canvas, {
                         type: '${chartType}',
                         data: ${serializedData},
-                        options: ${serializedOptions}
+                        options: ${serializedOptions},
+                        plugins: [ChartDataLabels]
                     });
 
                     canvas.chartInstance = chart;
