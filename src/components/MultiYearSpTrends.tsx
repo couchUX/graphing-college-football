@@ -285,6 +285,9 @@ const MultiYearSpTrends: React.FC = () => {
 
   const handleCopyEmbed = async () => {
     if (!selectedTeam || ratings.length === 0) return;
+    // In compare mode, don't copy while team B's history is still loading —
+    // the chart (and thus the embed) would be missing its second line.
+    if (loading || (compareMode && loadingB)) return;
     if (!navigator.clipboard?.writeText) {
       console.error('Clipboard not available in this browser');
       return;
