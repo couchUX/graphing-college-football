@@ -276,8 +276,12 @@ const MultiYearSpTrends: React.FC = () => {
       : selectedTeam
         ? `${selectedTeam.school} - SP+ rating history`
         : '';
+  // In compare mode the chart's x-axis spans the union of both teams' years.
+  const subtitleYears = (compareMode ? [...ratings, ...ratingsB] : ratings).map((r) => r.year);
   const chartSubtitle =
-    ratings.length > 0 ? `${ratings[0].year}–${ratings[ratings.length - 1].year} seasons` : '';
+    subtitleYears.length > 0
+      ? `${Math.min(...subtitleYears)}–${Math.max(...subtitleYears)} seasons`
+      : '';
 
   const handleCopyEmbed = async () => {
     if (!selectedTeam || ratings.length === 0) return;
