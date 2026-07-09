@@ -249,7 +249,13 @@ const MultiYearSpTrends: React.FC = () => {
       // looking exaggerated on these multi-year lines.
       elements: { point: { radius: 3, hoverRadius: 5 } },
       plugins: {
-        legend: { position: 'top', align: 'center' },
+        legend: {
+          position: 'top',
+          align: 'center',
+          // The global default renders oversized point-style markers (~6px
+          // radius). Shrink them to roughly match the 3px dots on the lines.
+          labels: { usePointStyle: true, pointStyleWidth: 8, boxHeight: 6, padding: 16 },
+        },
         datalabels: { display: false },
         tooltip: {
           callbacks: {

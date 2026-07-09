@@ -258,7 +258,10 @@ const applyAppChartDefaults = (options: any): void => {
   setIfAbsent(options.elements.line, 'tension', 0.25);
   setIfAbsent(options.elements.line, 'borderWidth', 1);
   options.elements.point = { ...(options.elements.point ?? {}) };
-  setIfAbsent(options.elements.point, 'pointRadius', 4);
+  // Slightly smaller than the app's on-screen default (4) — embeds render in
+  // smaller cards where 4px dots read as oversized. Only applies when the chart
+  // doesn't set its own point size (e.g. SP+ keeps its explicit radius 3).
+  setIfAbsent(options.elements.point, 'radius', 3);
   setIfAbsent(options.elements.point, 'pointHoverRadius', 8);
   setIfAbsent(options.elements.point, 'pointBorderWidth', 1);
 };
