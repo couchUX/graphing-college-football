@@ -75,10 +75,10 @@ export const generateTrendsEmbedCode = (
       }
 
       // Line embeds read best with small dots. Clamp per shape (never enlarge,
-      // never touch the radius-0 reference lines/areas) so every circle is 3px
-      // and every triangle 4px — the size the on-screen Season-trends lines use.
+      // never touch the radius-0 reference lines/areas) so every circle is 3.5px
+      // and every triangle 4.5px — matching the on-screen line charts.
       if (chartType === 'line' && typeof cleanedDataset.pointRadius === 'number' && cleanedDataset.pointRadius > 0) {
-        const maxRadius = cleanedDataset.pointStyle === 'triangle' ? 4 : 3;
+        const maxRadius = cleanedDataset.pointStyle === 'triangle' ? 4.5 : 3.5;
         cleanedDataset.pointRadius = Math.min(cleanedDataset.pointRadius, maxRadius);
       }
 
@@ -354,7 +354,7 @@ export const generateTrendsEmbedCode = (
                                 borderWidth: 2.5
                             },
                             point: {
-                                radius: 3
+                                radius: 3.5
                             }
                         },
                         ` : ''}

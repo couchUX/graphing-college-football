@@ -179,7 +179,7 @@ export const useSeasonChartData = (
           borderColor: teamColors.success,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
-          pointRadius: 3,
+          pointRadius: 3.5,
           pointBackgroundColor: teamColors.success,
           tension: 0.15,
           datalabels: {
@@ -194,7 +194,7 @@ export const useSeasonChartData = (
           backgroundColor: 'transparent',
           borderWidth: 2.5,
           borderDash: [5, 3],
-          pointRadius: 3,
+          pointRadius: 3.5,
           pointBackgroundColor: teamColors.explosive,
           tension: 0.15,
           datalabels: {
@@ -208,7 +208,7 @@ export const useSeasonChartData = (
           borderColor: '#9CA3AF',
           backgroundColor: 'transparent',
           borderWidth: 2,
-          pointRadius: 3,
+          pointRadius: 3.5,
           tension: 0.15,
           datalabels: {
             display: false
@@ -222,7 +222,7 @@ export const useSeasonChartData = (
           backgroundColor: 'transparent',
           borderWidth: 2,
           borderDash: [5, 3],
-          pointRadius: 3,
+          pointRadius: 3.5,
           tension: 0.15,
           datalabels: {
             display: false
@@ -263,7 +263,7 @@ export const useSeasonChartData = (
           borderColor: teamColors.success,
           backgroundColor: teamColors.light,
           borderWidth: 2.5,
-          pointRadius: 3,
+          pointRadius: 3.5,
           fill: true,
           tension: 0.15,
           datalabels: {
@@ -283,7 +283,7 @@ export const useSeasonChartData = (
           borderColor: '#9CA3AF',
           backgroundColor: 'rgba(243, 244, 246, 0.65)',
           borderWidth: 2,
-          pointRadius: 3,
+          pointRadius: 3.5,
           fill: true,
           tension: 0.15,
           datalabels: {
@@ -326,7 +326,7 @@ export const useSeasonChartData = (
           borderColor: teamColors.explosive,
           backgroundColor: 'transparent',
           borderWidth: 2.5,
-          pointRadius: 3,
+          pointRadius: 3.5,
           pointStyle: 'circle',
           tension: 0.15,
           datalabels: {
@@ -350,7 +350,7 @@ export const useSeasonChartData = (
           backgroundColor: 'transparent',
           borderWidth: 2.5,
           borderDash: [4, 4],
-          pointRadius: 4,
+          pointRadius: 4.5,
           pointStyle: 'triangle',
           tension: 0.15,
           datalabels: {
@@ -371,7 +371,7 @@ export const useSeasonChartData = (
           borderColor: '#9CA3AF',
           backgroundColor: 'transparent',
           borderWidth: 2,
-          pointRadius: 3,
+          pointRadius: 3.5,
           pointStyle: 'circle',
           tension: 0.15,
           datalabels: {
@@ -395,7 +395,7 @@ export const useSeasonChartData = (
           backgroundColor: 'transparent',
           borderWidth: 2,
           borderDash: [4, 4],
-          pointRadius: 4,
+          pointRadius: 4.5,
           pointStyle: 'triangle',
           tension: 0.15,
           datalabels: {
