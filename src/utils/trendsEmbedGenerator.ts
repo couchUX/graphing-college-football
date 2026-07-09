@@ -1,5 +1,16 @@
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
 
+// Optional overrides so views that reuse the trends charts (e.g. Team vs. Team)
+// can point the embed footer at the right page and adjust the copy.
+export interface TrendsEmbedOptions {
+  /** Overrides the "See all charts" footer link (defaults to the season-trends URL). */
+  url?: string;
+  /** Overrides the subtitle line under the chart title. */
+  subtitle?: string;
+  /** 'compare' swaps season-trends wording in the data definitions for Team vs. Team wording. */
+  mode?: 'season' | 'compare';
+}
+
 export const generateTrendsEmbedCode = (
   chartId: string,
   title: string,
@@ -8,13 +19,16 @@ export const generateTrendsEmbedCode = (
   team: string,
   year: number,
   gamesCount: number,
-  selectedTeamColor: string
+  selectedTeamColor: string,
+  embedOptions: TrendsEmbedOptions = {}
 ): string => {
+  const mode = embedOptions.mode ?? 'season';
+
   // Generate subtitle
-  const subtitle = `${team} - ${year} Season (${gamesCount} games)`;
+  const subtitle = embedOptions.subtitle ?? `${team} - ${year} Season (${gamesCount} games)`;
 
   // Generate URL to trends page
-  const trendsUrl = (() => {
+  const trendsUrl = embedOptions.url ?? (() => {
     const params = new URLSearchParams();
     params.set('year', year.toString());
     params.set('team', team);
@@ -59,6 +73,15 @@ export const generateTrendsEmbedCode = (
           formatter: undefined // Remove formatter function
         };
       }
+
+      // Line embeds read best with small dots. Clamp per shape (never enlarge,
+      // never touch the radius-0 reference lines/areas) so every circle is 3.5px
+      // and every triangle 4.5px — matching the on-screen line charts.
+      if (chartType === 'line' && typeof cleanedDataset.pointRadius === 'number' && cleanedDataset.pointRadius > 0) {
+        const maxRadius = cleanedDataset.pointStyle === 'triangle' ? 4.5 : 3.5;
+        cleanedDataset.pointRadius = Math.min(cleanedDataset.pointRadius, maxRadius);
+      }
+
       return cleanedDataset;
     })
   };
@@ -79,8 +102,10 @@ export const generateTrendsEmbedCode = (
       return [
         ...baseDefinitions,
         '<strong># Plays:</strong> Numbers shown in bars represent total play counts across all games',
-        '<strong>Aggregate Data:</strong> Combined statistics across all season games',
-        '<strong>Opponents:</strong> Gray bars represent combined opponent performance',
+        '<strong>Aggregate Data:</strong> Combined statistics across all selected games',
+        mode === 'compare'
+          ? '<strong>Teams:</strong> Each team\'s bars use its own color'
+          : '<strong>Opponents:</strong> Gray bars represent combined opponent performance',
         '<strong>NCAA Avg:</strong> Dashed line shows 42% (roughly NCAA average) success rate'
       ];
     } else {
@@ -88,7 +113,9 @@ export const generateTrendsEmbedCode = (
       return [
         ...baseDefinitions,
         '<strong>Per-Game Trends:</strong> Each point represents a single game',
-        '<strong>X-Axis:</strong> Opponent names (@ = away game, * = postseason)'
+        mode === 'compare'
+          ? '<strong>X-Axis:</strong> Game number on each team\'s schedule (the teams don\'t share opponents)'
+          : '<strong>X-Axis:</strong> Opponent names (@ = away game, * = postseason)'
       ];
     }
   };
@@ -230,7 +257,7 @@ export const generateTrendsEmbedCode = (
         <div class="embed-footer">
             <div class="embed-footer-top">
                 <a href="${trendsUrl}" class="embed-footer-link" target="_blank">See all charts</a>
-                <button class="data-definitions-toggle" onclick="toggleDefinitions_${uniqueId.replace(/-/g, '_')}()">
+                <button type="button" class="data-definitions-toggle" onclick="toggleDefinitions_${uniqueId.replace(/-/g, '_')}()">
                     Data definitions
                     <span class="caret" id="caret_${uniqueId}">▼</span>
                 </button>
@@ -327,7 +354,7 @@ export const generateTrendsEmbedCode = (
                                 borderWidth: 2.5
                             },
                             point: {
-                                radius: 4
+                                radius: 3.5
                             }
                         },
                         ` : ''}
@@ -389,7 +416,32 @@ export const generateTrendsEmbedCode = (
                             tooltip: {
                                 enabled: true,
                                 mode: 'index',
-                                intersect: false
+                                intersect: false,
+                                ${isPlayerChart ? `
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label || '';
+                                        const value = context.parsed.x;
+                                        return label + ': ' + value + (value === 1 ? ' play' : ' plays');
+                                    }
+                                }
+                                ` : `
+                                filter: function(tooltipItem) {
+                                    const l = tooltipItem.dataset.label || '';
+                                    return !l.includes('NCAA Avg SR') &&
+                                           !l.includes('50/50') &&
+                                           !l.includes('< 0') &&
+                                           !l.includes('Quarters');
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label || '';
+                                        ${chartType === 'bar'
+                                          ? `return label + ': ' + Math.round(context.parsed.y * 100) + '%';`
+                                          : `return label + ': ' + context.parsed.y.toFixed(1) + '%';`}
+                                    }
+                                }
+                                `}
                             }
                         },
                         scales: {
@@ -427,7 +479,7 @@ export const generateTrendsEmbedCode = (
                                 }` : ''}
                             },
                             y: {
-                                ${chartType === 'bar' ? 'stacked: true,' : ''}
+                                ${chartType === 'bar' ? 'stacked: false,' : ''}
                                 max: ${chartType === 'bar' ? '1' : '100'},
                                 min: 0,
                                 ticks: {

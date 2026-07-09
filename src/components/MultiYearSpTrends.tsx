@@ -2,7 +2,7 @@ import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import type { ChartData, ChartOptions } from 'chart.js';
-import { AlertCircle, TrendingUp } from 'lucide-react';
+import { AlertCircle, Check, Copy, TrendingUp } from 'lucide-react';
 import type { Team } from '../services/api';
 import { fetchSPRatingsHistory, type SPRating } from '../services/ratingsApi';
 import { useTeams } from '../hooks/useTeams';
@@ -10,6 +10,7 @@ import { initializeChartDefaults } from '../utils/chartConfig';
 import TeamPicker from './TeamPicker';
 import { readParams, writeParams } from '../utils/trendsUrl';
 import { seriesColorsFor, teamLineColor } from '../utils/teamColorUtils';
+import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 
 initializeChartDefaults();
 
@@ -57,6 +58,7 @@ const MultiYearSpTrends: React.FC = () => {
   const [loadingB, setLoadingB] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorB, setErrorB] = useState<string | null>(null);
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
   const restoredRef = useRef(false);
 
   const compareMode = !!selectedTeamB;
@@ -247,7 +249,13 @@ const MultiYearSpTrends: React.FC = () => {
       // looking exaggerated on these multi-year lines.
       elements: { point: { radius: 3, hoverRadius: 5 } },
       plugins: {
-        legend: { position: 'top', align: 'center' },
+        legend: {
+          position: 'top',
+          align: 'center',
+          // The global default renders oversized point-style markers (~6px
+          // radius). Shrink them to roughly match the 3px dots on the lines.
+          labels: { usePointStyle: true, pointStyleWidth: 8, boxHeight: 6, padding: 16 },
+        },
         datalabels: { display: false },
         tooltip: {
           callbacks: {
@@ -267,6 +275,65 @@ const MultiYearSpTrends: React.FC = () => {
     }),
     [compareMode, aspectLabel],
   );
+
+  const chartTitle =
+    compareMode && selectedTeam && selectedTeamB
+      ? `${selectedTeam.school} vs. ${selectedTeamB.school} — SP+ ${aspectLabel}`
+      : selectedTeam
+        ? `${selectedTeam.school} - SP+ rating history`
+        : '';
+  // In compare mode the chart's x-axis spans the union of both teams' years.
+  const subtitleYears = (compareMode ? [...ratings, ...ratingsB] : ratings).map((r) => r.year);
+  const chartSubtitle =
+    subtitleYears.length > 0
+      ? `${Math.min(...subtitleYears)}–${Math.max(...subtitleYears)} seasons`
+      : '';
+
+  const handleCopyEmbed = async () => {
+    if (!selectedTeam || ratings.length === 0) return;
+    // In compare mode, don't copy while team B's history is still loading —
+    // the chart (and thus the embed) would be missing its second line.
+    if (loading || (compareMode && loadingB)) return;
+    if (!navigator.clipboard?.writeText) {
+      console.error('Clipboard not available in this browser');
+      return;
+    }
+    try {
+      // Link back to this exact view (same params the page persists to its URL).
+      const params = new URLSearchParams();
+      params.set('view', 'spTrends');
+      params.set('spTeam', selectedTeam.school);
+      if (colorId !== 'default') params.set('spColor', colorId);
+      if (selectedTeamB) {
+        params.set('spTeamB', selectedTeamB.school);
+        if (colorB !== 'default') params.set('spColorB', colorB);
+        if (aspect !== 'overall') params.set('spAspect', aspect);
+      }
+
+      const embedCode = generateChartEmbed({
+        chartType: 'line',
+        data: chartData,
+        options,
+        title: chartTitle,
+        subtitle: chartSubtitle,
+        sourceUrl: `https://graphingcollegefootball.com/trends?${params.toString()}`,
+        height: 420,
+        definitions: [
+          '<strong>SP+:</strong> Bill Connelly\'s tempo- and opponent-adjusted measure of college football efficiency',
+          '<strong>Overall / Offense:</strong> Higher ratings are better',
+          '<strong>Defense:</strong> Lower ratings indicate fewer adjusted points allowed (a stronger defense)',
+          'Source: <a href="https://collegefootballdata.com" target="_blank" style="color: #525252; text-decoration: underline;">collegefootballdata.com</a> SP+',
+        ],
+      });
+
+      await navigator.clipboard.writeText(embedCode);
+      setCopiedEmbed(true);
+      window.setTimeout(() => setCopiedEmbed(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy embed code:', err);
+      setCopiedEmbed(false);
+    }
+  };
 
   const latest = ratings.length > 0 ? ratings[ratings.length - 1] : null;
   const combinedLoading = loading || (compareMode && loadingB);
@@ -354,52 +421,69 @@ const MultiYearSpTrends: React.FC = () => {
           )}
 
           <div className="bg-white rounded-xl border border-neutral-200 shadow-sm pt-5 px-4 pb-4 sm:px-6 sm:pb-6 mb-4">
-            {compareMode ? (
-              /* Comparison mode: a single aspect dropdown keeps the legend to the
-                 two team names rather than eight series. */
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <label htmlFor="sp-aspect" className="text-sm font-medium text-neutral-700">
-                  Aspect
-                </label>
-                <select
-                  id="sp-aspect"
-                  value={aspect}
-                  onChange={(e) => handleAspectChange(e.target.value as SeriesKey)}
-                  className="bg-white border border-neutral-300 rounded-lg px-3 py-2 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                >
-                  {SERIES.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              /* Single-team mode: per-series toggle checklist. */
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4">
-                {SERIES.map((series, i) => (
-                  <label
-                    key={series.key}
-                    className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer select-none"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={visibleSeries[series.key]}
-                      onChange={(e) =>
-                        setVisibleSeries((v) => ({ ...v, [series.key]: e.target.checked }))
-                      }
-                      className="h-4 w-4 rounded border-neutral-300 focus:ring-blue-500"
-                      style={{ accentColor: seriesColors[i] }}
-                    />
-                    <span
-                      className="inline-block w-3 h-3 rounded-sm"
-                      style={{ backgroundColor: seriesColors[i] }}
-                    />
-                    {series.label}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              {compareMode ? (
+                /* Comparison mode: a single aspect dropdown keeps the legend to the
+                   two team names rather than eight series. */
+                <div className="flex flex-wrap items-center gap-3">
+                  <label htmlFor="sp-aspect" className="text-sm font-medium text-neutral-700">
+                    Aspect
                   </label>
-                ))}
-              </div>
-            )}
+                  <select
+                    id="sp-aspect"
+                    value={aspect}
+                    onChange={(e) => handleAspectChange(e.target.value as SeriesKey)}
+                    className="bg-white border border-neutral-300 rounded-lg px-3 py-2 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    {SERIES.map((s) => (
+                      <option key={s.key} value={s.key}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                /* Single-team mode: per-series toggle checklist. */
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                  {SERIES.map((series, i) => (
+                    <label
+                      key={series.key}
+                      className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer select-none"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleSeries[series.key]}
+                        onChange={(e) =>
+                          setVisibleSeries((v) => ({ ...v, [series.key]: e.target.checked }))
+                        }
+                        className="h-4 w-4 rounded border-neutral-300 focus:ring-blue-500"
+                        style={{ accentColor: seriesColors[i] }}
+                      />
+                      <span
+                        className="inline-block w-3 h-3 rounded-sm"
+                        style={{ backgroundColor: seriesColors[i] }}
+                      />
+                      {series.label}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={handleCopyEmbed}
+                className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
+                  copiedEmbed
+                    ? 'border-green-300 bg-green-50'
+                    : 'border-neutral-300 hover:bg-neutral-50'
+                }`}
+                title={copiedEmbed ? 'Copied!' : 'Copy embed code'}
+              >
+                {copiedEmbed ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4 text-neutral-600" />
+                )}
+              </button>
+            </div>
             <div className="h-[420px]">
               <Line data={chartData} options={options} />
             </div>

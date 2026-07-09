@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
-import { AlertCircle, GitCompareArrows, Play } from 'lucide-react';
+import { AlertCircle, Check, Copy, GitCompareArrows, Play } from 'lucide-react';
 import type { PlayData } from '../types';
 import { fetchGamesForTeam, type Team, type TeamGame } from '../services/api';
 import type { Game as BoxScoreGame } from '../services/boxScoreApi';
@@ -14,6 +14,7 @@ import { initializeChartDefaults } from '../utils/chartConfig';
 import { useTeams } from '../hooks/useTeams';
 import { useCompareChartData, type CompareSide } from '../hooks/useCompareChartData';
 import { readParams, writeParams, encodeGameSelection, decodeGameSelection } from '../utils/trendsUrl';
+import { generateTrendsEmbedCode } from '../utils/trendsEmbedGenerator';
 import TeamPicker from './TeamPicker';
 import GameMultiSelect from './GameMultiSelect';
 import CompareBoxScore from './CompareBoxScore';
@@ -104,6 +105,33 @@ const PlayerTeamFilter: React.FC<{
   </FilterSelect>
 );
 
+// Copy-embed button for the player charts. Module scope (like the filters
+// above) so its identity is stable across renders.
+const PlayerEmbedButton: React.FC<{
+  chartId: string;
+  title: string;
+  data: unknown;
+  copiedChartId: string | null;
+  onCopy: (chartId: string, title: string, data: unknown) => void;
+}> = ({ chartId, title, data, copiedChartId, onCopy }) => {
+  const copied = copiedChartId === chartId;
+  return (
+    <button
+      onClick={() => onCopy(chartId, title, data)}
+      className={`ml-auto flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
+        copied ? 'border-green-300 bg-green-50' : 'border-neutral-300 hover:bg-neutral-50'
+      }`}
+      title={copied ? 'Copied!' : 'Copy embed code'}
+    >
+      {copied ? (
+        <Check className="h-4 w-4 text-green-600" />
+      ) : (
+        <Copy className="h-4 w-4 text-neutral-600" />
+      )}
+    </button>
+  );
+};
+
 const PlayerCountFilter: React.FC<{
   value: PlayerCount;
   onChange: (v: PlayerCount) => void;
@@ -140,6 +168,7 @@ const TeamCompareView: React.FC = () => {
   const [boxScoresB, setBoxScoresB] = useState<BoxScoreGame[]>([]);
   const [boxScoreMode, setBoxScoreMode] = useState<BoxScoreMode>('averages');
 
+  const [copiedPlayerChart, setCopiedPlayerChart] = useState<string | null>(null);
   const [rushersFilter, setRushersFilter] = useState<PlayerFilter>('both');
   const [passersFilter, setPassersFilter] = useState<PlayerFilter>('both');
   const [receiversFilter, setReceiversFilter] = useState<PlayerFilter>('both');
@@ -350,6 +379,55 @@ const TeamCompareView: React.FC = () => {
 
   const playerOptions = createPlayerOptions();
 
+  // Embed overrides shared by the grid + player charts: link back to this
+  // comparison (same params the page persists to its URL) with compare wording.
+  const compareEmbedOptions = useMemo(() => {
+    if (!result) return undefined;
+    const params = new URLSearchParams();
+    params.set('view', 'compare');
+    params.set('aTeam', result.a.team);
+    params.set('bTeam', result.b.team);
+    params.set('compareYear', String(result.year));
+    if (colorA !== 'default') params.set('aColor', colorA);
+    if (colorB !== 'default') params.set('bColor', colorB);
+    const aGames = encodeGameSelection(result.a.games.map((g) => g.id), gamesA);
+    if (aGames) params.set('aGames', aGames);
+    const bGames = encodeGameSelection(result.b.games.map((g) => g.id), gamesB);
+    if (bGames) params.set('bGames', bGames);
+    return {
+      url: `https://graphingcollegefootball.com/trends?${params.toString()}`,
+      subtitle: `${result.a.team} vs. ${result.b.team} - ${result.year} Season`,
+      mode: 'compare' as const,
+    };
+  }, [result, colorA, colorB, gamesA, gamesB]);
+
+  const handleCopyPlayerEmbed = async (chartId: string, title: string, data: unknown) => {
+    if (!result) return;
+    if (!navigator.clipboard?.writeText) {
+      console.error('Clipboard not available in this browser');
+      return;
+    }
+    try {
+      const embedCode = generateTrendsEmbedCode(
+        chartId,
+        title,
+        data,
+        'bar',
+        `${result.a.team} vs. ${result.b.team}`,
+        result.year,
+        Math.max(result.a.games.length, result.b.games.length),
+        colorA,
+        compareEmbedOptions
+      );
+      await navigator.clipboard.writeText(embedCode);
+      setCopiedPlayerChart(chartId);
+      setTimeout(() => setCopiedPlayerChart(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy player chart embed code:', err);
+      setCopiedPlayerChart(null);
+    }
+  };
+
   // Take the top-N per included team, then concatenate (players come pre-sorted
   // by total within each team). count 'all' shows every player for the team.
   const selectPlayers = (players: any[], filter: PlayerFilter, count: PlayerCount) => {
@@ -506,6 +584,7 @@ const TeamCompareView: React.FC = () => {
             selectedTeamColor={colorA}
             perGameChartType={chartData.perGameChartType}
             hidePerGameLines={chartData.perGameChartType === 'bar'}
+            embedOptions={compareEmbedOptions}
           />
 
           {/* Player charts (both teams; per-team filter + top-N per chart) */}
@@ -523,6 +602,13 @@ const TeamCompareView: React.FC = () => {
                       teamBName={result.b.team}
                     />
                     <PlayerCountFilter value={rushersCount} onChange={setRushersCount} />
+                    <PlayerEmbedButton
+                      chartId="top-rushers"
+                      title="Top Rushers"
+                      data={createPlayerData(selectPlayers(chartData.allRushers, rushersFilter, rushersCount), 'rush')}
+                      copiedChartId={copiedPlayerChart}
+                      onCopy={handleCopyPlayerEmbed}
+                    />
                   </div>
                   <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
                     <div className="h-80">
@@ -544,6 +630,13 @@ const TeamCompareView: React.FC = () => {
                       teamBName={result.b.team}
                     />
                     <PlayerCountFilter value={passersCount} onChange={setPassersCount} />
+                    <PlayerEmbedButton
+                      chartId="top-passers"
+                      title="Top Passers"
+                      data={createPlayerData(selectPlayers(chartData.allPassers, passersFilter, passersCount), 'pass')}
+                      copiedChartId={copiedPlayerChart}
+                      onCopy={handleCopyPlayerEmbed}
+                    />
                   </div>
                   <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
                     <div style={{ height: '200px' }}>
@@ -566,6 +659,13 @@ const TeamCompareView: React.FC = () => {
                     teamBName={result.b.team}
                   />
                   <PlayerCountFilter value={receiversCount} onChange={setReceiversCount} />
+                  <PlayerEmbedButton
+                    chartId="top-receivers"
+                    title="Top Receivers"
+                    data={createPlayerData(selectPlayers(chartData.allReceivers, receiversFilter, receiversCount), 'receive')}
+                    copiedChartId={copiedPlayerChart}
+                    onCopy={handleCopyPlayerEmbed}
+                  />
                 </div>
                 <div className="pt-5 px-6 pb-6 sm:pt-5 sm:px-6 sm:pb-6">
                   <div className="h-[640px]">

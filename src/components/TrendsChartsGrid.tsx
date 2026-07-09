@@ -3,7 +3,9 @@ import { Copy, Check } from 'lucide-react';
 import { Bar, Line } from 'react-chartjs-2';
 import { createBaseOptions } from '../utils/chartOptions';
 import { percentCallback } from '../utils/chartConfig';
-import { generateTrendsEmbedCode } from '../utils/trendsEmbedGenerator';
+import { generateTrendsEmbedCode, TrendsEmbedOptions } from '../utils/trendsEmbedGenerator';
+import { generateChartEmbed } from '../utils/chartEmbedGenerator';
+import { CHART_HEIGHTS } from '../constants/chartDimensions';
 
 interface TrendsChartsGridProps {
   chartData: any; // Type from useSeasonChartData hook
@@ -16,6 +18,9 @@ interface TrendsChartsGridProps {
   // are hidden (a single point isn't meaningful) when hidePerGameLines is true.
   perGameChartType?: 'line' | 'bar';
   hidePerGameLines?: boolean;
+  // Views that reuse this grid (Team vs. Team) pass overrides so embeds link
+  // back to the right page and use the right wording.
+  embedOptions?: TrendsEmbedOptions;
 }
 
 // Chart options for bar charts (XR overlaps SR, matching Games page)
@@ -89,7 +94,8 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
   gamesCount,
   selectedTeamColor = 'default',
   perGameChartType = 'line',
-  hidePerGameLines = false
+  hidePerGameLines = false,
+  embedOptions
 }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
 
@@ -104,16 +110,38 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
     setCopiedChart(chartId);
 
     try {
-      const embedCode = generateTrendsEmbedCode(
-        chartId,
-        title,
-        data,
-        chartType,
-        team,
-        year,
-        gamesCount,
-        selectedTeamColor
-      );
+      // One-game Team vs. Team renders Rush Rate as grouped percent columns
+      // (0-100 scale) — the trends embed template assumes 0-1 stacked bars, so
+      // serialize the chart exactly as rendered instead.
+      const embedCode =
+        chartId === 'rush-rate-by-game' && chartType === 'bar'
+          ? generateChartEmbed({
+              chartType: 'bar',
+              data,
+              options: lineChartOptionsWithRotatedLabels,
+              title,
+              subtitle: embedOptions?.subtitle ?? `${team} - ${year} Season (${gamesCount} games)`,
+              sourceUrl:
+                embedOptions?.url ??
+                `https://graphingcollegefootball.com/trends?year=${year}&team=${encodeURIComponent(team)}`,
+              height: CHART_HEIGHTS.DEFAULT_DESKTOP,
+              mobileHeight: CHART_HEIGHTS.DEFAULT_MOBILE,
+              definitions: [
+                '<strong>Rush Rate:</strong> Percentage of offensive plays that are rushing attempts',
+                'Based roughly on <a href="https://www.sbnation.com/college-football/2017/10/13/16457830/college-football-advanced-stats-analytics-rankings" target="_blank" style="color: #525252; text-decoration: underline;">the SP+ analytic system</a>'
+              ],
+            })
+          : generateTrendsEmbedCode(
+              chartId,
+              title,
+              data,
+              chartType,
+              team,
+              year,
+              gamesCount,
+              selectedTeamColor,
+              embedOptions
+            );
 
       await navigator.clipboard.writeText(embedCode);
 

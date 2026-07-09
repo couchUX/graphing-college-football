@@ -442,7 +442,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({ plays, team, selectedTeamColor 
         <div class="embed-footer">
             <div class="embed-footer-top">
                 <a href="${gameUrl}" class="embed-footer-link" target="_blank">See all charts</a>
-                <button class="data-definitions-toggle" onclick="toggleDefinitions_${uniqueId.replace(/-/g, '_')}()">
+                <button type="button" class="data-definitions-toggle" onclick="toggleDefinitions_${uniqueId.replace(/-/g, '_')}()">
                     Data definitions
                     <span class="caret" id="caret_${uniqueId}">▼</span>
                 </button>
