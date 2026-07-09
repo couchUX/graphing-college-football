@@ -94,30 +94,30 @@ const CompareBoxScore: React.FC<CompareBoxScoreProps> = ({
       console.error('Clipboard not available in this browser');
       return;
     }
-    // Link back to this exact comparison (same params TeamCompareView persists).
-    const params = new URLSearchParams();
-    params.set('view', 'compare');
-    params.set('aTeam', teamA);
-    params.set('bTeam', teamB);
-    params.set('compareYear', String(year));
-    if (colorA !== 'default') params.set('aColor', colorA);
-    if (colorB !== 'default') params.set('bColor', colorB);
-
-    const embedHTML = buildBoxScoreEmbedHtml({
-      // Reflect the calculation mode the table is currently showing.
-      title: `Box Score (${mode === 'totals' ? 'Totals' : 'Averages'})`,
-      subtitle: `${teamA} vs. ${teamB} - ${year} Season`,
-      sourceUrl: `https://graphingcollegefootball.com/trends?${params.toString()}`,
-      left: { label: teamA, color: teamAColor || '#6b7280' },
-      right: { label: teamB, color: oppColor || '#9CA3AF' },
-      rows: [...first, ...second].map(stat => ({
-        label: stat.label,
-        leftValue: String(stat.teamValue),
-        rightValue: String(stat.oppValue),
-      })),
-    });
-
     try {
+      // Link back to this exact comparison (same params TeamCompareView persists).
+      const params = new URLSearchParams();
+      params.set('view', 'compare');
+      params.set('aTeam', teamA);
+      params.set('bTeam', teamB);
+      params.set('compareYear', String(year));
+      if (colorA !== 'default') params.set('aColor', colorA);
+      if (colorB !== 'default') params.set('bColor', colorB);
+
+      const embedHTML = buildBoxScoreEmbedHtml({
+        // Reflect the calculation mode the table is currently showing.
+        title: `Box Score (${mode === 'totals' ? 'Totals' : 'Averages'})`,
+        subtitle: `${teamA} vs. ${teamB} - ${year} Season`,
+        sourceUrl: `https://graphingcollegefootball.com/trends?${params.toString()}`,
+        left: { label: teamA, color: teamAColor || '#6b7280' },
+        right: { label: teamB, color: oppColor || '#9CA3AF' },
+        rows: [...first, ...second].map(stat => ({
+          label: stat.label,
+          leftValue: String(stat.teamValue),
+          rightValue: String(stat.oppValue),
+        })),
+      });
+
       await navigator.clipboard.writeText(embedHTML);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);

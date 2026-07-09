@@ -143,17 +143,21 @@ const SeasonAdvancedBoxScore: React.FC<SeasonAdvancedBoxScoreProps> = ({
   const [copied, setCopied] = useState(false);
 
   const handleCopyEmbed = async () => {
-    // Generate season box score embed HTML
-    const embedHTML = generateSeasonBoxScoreEmbed(
-      [...firstTableStats, ...secondTableStats],
-      team,
-      year,
-      gamesCount,
-      mode,
-      selectedTeamColor
-    );
-
+    if (!navigator.clipboard?.writeText) {
+      console.error('Clipboard not available in this browser');
+      return;
+    }
     try {
+      // Generate season box score embed HTML inside try so a serializer failure
+      // still resets the button via the catch below.
+      const embedHTML = generateSeasonBoxScoreEmbed(
+        [...firstTableStats, ...secondTableStats],
+        team,
+        year,
+        gamesCount,
+        mode,
+        selectedTeamColor
+      );
       await navigator.clipboard.writeText(embedHTML);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
