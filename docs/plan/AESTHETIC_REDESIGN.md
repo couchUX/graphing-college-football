@@ -156,6 +156,13 @@ they conflict:
   UI text (C's face) with Inter Tight reserved for display is the sanctioned
   fallback — decide by eye during Phase 1 with screenshots.
 
+**No dark mode — light-only site (Alex, 2026-02-05).** The charts render on
+white by design, and dark surrounds behind white chart canvases are too high
+contrast. Do not ship a dark theme, a `prefers-color-scheme: dark` variant, or
+dark chrome of any kind — this formally retires Direction B, and no "dark mode
+later" hooks should be added. The paper background is the one and only ground.
+
 Rationale trail: A harmonizes best with white-canvas charts; the caps-heavy
-apparatus was the part of A rejected as too costumey. B and C remain documented
-above for reference only.
+apparatus was the part of A rejected as too costumey; dark chrome was rejected
+for contrast against the white chart canvas. B and C remain documented above
+for reference only.
