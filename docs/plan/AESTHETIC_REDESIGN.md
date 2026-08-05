@@ -130,10 +130,32 @@ later phase touches one file, not four pages:
 Each phase is an isolated commit with before/after screenshots on the branch —
 main untouched until Alex approves.
 
-## Decision needed
+## DECISION (made by Alex, 2026-02-05)
 
-Pick **A**, **B**, **C**, or a mix (e.g. "A with B's scoreboard numerals" — the
-written recommendation). Recommendation rationale: charts live on white and the
-site's credibility is editorial — A harmonizes best and is hardest to mistake for a
-template; B is the statement alternative; C the safest modernization. All three
-share Phase 0, so a later switch is a restyle, not a rebuild.
+**Build A · Press Box, amended with C's text treatment. No all-caps anywhere.**
+
+What that means concretely — this amendment overrides the A spec above wherever
+they conflict:
+
+- **Keep from A:** warm paper `#FBFAF7`, ink, hairline rules, zero
+  shadows/gradients, 4px radii, masthead + double rule, underline nav tabs,
+  ruled stat columns (no boxes), charts as white plates, team-color accent with
+  crimson default, solid-ink CTA.
+- **Drop from A:** every uppercase / small-caps / letterspaced treatment — the
+  mono kickers, tile labels, datelines, and selector field labels are **not**
+  uppercased.
+- **Adopt from C:** sentence-case labels and meta text styled like Front
+  Office's — quiet 12–13px medium weight in byline gray (`#78716C`), e.g.
+  "Success rate", "2025 · Week 8 · Neyland Stadium". Meta rows may use C's
+  subtle chip treatment where it earns its keep.
+- **Numerals:** tabular figures for big stats (Inter Tight `tnum`); the B-style
+  mono digits are optional and only if they read well without uppercase labels
+  around them.
+- **Faces:** Inter Tight for display + headings stays. For body/UI text, start
+  with Inter Tight at sentence case; if it still reads too editorial, Geist for
+  UI text (C's face) with Inter Tight reserved for display is the sanctioned
+  fallback — decide by eye during Phase 1 with screenshots.
+
+Rationale trail: A harmonizes best with white-canvas charts; the caps-heavy
+apparatus was the part of A rejected as too costumey. B and C remain documented
+above for reference only.
