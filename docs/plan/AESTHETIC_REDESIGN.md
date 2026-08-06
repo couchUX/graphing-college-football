@@ -1,5 +1,30 @@
 # Aesthetic Redesign — Directions & Implementation Plan
 
+> **Status: implemented** on `claude/code-review-aesthetic-redesign-nl6p0p`
+> as **A · Press Box with C's sentence-case text treatment, light-only**
+> (see the DECISION section at the bottom for the brief this was built to).
+>
+> What shipped: warm paper ground with ink/hairline structure and no card
+> shadows or gradients; masthead with a double rule; underlined nav and
+> sub-tabs; ruled stat columns replacing boxed tiles; squared 4px corners;
+> ink CTAs whose disabled state is an outlined ghost rather than a gray fill;
+> Inter Tight self-hosted; sentence case throughout; the selected team's color
+> driving `--accent`. No dark theme, per the constraint.
+>
+> The charts were not touched: same datasets, options, datalabels, legends,
+> reference lines and heights. Verified by rendering the app against fixture
+> data and by copying six representative embeds (stacked bar, multi-series
+> line, win-probability gradient, play map, horizontal stacked player bar,
+> dual-axis drive chart) and confirming each paints standalone.
+>
+> Not done: the favicon/OG image pass (Phase 4) — the existing artwork still
+> reflects the old look, and replacing it needs image assets rather than code.
+> `ChartJS.defaults.font.family` was left at the Chart.js default, as the plan
+> specified for the opt-in chart-font question.
+
+---
+
+
 _Companion to [`CODE_REVIEW.md`](./CODE_REVIEW.md). Visual mockups of everything below:_
 **https://claude.ai/code/artifact/66b79366-b191-429b-8f3c-fa52d9232119**
 

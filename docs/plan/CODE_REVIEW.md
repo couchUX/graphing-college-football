@@ -1,5 +1,32 @@
 # Code Review — Findings & Savings Plan
 
+> **Status: implemented.** Everything below except the items listed under
+> _Deliberately not done_ shipped on `claude/code-review-aesthetic-redesign-nl6p0p`.
+> Measured results after implementation:
+>
+> | Measure | Before | After |
+> |---|---|---|
+> | `tsc --noEmit` errors | 45 | **0** |
+> | ESLint problems | 202 | **150** (137 are `no-explicit-any` in Chart.js glue) |
+> | JS per page load | 865 KB on every page | **427–622 KB** (−28% to −51%) |
+> | Live Chart.js canvases, loaded game | ~38 | **~19** |
+> | `ChartsGrid.tsx` | 1,641 lines | **472** |
+> | `Dashboard.tsx` | 1,271 lines | **672** |
+> | `console.log` in `src/` | 45 | **0** |
+>
+> Self-hosting Inter Tight adds ~44 KB of font per page, which is new weight
+> the table above doesn't net out.
+>
+> **Deliberately not done:** the remaining 137 `no-explicit-any` errors. They sit
+> almost entirely in Chart.js data/option construction, where the library's
+> generic types fight the plugin-extended shapes the app actually uses. Typing
+> the seams (`ApiPlayData` exported and widened, page props, service returns)
+> was the valuable part and is done; converting the chart internals would be a
+> large, risky diff against the code this project least wants churned.
+
+---
+
+
 _Simplify-style review (reuse / simplification / efficiency / dead code) of the whole
 codebase, February session, planned on branch `claude/code-review-aesthetic-redesign-nl6p0p`._
 _Findings only — fixes land in the follow-up implementation session. Ordered by payoff._
