@@ -18,6 +18,12 @@ export default tseslint.config(
       'react-refresh': reactRefresh,
     },
     rules: {
+      // `_name` marks a parameter that must stay in the signature but is
+      // deliberately unused (positional API params, required props).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': [
         'warn',

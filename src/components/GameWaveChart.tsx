@@ -89,7 +89,7 @@ const LegendSwatch = ({ dotClass, label }: { dotClass: string; label: string }) 
 const HANDLE_CLASS =
   'absolute z-10 flex h-11 w-2.5 cursor-ew-resize items-center justify-center rounded-full border ' +
   'border-neutral-300 bg-white shadow-sm transition-colors hover:border-neutral-400 hover:shadow ' +
-  'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent';
 
 // Two short vertical bars — the grip texture inside each resize handle.
 const Grip = () => (
@@ -251,7 +251,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
   return (
     <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
       <div className="px-6 py-4 border-b border-neutral-200">
-        <h3 className="text-lg font-semibold text-neutral-900">Game Wave</h3>
+        <h3 className="font-display text-lg font-bold tracking-tight text-ink">Game Wave</h3>
       </div>
 
       <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">

@@ -131,7 +131,7 @@ const CompareBoxScore: React.FC<CompareBoxScoreProps> = ({
       {/* Mobile-only header card (matches Season trends box score) */}
       <div className="md:hidden bg-white rounded-t-2xl shadow-sm border border-neutral-200 border-b-0 pt-4 px-6 pb-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-neutral-900">Box Score (Season)</h2>
+          <h2 className="font-display text-xl font-bold tracking-tight text-ink">Box score (season)</h2>
           <div className="flex items-center gap-2">
             <ModeToggle mode={mode} onModeChange={onModeChange} />
             <CopyEmbedButton copied={copied} onClick={handleCopyEmbed} />
@@ -142,7 +142,7 @@ const CompareBoxScore: React.FC<CompareBoxScoreProps> = ({
       {/* Desktop: full card */}
       <div className="md:bg-white md:rounded-2xl md:shadow-sm md:border md:border-neutral-200 md:pt-5 md:px-6 md:pb-6">
         <div className="hidden md:flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-neutral-900">Box Score (Season)</h2>
+          <h2 className="font-display text-xl font-bold tracking-tight text-ink">Box score (season)</h2>
           <div className="flex items-center gap-2">
             <ModeToggle mode={mode} onModeChange={onModeChange} />
             <CopyEmbedButton copied={copied} onClick={handleCopyEmbed} />

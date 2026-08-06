@@ -17,7 +17,8 @@ const hexToHsl = (hex: string): [number, number, number] => {
 
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
-  let h = 0, s = 0, l = (max + min) / 2;
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
 
   if (max !== min) {
     const d = max - min;
@@ -105,7 +106,7 @@ const calculateExplosiveColor = (primaryColor: string, isPlayerChart: boolean = 
       const newL = Math.max(l - 45, 15);
       return hslToHex(h, s, newL);
     }
-  } catch (error) {
+  } catch {
     // Balanced fallback darkening
     const multiplier = isPlayerChart ? 0.25 : 0.4; // More aggressive for player charts
     return primaryColor.replace(/^#/, '#').replace(/[0-9a-f]/gi, (char) => {
@@ -152,7 +153,7 @@ const rgbaToHex = (rgba: string): string => {
     const b = parseInt(match[3]);
 
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  } catch (error) {
+  } catch {
     return rgba;
   }
 };

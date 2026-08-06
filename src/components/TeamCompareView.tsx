@@ -71,7 +71,7 @@ interface CompareResult {
 // scope so its identity is stable across renders (otherwise the dropdown would
 // remount and close mid-interaction).
 const FILTER_SELECT_CLASS =
-  'text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat';
+  'text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat';
 const FILTER_SELECT_STYLE: React.CSSProperties = {
   backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
   paddingRight: '2rem',
@@ -288,7 +288,7 @@ const TeamCompareView: React.FC = () => {
     } else {
       urlReadyRef.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [teams]);
 
   const canCompare =
@@ -447,7 +447,7 @@ const TeamCompareView: React.FC = () => {
   return (
     <div>
       {/* Inputs: a row per team, then year + compare */}
-      <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+      <div className="pb-6 mb-6 border-b border-neutral-200 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
         <div className="flex flex-col gap-4">
           {/* Team A */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -499,7 +499,7 @@ const TeamCompareView: React.FC = () => {
               <select
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
-                className="w-full sm:w-auto bg-white border border-neutral-300 rounded-lg px-4 py-3 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full sm:w-auto bg-white border border-neutral-300 rounded-lg px-4 py-3 shadow-sm hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none transition-colors"
               >
                 {YEARS.map((y) => (
                   <option key={y} value={y}>
@@ -512,7 +512,7 @@ const TeamCompareView: React.FC = () => {
               <button
                 onClick={handleCompare}
                 disabled={!canCompare}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
+                className="btn-ink w-full sm:w-auto"
               >
                 {loading ? (
                   <span>Comparing...</span>
@@ -554,7 +554,7 @@ const TeamCompareView: React.FC = () => {
       {!loading && result && chartData && (
         <>
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-neutral-900">
+            <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink">
               {result.a.team} vs. {result.b.team}
             </h2>
             <p className="text-neutral-600">{result.year} season</p>
@@ -589,12 +589,12 @@ const TeamCompareView: React.FC = () => {
 
           {/* Player charts (both teams; per-team filter + top-N per chart) */}
           <div className="mt-8">
-            <h2 className="text-2xl font-bold text-neutral-900 mb-6">Player charts</h2>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink mb-6">Player charts</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                    <h3 className="text-lg font-semibold text-neutral-900">Top rushers</h3>
+                    <h3 className="font-display text-lg font-bold tracking-tight text-ink">Top rushers</h3>
                     <PlayerTeamFilter
                       value={rushersFilter}
                       onChange={setRushersFilter}
@@ -622,7 +622,7 @@ const TeamCompareView: React.FC = () => {
 
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                    <h3 className="text-lg font-semibold text-neutral-900">Top passers</h3>
+                    <h3 className="font-display text-lg font-bold tracking-tight text-ink">Top passers</h3>
                     <PlayerTeamFilter
                       value={passersFilter}
                       onChange={setPassersFilter}
@@ -651,7 +651,7 @@ const TeamCompareView: React.FC = () => {
 
               <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                  <h3 className="text-lg font-semibold text-neutral-900">Top receivers</h3>
+                  <h3 className="font-display text-lg font-bold tracking-tight text-ink">Top receivers</h3>
                   <PlayerTeamFilter
                     value={receiversFilter}
                     onChange={setReceiversFilter}
@@ -685,7 +685,7 @@ const TeamCompareView: React.FC = () => {
         <div className="text-center py-8">
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
             <GitCompareArrows className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">Compare two teams' seasons</h3>
+            <h3 className="font-display text-xl font-bold tracking-tight text-ink mb-2">Compare two teams' seasons</h3>
             <p className="text-neutral-600 max-w-md mx-auto">
               Pick two teams, choose which games to include for each, then click Compare to see the
               same season-trends charts — box score, success rate, explosiveness, play-type splits,

@@ -1,15 +1,3 @@
-interface GameData {
-  id: number;
-  season: number;
-  week: number;
-  seasonType: string;
-  startDate: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeScore: number;
-  awayScore: number;
-}
-
 export interface PlayData {
   id: string; // Changed from number to string to handle large IDs properly
   driveId: number;
@@ -58,9 +46,6 @@ export interface ProcessedMetrics {
   avgYardsPerPlay: number;
 }
 
-interface TeamMetrics {
-  [teamName: string]: ProcessedMetrics;
-}
 
 export interface DriveMetrics {
   driveNumber: number;

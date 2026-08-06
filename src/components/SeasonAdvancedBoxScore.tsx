@@ -58,7 +58,7 @@ export const SeasonBoxScoreTable: React.FC<SeasonBoxScoreTableProps> = ({
   team,
   tableTitle,
   selectedTeamColor,
-  gamesCount,
+  gamesCount: _gamesCount,
   isFirst,
   oppLabel = 'Opponents',
   oppColor
@@ -174,7 +174,7 @@ const SeasonAdvancedBoxScore: React.FC<SeasonAdvancedBoxScoreProps> = ({
       {/* Mobile-only header card */}
       <div className="md:hidden bg-white rounded-t-2xl shadow-sm border border-neutral-200 border-b-0 pt-4 px-6 pb-5">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xl font-semibold text-neutral-900">Box Score (Season)</h2>
+          <h2 className="font-display text-xl font-bold tracking-tight text-ink">Box score (season)</h2>
           <div className="flex items-center gap-2">
             {/* Combined toggle buttons */}
             <div className="flex border border-neutral-300 rounded-lg overflow-hidden h-8">
@@ -222,7 +222,7 @@ const SeasonAdvancedBoxScore: React.FC<SeasonAdvancedBoxScoreProps> = ({
       <div className="md:bg-white md:rounded-2xl md:shadow-sm md:border md:border-neutral-200 md:pt-5 md:px-6 md:pb-6">
         {/* Desktop header */}
         <div className="hidden md:flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-neutral-900">Box Score (Season)</h2>
+          <h2 className="font-display text-xl font-bold tracking-tight text-ink">Box score (season)</h2>
           <div className="flex items-center gap-2">
             {/* Combined toggle buttons */}
             <div className="flex border border-neutral-300 rounded-lg overflow-hidden h-8">

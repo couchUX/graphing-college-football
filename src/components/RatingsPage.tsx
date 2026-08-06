@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Info, X, BookOpen, Copy, Check } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen, Copy, Check } from 'lucide-react';
 import Toast from './Toast';
 import { MetaTags } from './MetaTags';
-import MainNav from './MainNav';
-import logo from '../assets/graphing-cfb-logo-2.png';
+import AppShell from './AppShell';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
 type SortDirection = 'asc' | 'desc';
@@ -18,16 +17,8 @@ const RatingsPage: React.FC = () => {
   const [sortField, setSortField] = useState<SortField>('rating');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedConference, setSelectedConference] = useState<string>('all');
-  const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [expandedTop25, setExpandedTop25] = useState<boolean>(false);
-  const [showContactModal, setShowContactModal] = useState<boolean>(false);
-  const [contactForm, setContactForm] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
-  const [isSubmittingContact, setIsSubmittingContact] = useState<boolean>(false);
   const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>('');
@@ -432,45 +423,6 @@ const RatingsPage: React.FC = () => {
   };
 
   // Contact form handlers
-  const handleContactFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setContactForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleContactFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (isSubmittingContact) return;
-
-    setIsSubmittingContact(true);
-
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contactForm),
-      });
-
-      if (response.ok) {
-        alert('Message sent successfully! I\'ll get back to you soon.');
-        setContactForm({ name: '', email: '', message: '' });
-        setShowContactModal(false);
-      } else {
-        alert('Failed to send message. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error sending contact form:', error);
-      alert('Failed to send message. Please try again.');
-    } finally {
-      setIsSubmittingContact(false);
-    }
-  };
-
   // Handle column sort
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -537,7 +489,11 @@ const RatingsPage: React.FC = () => {
           : bValue.localeCompare(aValue);
       }
 
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      // Both are numeric here — the string case returned above — but TypeScript
+      // can't narrow two union-typed locals from one combined guard.
+      const a2 = Number(aValue);
+      const b2 = Number(bValue);
+      return sortDirection === 'asc' ? a2 - b2 : b2 - a2;
     });
 
     return sorted;
@@ -585,15 +541,15 @@ const RatingsPage: React.FC = () => {
       return <ChevronsUpDown className="h-4 w-4 text-neutral-400" />;
     }
     return sortDirection === 'asc'
-      ? <ChevronUp className="h-4 w-4 text-white" />
-      : <ChevronDown className="h-4 w-4 text-white" />;
+      ? <ChevronUp className="h-4 w-4 text-ink" />
+      : <ChevronDown className="h-4 w-4 text-ink" />;
   };
 
   const getHeaderCellClass = (field: SortField, paddingClass = 'px-4') => {
-    const baseClasses = `${paddingClass} py-3 text-left text-sm font-semibold cursor-pointer transition-colors text-white`;
+    const baseClasses = `${paddingClass} py-3 text-left text-sm font-semibold cursor-pointer transition-colors text-ink`;
     return sortField === field
-      ? `${baseClasses} bg-neutral-700`
-      : `${baseClasses} hover:bg-neutral-700`;
+      ? `${baseClasses} bg-neutral-100`
+      : `${baseClasses} hover:bg-neutral-100`;
   };
 
   // Render a top 25 table for a specific rating type
@@ -636,8 +592,8 @@ const RatingsPage: React.FC = () => {
 
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-        <div className="bg-neutral-600 px-4 py-3 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <div className="flex items-center justify-between gap-3 border-b-2 border-ink px-4 py-3">
+          <h3 className="font-display text-[15px] font-bold tracking-tight text-ink">{title}</h3>
           <button
             type="button"
             onClick={handleCopyEmbed}
@@ -651,10 +607,10 @@ const RatingsPage: React.FC = () => {
             }
             className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 ${
               embedDisabled
-                ? 'border-white/20 text-white/50 cursor-not-allowed'
+                ? 'border-hairline text-neutral-400 cursor-not-allowed'
                 : isEmbedCopied
-                  ? 'border-emerald-300 bg-emerald-500/90 text-white shadow-sm'
-                  : 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                  ? 'border-ink bg-ink text-white'
+                  : 'border-neutral-300 text-neutral-700 hover:bg-neutral-100'
             }`}
             title={embedDisabled ? 'No data to embed yet' : isEmbedCopied ? 'Copied!' : 'Copy embed code'}
           >
@@ -775,7 +731,7 @@ const RatingsPage: React.FC = () => {
               <col style={{ minWidth: '140px' }} /> {/* Def Rating */}
               <col style={{ minWidth: '140px' }} /> {/* Special Teams */}
             </colgroup>
-            <thead className="bg-neutral-600 text-white">
+            <thead className="border-b-2 border-ink bg-neutral-50 text-ink">
               <tr>
                 <th
                   className="px-3 py-3 text-left text-sm font-semibold"
@@ -801,7 +757,7 @@ const RatingsPage: React.FC = () => {
                     {renderSortIcon('conference')}
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-white">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-ink">
                   <span>SP+ rank</span>
                 </th>
                 <th
@@ -836,7 +792,7 @@ const RatingsPage: React.FC = () => {
                   onClick={() => handleSort('specialTeams')}
                 >
                   <div className="flex items-center gap-2">
-                    <span>Special Teams</span>
+                    <span>Special teams</span>
                     {renderSortIcon('specialTeams')}
                   </div>
                 </th>
@@ -983,57 +939,10 @@ const RatingsPage: React.FC = () => {
         image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_ratings_open-graph.jpg"
         url="https://cfb-adv-metrics-dashboard.vercel.app/ratings"
       />
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
-      {/* Header - matching Games page */}
-      <header className="bg-white shadow-sm border-b border-neutral-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          {/* Mobile: Two rows (Title/Info, then Nav) */}
-          {/* Desktop: One row (Title/Subtitle on left, Nav + Info on right) */}
-          <div className="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-            {/* Row 1 on mobile, Left side on desktop: Title/Subtitle + Info Button (mobile only) */}
-            <div className="flex items-center justify-between sm:justify-start">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">
-                  Graphing College Football
-                </h1>
-                <p className="text-sm sm:text-base text-neutral-500 mt-0">
-                  Advanced play-by-play metrics<span className="hidden sm:inline"> and visualizations</span>
-                </p>
-              </div>
-
-              {/* Info Button - visible on mobile only */}
-              <button
-                onClick={() => setShowInfoModal(true)}
-                className="sm:hidden flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
-                title="About this project"
-              >
-                <Info className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Row 2 on mobile, Right side on desktop: Navigation Toggle + Info Button (desktop only) */}
-            <div className="flex items-center gap-3">
-              {/* Navigation */}
-              <MainNav current="ratings" />
-
-              {/* Info Button - visible on desktop only */}
-              <button
-                onClick={() => setShowInfoModal(true)}
-                className="hidden sm:flex items-center justify-center w-10 h-10 border border-neutral-300 rounded-lg bg-white hover:bg-neutral-50 text-neutral-600 hover:text-neutral-900 transition-all duration-200"
-                title="About this project"
-              >
-                <Info className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-grow py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <AppShell current="ratings">
+        <div>
           {/* Filters - matching Games page style */}
-          <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+          <div className="pb-6 mb-6 border-b border-neutral-200 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
@@ -1085,14 +994,14 @@ const RatingsPage: React.FC = () => {
 
           {/* Page Header */}
           <div className="mb-8">
-            <h3 className="text-2xl font-bold text-neutral-900">
-              SP+ Team Ratings
+            <h3 className="font-display text-2xl font-extrabold tracking-tight text-ink">
+              SP+ team ratings
             </h3>
             <p className="text-neutral-600 mb-6">
-              {year} Season
+              {year} season
             </p>
 
-            {/* Data Definitions and Notes Section - matching Games page */}
+            {/* Definitions and notes Section - matching Games page */}
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-4">
               <button
                 onClick={() => setShowDataDefinitions(!showDataDefinitions)}
@@ -1100,7 +1009,7 @@ const RatingsPage: React.FC = () => {
               >
                 <div className="flex items-center space-x-3">
                   <BookOpen className="h-5 w-5 text-neutral-600" />
-                  <h2 className="text-xl font-semibold text-neutral-900">
+                  <h2 className="font-display text-xl font-bold tracking-tight text-ink">
                     <span className="hidden sm:inline">Data </span>Definitions and Notes
                   </h2>
                 </div>
@@ -1173,7 +1082,7 @@ const RatingsPage: React.FC = () => {
             <>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {renderTop25Table(
-                  'Top 25 Overall SP+',
+                  'Top 25 overall SP+',
                   top25Overall,
                   'overall',
                   'SP+',
@@ -1182,7 +1091,7 @@ const RatingsPage: React.FC = () => {
                   selectedConference !== 'all' && selectedConference !== 'power4'
                 )}
                 {renderTop25Table(
-                  'Top 25 Offense',
+                  'Top 25 offense',
                   top25Offense,
                   'offense',
                   'Off. SP+',
@@ -1191,7 +1100,7 @@ const RatingsPage: React.FC = () => {
                   selectedConference !== 'all' && selectedConference !== 'power4'
                 )}
                 {renderTop25Table(
-                  'Top 25 Defense',
+                  'Top 25 defense',
                   top25Defense,
                   'defense',
                   'Def. SP+',
@@ -1205,7 +1114,7 @@ const RatingsPage: React.FC = () => {
               <div className="space-y-8">
                 <div className="mb-4">
                   <h3 className="text-xl font-bold text-neutral-900">
-                    All Teams - Detailed Rankings
+                    All teams — detailed rankings
                   </h3>
                   <p className="text-sm text-neutral-600">
                     Complete sortable table with all rating categories
@@ -1223,218 +1132,14 @@ const RatingsPage: React.FC = () => {
             </div>
           )}
         </div>
-      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-neutral-200 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-14">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-lg font-medium text-neutral-900">About This Project</p>
-              <p className="text-sm leading-relaxed max-w-3xl text-neutral-700">
-                This tool is the culmination of 10+ years of work! I'm a <a href="https://medium.com/alex-couch-s-portfolio" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">product designer</a> by day, and I write an advanced analytics column for <a href="https://rollbamaroll.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">RollBamaRoll.com</a>. I love data viz, and am a big fan of college football from growing up.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm mb-5 text-neutral-700">
-                If you find this useful, feel free to buy me a coffee to support continued development!
-              </p>
-              <div className="space-y-3">
-                <a
-                  href="https://buymeacoffee.com/alexcouch"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-neutral-800 hover:bg-neutral-900 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  ☕ Support this project
-                </a>
-                <div>
-                  <button
-                    onClick={() => setShowContactModal(true)}
-                    className="text-sm text-blue-600 hover:text-blue-800 underline"
-                  >
-                    Get in touch
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* About This Project Modal */}
-      {showInfoModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowInfoModal(false)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h2 className="text-2xl font-bold text-neutral-900">About This Project</h2>
-              <button
-                onClick={() => setShowInfoModal(false)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="px-6 py-6 space-y-4">
-              <p className="leading-relaxed text-neutral-700">
-                This tool is the culmination of 10+ years of work! I'm a{' '}
-                <a
-                  href="https://medium.com/alex-couch-s-portfolio"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 underline"
-                >
-                  product designer
-                </a>
-                {' '}by day, and I write an advanced analytics column for{' '}
-                <a
-                  href="https://rollbamaroll.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 underline"
-                >
-                  RollBamaRoll.com
-                </a>
-                . I love data visualization, and am a big fan of college football from growing up.
-              </p>
-
-              <p className="text-neutral-700">
-                If you find this useful, feel free to buy me a coffee to support continued development!
-              </p>
-
-              <div className="pt-2">
-                <a
-                  href="https://buymeacoffee.com/alexcouch"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-neutral-800 hover:bg-neutral-900 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  ☕ Support this project
-                </a>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="sticky bottom-0 bg-neutral-50 border-t border-neutral-200 px-6 py-4 rounded-b-2xl">
-              <button
-                onClick={() => setShowInfoModal(false)}
-                className="w-full px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors font-medium"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Contact Modal */}
-      {showContactModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full shadow-xl">
-            <form onSubmit={handleContactFormSubmit}>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-medium text-neutral-900">Get in Touch</h2>
-                  <button
-                    type="button"
-                    onClick={() => setShowContactModal(false)}
-                    className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-2">
-                      Your Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={contactForm.name}
-                      onChange={handleContactFormChange}
-                      required
-                      className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter your name"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-2">
-                      Your Email
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={contactForm.email}
-                      onChange={handleContactFormChange}
-                      required
-                      className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter your email"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-neutral-700 mb-2">
-                      Message
-                    </label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      value={contactForm.message}
-                      onChange={handleContactFormChange}
-                      required
-                      rows={4}
-                      className="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                      placeholder="Enter your message"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowContactModal(false)}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-md transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingContact}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 disabled:cursor-not-allowed rounded-md transition-colors"
-                  >
-                    {isSubmittingContact ? 'Sending...' : 'Send Message'}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <Toast
-        message={toastMessage}
-        type="success"
-        isVisible={showToast}
-        onClose={() => setShowToast(false)}
-      />
-    </div>
+        <Toast
+          message={toastMessage}
+          type="success"
+          isVisible={showToast}
+          onClose={() => setShowToast(false)}
+        />
+      </AppShell>
     </>
   );
 };

@@ -31,7 +31,7 @@ const generateBoxScoreEmbed = (
         const date = new Date(plays[0].wallclock);
         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         return `${teams} • ${dateStr}`;
-      } catch (e) {
+      } catch {
         // If date parsing fails, fall back to just year
         return `${teams} • ${year}`;
       }
@@ -274,7 +274,7 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
       {/* Mobile-only header card */}
       <div className="md:hidden bg-white rounded-t-2xl shadow-sm border border-neutral-200 border-b-0 pt-4 px-6 pb-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-neutral-900">Box Score</h2>
+          <h2 className="font-display text-xl font-bold tracking-tight text-ink">Box score</h2>
           <button
             onClick={handleCopyEmbed}
             className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
@@ -297,7 +297,7 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
       <div className="md:bg-white md:rounded-2xl md:shadow-sm md:border md:border-neutral-200 md:pt-5 md:px-6 md:pb-6">
         {/* Desktop header */}
         <div className="hidden md:flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-neutral-900">Box Score</h2>
+          <h2 className="font-display text-xl font-bold tracking-tight text-ink">Box score</h2>
           <button
             onClick={handleCopyEmbed}
             className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { PlayData, PerGameMetric } from '../types';
+import { PlayData } from '../types';
 import { TeamGame } from '../services/api';
 import { getDisplayTeamColors, getDisplayTeamColorsForPlayerChart } from '../utils/displayTeamColors';
 import { calculateSeasonMetrics, calculatePerGameMetrics, calculateAggregateOpponentMetrics } from '../utils/seasonMetrics';
@@ -60,7 +60,7 @@ export const useSeasonChartData = (
           stack: 'SRXR',
           datalabels: {
             display: true,
-            formatter: (value: number, context: any) => {
+            formatter: (_value: number, context: any) => {
               return context.dataIndex === 0 ? seasonMetrics.totalPlays : aggregateOppMetrics.totalPlays;
             }
           }

@@ -12,7 +12,6 @@ import {
   createPlayerData,
   createDriveLines,
   createWinProbabilityData,
-  createFiftyPercentLine,
   createAvgExtraYardsLine
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
@@ -72,7 +71,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           stack: 'SRXR',
           datalabels: {
             display: true,
-            formatter: (value: number, context: any) => {
+            formatter: (_value: number, context: any) => {
               return context.dataIndex === 0 ? teamPlays.length : opponentPlays.length;
             }
           }

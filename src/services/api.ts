@@ -1,6 +1,7 @@
 import { API_BASE_URL, getApiHeaders } from '../config/api';
+import { cachedFetch } from '../utils/apiCache';
 
-interface ApiPlayData {
+export interface ApiPlayData {
   id: string; // Changed from number to string to handle large IDs properly
   drive_id: number;
   game_id: number;
@@ -26,6 +27,22 @@ interface ApiPlayData {
   time_remaining: number;
   home?: string;
   away?: string;
+
+  // CFBD has served camelCase for some of these fields depending on endpoint
+  // and era, and the processing code reads either spelling. Declared optional
+  // so that fallback stays type-checked rather than cast away.
+  driveNumber?: number;
+  playNumber?: number;
+  yardsGained?: number;
+  yardsToGoal?: number;
+  playType?: string;
+  playText?: string;
+  period?: number;
+  driveId?: number;
+  gameId?: number;
+  offenseConference?: string;
+  defenseConference?: string;
+  timeRemaining?: number;
 }
 
 export interface Team {
@@ -92,32 +109,24 @@ export interface TeamGame {
   notes: string;
 }
 
-// Keep the fetchTeams function but we'll replace it with a simpler approach
-export const fetchTeams = async (): Promise<Team[]> => {
-  try {
-    const url = `${API_BASE_URL}/teams`;
-    
-    console.log('Fetching teams from:', url);
-    
-    const response = await fetch(url, { headers: getApiHeaders() });
-    
+/**
+ * The full FBS+FCS team list, cached for a day. It changes at most once a
+ * season, and every Games/Trends visit needs it before anything can be picked.
+ */
+export const fetchTeams = async (): Promise<Team[]> =>
+  cachedFetch('teams', async () => {
+    const response = await fetch(`${API_BASE_URL}/teams`, { headers: getApiHeaders() });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
-    const data: Team[] = await response.json();
-    const footballTeams = data.filter(isFootballTeam);
 
-    return footballTeams;
-  } catch (error) {
-    console.error('Error fetching teams:', error);
-    throw error;
-  }
-};
+    const data: Team[] = await response.json();
+    return data.filter(isFootballTeam);
+  });
 
 export const fetchAllGames = async (year: number): Promise<TeamGame[]> => {
   const url = `${API_BASE_URL}/games?year=${year}`;
-  console.log('Fetching all games from:', url);
 
   const response = await fetch(url, { headers: getApiHeaders() });
   if (!response.ok) {
@@ -125,34 +134,35 @@ export const fetchAllGames = async (year: number): Promise<TeamGame[]> => {
   }
 
   const data = await response.json();
-  console.log('Fetched all games:', data.length);
   return data;
 };
 
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * A team's schedule for a season. Cached for an hour so flipping between teams
+ * and years is instant, while in-season results still refresh the same day.
+ */
 export const fetchGamesForTeam = async (params: {
   year: number;
   team: string;
 }): Promise<TeamGame[]> => {
-  try {
-    const { year, team } = params;
-    const url = `${API_BASE_URL}/games?year=${year}&team=${encodeURIComponent(team)}`;
-    
-    console.log('Fetching games from:', url);
-    
-    const response = await fetch(url, { headers: getApiHeaders() });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Fetched games for team:', data.length);
-    
-    return data;
-  } catch (error) {
-    console.error('Error fetching games:', error);
-    throw error;
-  }
+  const { year, team } = params;
+
+  return cachedFetch(
+    `games:${year}:${team}`,
+    async () => {
+      const url = `${API_BASE_URL}/games?year=${year}&team=${encodeURIComponent(team)}`;
+      const response = await fetch(url, { headers: getApiHeaders() });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    ONE_HOUR_MS
+  );
 };
 
 export interface WinProbabilityData {
@@ -177,7 +187,6 @@ export interface WinProbabilityData {
 export const fetchWinProbabilityData = async (gameId: string): Promise<WinProbabilityData[]> => {
   try {
     const url = `${API_BASE_URL}/metrics/wp?gameId=${gameId}`;
-    console.log('Fetching win probability from:', url);
 
     const response = await fetch(url, { headers: getApiHeaders() });
 
@@ -186,7 +195,6 @@ export const fetchWinProbabilityData = async (gameId: string): Promise<WinProbab
     }
 
     const data = await response.json();
-    console.log('Fetched win probability data:', data.length);
 
     return data;
   } catch (error) {
@@ -208,29 +216,26 @@ export const fetchPlayByPlayData = async (params: {
     // If gameId is provided, try to fetch by gameId first
     if (gameId) {
       const gameIdUrl = `${API_BASE_URL}/plays?gameId=${gameId}`;
-      console.log('Fetching plays by gameId from:', gameIdUrl);
 
       try {
         const gameIdResponse = await fetch(gameIdUrl, { headers: getApiHeaders() });
         if (gameIdResponse.ok) {
           const gameIdData = await gameIdResponse.json();
-          console.log('Fetched plays by gameId:', gameIdData.length);
 
           // If we got meaningful data (more than a few plays), use it
+          // A handful of plays means the gameId lookup didn't really resolve;
+          // fall through to the week-based fetch below.
           if (gameIdData.length > 10) {
             return gameIdData;
-          } else {
-            console.log('GameId returned insufficient data, falling back to week-based fetch');
           }
         }
-      } catch (error) {
-        console.log('GameId fetch failed, falling back to week-based fetch:', error);
+      } catch {
+        // gameId lookup failed — fall back to the week-based fetch.
       }
     }
     
     // Fallback to week-based fetch
     const url = `${API_BASE_URL}/plays?seasonType=${seasonType}&year=${year}&team=${encodeURIComponent(team)}&week=${week}`;
-    console.log('Fetching plays by week from:', url);
     
     const response = await fetch(url, { headers: getApiHeaders() });
     
@@ -239,13 +244,11 @@ export const fetchPlayByPlayData = async (params: {
     }
     
     const data = await response.json();
-    console.log('Fetched plays by week:', data.length);
 
     
     // If gameId was provided but gameId fetch failed, try to filter the week-based results
     let finalData = data;
     if (gameId && data.length > 0) {
-      console.log('Attempting to filter week-based results by gameId:', gameId);
       
       try {
         // Get game info to help with filtering
@@ -256,11 +259,7 @@ export const fetchPlayByPlayData = async (params: {
           const gameInfo = await gameInfoResponse.json();
           if (gameInfo.length > 0) {
             const game = gameInfo[0];
-            const gameDate = new Date(game.startDate);
-            const gameDateString = gameDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-            
-            console.log('Game date for filtering:', gameDateString);
-            
+
             // First try to filter by game_id if available in play data
             let filteredPlays = data.filter((play: ApiPlayData) => {
               return play.game_id && play.game_id.toString() === gameId.toString();
@@ -268,7 +267,6 @@ export const fetchPlayByPlayData = async (params: {
 
             // If no game_id filtering worked, try date-based filtering
             if (filteredPlays.length === 0) {
-              console.log('No game_id matches found, trying date-based filtering');
               filteredPlays = data.filter((play: ApiPlayData) => {
                 if (play.wallclock) {
                   const playDateTime = new Date(play.wallclock);
@@ -287,7 +285,6 @@ export const fetchPlayByPlayData = async (params: {
 
             // If still no matches, try filtering by opponent teams
             if (filteredPlays.length === 0) {
-              console.log('Date filtering failed, trying team-based filtering');
               const homeTeam = game.homeTeam;
               const awayTeam = game.awayTeam;
 
@@ -298,16 +295,14 @@ export const fetchPlayByPlayData = async (params: {
               });
             }
             
+            // No filter matched — keep the unfiltered week results.
             if (filteredPlays.length > 0) {
-              console.log(`Filtered plays by game date: ${filteredPlays.length} plays for game ${gameId}`);
               finalData = filteredPlays;
-            } else {
-              console.log('Date filtering failed, returning all week plays');
             }
           }
         }
-      } catch (error) {
-        console.log('Game filtering failed:', error);
+      } catch {
+        // gameId lookup failed — fall back to the week-based fetch.
       }
     }
     

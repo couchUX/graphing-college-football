@@ -1,3 +1,97 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Press Box design tokens. Light-only by design: the charts render on white
+ * and dark chrome behind a white canvas is too high contrast, so there is no
+ * dark theme and no prefers-color-scheme variant here.
+ */
+:root {
+  /* Editorial accent. Overridden per selected team at runtime by
+     applyAccent() in src/utils/accent.ts; crimson is the no-team default. */
+  --accent: #8E2434;
+  --accent-soft: rgba(142, 36, 52, 0.10);
+  --accent-ink: #FFFFFF;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+
+  /* Digits line up in stat columns, box scores and play tables. */
+  table,
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One focus style across the app, in the editorial accent rather than
+     the browser/Tailwind default blue. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* The page's structural devices: a heavy rule for section tops and a
+     hairline for everything else. */
+  .rule-heavy {
+    @apply border-t-2 border-ink;
+  }
+
+  /* Chart plates and content cards: hairline border, no elevation. */
+  .plate {
+    @apply bg-surface border border-hairline rounded-lg;
+  }
+
+  /* Responsive chart height without mounting the chart twice. Consumers set
+     --chart-h / --chart-h-mobile per card (see ChartCard). */
+  .chart-box {
+    height: var(--chart-h-mobile, var(--chart-h, 280px));
+  }
+
+  @media (min-width: 640px) {
+    .chart-box {
+      height: var(--chart-h, 325px);
+    }
+  }
+
+  /* Masthead double rule (thick over thin), the publication signature. */
+  .masthead-rule {
+    border-bottom: 2px solid #1C1917;
+    box-shadow: 0 3px 0 -1px #E5E1DB;
+  }
+
+  /* Primary action. Disabled goes to an outlined ghost rather than a gray
+     fill, so an unavailable button never reads as an available one. */
+  .btn-ink {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink bg-ink px-5 py-2.5
+           font-medium text-white transition-opacity;
+  }
+
+  .btn-ink:hover:not(:disabled) {
+    @apply opacity-90;
+  }
+
+  .btn-ink:disabled {
+    @apply cursor-not-allowed border-neutral-300 bg-transparent text-neutral-400;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

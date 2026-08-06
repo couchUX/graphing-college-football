@@ -41,6 +41,15 @@ export default defineConfig(({ mode }) => {
           ratings: resolve(__dirname, 'ratings.html'),
           trends: resolve(__dirname, 'trends.html'),
         },
+        output: {
+          // Keep the heavyweight shared dependencies out of the per-page
+          // chunks so they cache across navigations between sections.
+          manualChunks: {
+            react: ['react', 'react-dom'],
+            charts: ['chart.js', 'react-chartjs-2', 'chartjs-plugin-datalabels'],
+            teamdata: ['./src/utils/teamColors.ts'],
+          },
+        },
       },
     },
   };

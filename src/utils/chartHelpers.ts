@@ -1,5 +1,5 @@
 import { PlayData } from '../types';
-import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from './chartConfig';
+import { NCAA_AVERAGE_SR } from './chartConfig';
 
 // Helper function to format quarter labels (Q1-Q4, OT for all overtime)
 export const formatQuarterLabel = (quarter: number): string => {
@@ -314,7 +314,7 @@ export const createTeamVsOpponentBarData = (
         backgroundColor: teamColors.success,
         datalabels: {
           display: true,
-          formatter: (value: number, context: any) => {
+          formatter: (_value: number, context: any) => {
             return teamCounts[context.dataIndex];
           }
         }
@@ -335,7 +335,7 @@ export const createTeamVsOpponentBarData = (
         backgroundColor: opponentColors.success,
         datalabels: {
           display: true,
-          formatter: (value: number, context: any) => {
+          formatter: (_value: number, context: any) => {
             return oppCounts[context.dataIndex];
           }
         }
@@ -585,13 +585,11 @@ export const createWinProbabilityData = (
   // The API provides homeWinProbability, so we need to adjust based on perspective
   let isSelectedTeamHome = false;
   let actualHomeTeam = '';
-  let actualAwayTeam = '';
 
   // First, try to get home/away team info from the win probability data
   const firstPoint = winProbData[0];
   if (firstPoint && firstPoint.home && firstPoint.away) {
     actualHomeTeam = firstPoint.home;
-    actualAwayTeam = firstPoint.away;
     isSelectedTeamHome = firstPoint.home === selectedTeam;
   } else if (plays && plays.length > 0) {
     // Fallback: Use play data to determine home team
@@ -599,7 +597,6 @@ export const createWinProbabilityData = (
     const playWithHomeInfo = plays.find(p => p.home && p.away);
     if (playWithHomeInfo) {
       actualHomeTeam = playWithHomeInfo.home;
-      actualAwayTeam = playWithHomeInfo.away;
       isSelectedTeamHome = playWithHomeInfo.home === selectedTeam;
     } else {
       // Last resort: Use a more sophisticated heuristic
@@ -610,23 +607,20 @@ export const createWinProbabilityData = (
         return counts;
       }, {} as Record<string, number>);
 
-      const mostCommonDefense = Object.entries(defenseCount).sort(([,a], [,b]) => b - a)[0];
+      const mostCommonDefense = Object.entries(defenseCount).sort(([, a], [, b]) => Number(b) - Number(a))[0];
       if (mostCommonDefense) {
         actualHomeTeam = mostCommonDefense[0]; // Team that defends more early is likely home
-        actualAwayTeam = selectedTeam === actualHomeTeam ? opponentTeam : selectedTeam;
         isSelectedTeamHome = actualHomeTeam === selectedTeam;
       } else {
         // Ultimate fallback
         isSelectedTeamHome = false; // Assume away team perspective
         actualHomeTeam = opponentTeam;
-        actualAwayTeam = selectedTeam;
       }
     }
   } else {
     // No play data available, assume away team perspective
     isSelectedTeamHome = false;
     actualHomeTeam = opponentTeam;
-    actualAwayTeam = selectedTeam;
   }
 
   // Extract the primary colors for gradient calculation
@@ -678,7 +672,7 @@ export const createWinProbabilityData = (
   });
 
   // Use Chart.js segment configuration for gradient effect
-  const datasets = [{
+  const datasets: any[] = [{
     label: 'Win Probability',
     data: dataPoints,
     borderColor: selectedTeamHex, // Default border color
@@ -694,15 +688,18 @@ export const createWinProbabilityData = (
     opponentTeam,
     isSelectedTeamHome, // Store this for tooltip calculations
     playTexts: winProbData.map(point => point.playText),
+    // Read back by the segment callback below and by chart embeds.
+    segmentColors,
     segment: {
+      // Deliberately closure-free: it reads the colors off the dataset via the
+      // context rather than capturing `segmentColors`, so the embed generator
+      // can serialize it verbatim and the copied chart keeps its gradient.
       borderColor: (ctx: any) => {
-        // Use p1DataIndex (ending point) so the line inherits the destination color
-        // This makes momentum shifts more visually intuitive
-        const index = ctx.p1DataIndex;
-        if (index !== undefined && segmentColors[index]) {
-          return segmentColors[index];
-        }
-        return selectedTeamHex;
+        const dataset = ctx.chart.data.datasets[ctx.datasetIndex];
+        // Use p1DataIndex (ending point) so the line inherits the destination
+        // color, which makes momentum shifts more visually intuitive.
+        const color = dataset && dataset.segmentColors && dataset.segmentColors[ctx.p1DataIndex];
+        return color || (dataset && dataset.borderColor) || '#8B0000';
       }
     }
   }];

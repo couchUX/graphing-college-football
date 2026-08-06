@@ -49,7 +49,7 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     try {
       document.execCommand('copy');
       return true;
-    } catch (err) {
+    } catch {
       console.error('Failed to copy to clipboard:', err);
       return false;
     } finally {

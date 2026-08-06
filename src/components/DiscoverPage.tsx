@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Sparkles, Calendar, Layers } from 'lucide-react';
+import { Calendar, Layers } from 'lucide-react';
 import { MetaTags } from './MetaTags';
 import DiscoverCard from './DiscoverCard';
-import MainNav from './MainNav';
+import AppShell from './AppShell';
+import SubTabs, { SubTabItem } from './SubTabs';
 import Toast from './Toast';
 import { detectors } from '../detectors/registry';
 import type { DetectorFilters } from '../detectors/types';
@@ -60,37 +61,11 @@ const DiscoverPage: React.FC = () => {
     [year, conference]
   );
 
-  const subNavItem = (
-    id: SubTab,
-    label: string,
-    icon: React.ReactNode,
-    disabled = false
-  ) => {
-    const active = tab === id;
-    return (
-      <button
-        key={id}
-        type="button"
-        onClick={() => !disabled && setTab(id)}
-        disabled={disabled}
-        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-          active
-            ? 'bg-neutral-900 text-white'
-            : disabled
-              ? 'bg-neutral-50 text-neutral-400 cursor-not-allowed'
-              : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200'
-        }`}
-      >
-        {icon}
-        <span>{label}</span>
-        {disabled && (
-          <span className="ml-1 text-[10px] uppercase tracking-wide bg-neutral-200 text-neutral-600 px-1.5 py-0.5 rounded">
-            Soon
-          </span>
-        )}
-      </button>
-    );
-  };
+  const SUB_TABS: SubTabItem<SubTab>[] = [
+    { id: 'season-recap', label: 'Season recap' },
+    { id: 'weekly', label: 'Weekly', disabled: true, note: 'Soon' },
+    { id: 'multi-season', label: 'Multi-season', disabled: true, note: 'Soon' },
+  ];
 
   return (
     <>
@@ -100,47 +75,22 @@ const DiscoverPage: React.FC = () => {
         image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_open-graph.jpg"
         url="https://cfb-adv-metrics-dashboard.vercel.app/discover"
       />
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
-        {/* Header — matches other pages */}
-        <header className="bg-white shadow-sm border-b border-neutral-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-            <div className="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">
-                  Graphing College Football
-                </h1>
-                <p className="text-sm sm:text-base text-neutral-500 mt-0">
-                  Advanced play-by-play metrics<span className="hidden sm:inline"> and visualizations</span>
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <MainNav current="discover" />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-grow py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <AppShell current="discover">
+          <div>
             {/* Page intro */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-neutral-900">Discover</h2>
-              <p className="text-neutral-600 mt-1">
+            <div className="mb-5">
+              <h2 className="font-display text-[26px] font-extrabold tracking-tight text-ink">Discover</h2>
+              <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-byline">
                 Auto-surfaced storylines from the data. Tweak the filters to slice it your way; use the copy button on any card to grab embeddable chart HTML for an article.
               </p>
             </div>
 
             {/* Sub-nav */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              {subNavItem('season-recap', 'Season Recap', <Sparkles className="h-4 w-4" />)}
-              {subNavItem('weekly', 'Weekly', <Calendar className="h-4 w-4" />, true)}
-              {subNavItem('multi-season', 'Multi-Season', <Layers className="h-4 w-4" />, true)}
-            </div>
+            <SubTabs items={SUB_TABS} value={tab} onChange={setTab} label="Discover views" className="mb-6" />
 
             {/* Filters */}
             {tab === 'season-recap' && (
-              <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-4 sm:p-5 mb-6">
+              <div className="plate p-4 sm:p-5 mb-6">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="flex-1">
                     <label htmlFor="discover-year" className="block text-sm font-medium text-neutral-700 mb-2">
@@ -196,30 +146,29 @@ const DiscoverPage: React.FC = () => {
             )}
 
             {tab !== 'season-recap' && (
-              <div className="bg-white rounded-2xl border border-dashed border-neutral-300 p-12 text-center text-neutral-500">
-                <div className="mx-auto w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center mb-3">
+              <div className="rounded-lg border border-dashed border-neutral-300 px-6 py-14 text-center">
+                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center text-neutral-400">
                   {tab === 'weekly' ? <Calendar className="h-6 w-6" /> : <Layers className="h-6 w-6" />}
                 </div>
-                <div className="text-base font-semibold text-neutral-700">
+                <p className="font-display text-lg font-bold text-ink">
                   {tab === 'weekly' ? 'Weekly view — coming soon' : 'Multi-season view — coming soon'}
-                </div>
-                <p className="text-sm text-neutral-500 mt-1 max-w-md mx-auto">
+                </p>
+                <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-byline">
                   {tab === 'weekly'
                     ? 'Week-by-week storylines during the season — biggest upsets, hottest QBs, defensive surges.'
                     : 'Cross-season comparisons — year-over-year movers, multi-year leaders, and trend lines.'}
                 </p>
               </div>
             )}
-          </div>
-        </main>
 
-        <footer className="border-t border-neutral-200 mt-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <p className="text-xs text-neutral-500">
-              Data from <a href="https://collegefootballdata.com" target="_blank" rel="noopener noreferrer" className="underline">CollegeFootballData.com</a>. SP+ created by Bill Connelly.
+            <p className="mt-10 border-t border-hairline pt-5 text-xs text-byline">
+              Data from{' '}
+              <a href="https://collegefootballdata.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                CollegeFootballData.com
+              </a>
+              . SP+ created by Bill Connelly.
             </p>
           </div>
-        </footer>
 
         <Toast
           message={toast.message}
@@ -227,7 +176,7 @@ const DiscoverPage: React.FC = () => {
           isVisible={toast.isVisible}
           onClose={closeToast}
         />
-      </div>
+      </AppShell>
     </>
   );
 };
