@@ -52,10 +52,24 @@
 }
 
 @layer components {
-  /* Section divider. Used with generous space above and below — the rule is a
-     breath between sections, not a box around them. */
+  /*
+   * Section divider. A hairline in warm brown, carrying its own space above
+   * and below so the rhythm doesn't depend on whatever the parent's `space-y`
+   * happens to be — the rule is a breath between sections, not a box.
+   */
   .rule-section {
-    border-top: 2px solid var(--rule);
+    border-top: 1px solid var(--rule);
+    margin-top: 3rem;     /* 48px of air above */
+    padding-top: 2.5rem;  /* 40px between the rule and the heading */
+  }
+
+  /*
+   * Display headings. Inter Tight at display sizes needs less negative
+   * tracking than Tailwind's `tracking-tight` (-0.025em), which squeezes it.
+   */
+  .headline {
+    @apply font-display font-extrabold;
+    letter-spacing: -0.006em;
   }
 
   /* Chart plates and content cards: hairline border, no elevation. */
@@ -80,11 +94,10 @@
     }
   }
 
-  /* Masthead double rule. Light warm greys, not ink: the masthead shouldn't
-     be the highest-contrast edge on the page. */
+  /* Masthead rule: a single warm hairline. The masthead shouldn't be the
+     highest-contrast edge on the page. */
   .masthead-rule {
-    border-bottom: 2px solid var(--rule-soft);
-    box-shadow: 0 4px 0 -3px var(--rule-soft);
+    border-bottom: 1px solid var(--rule-soft);
   }
 
   /* Primary action. Disabled goes to an outlined ghost rather than a gray

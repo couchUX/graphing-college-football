@@ -398,7 +398,7 @@ const MultiYearSpTrends: React.FC = () => {
       {!combinedLoading && !combinedError && selectedTeam && hasData && (
         <>
           <div className="mb-6">
-            <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink">
+            <h2 className="headline text-[26px] text-ink">
               {compareMode && selectedTeamB
                 ? `${selectedTeam.school} vs. ${selectedTeamB.school} — SP+ ${aspectLabel}`
                 : `${selectedTeam.school} - SP+ rating history`}
@@ -500,7 +500,7 @@ const MultiYearSpTrends: React.FC = () => {
         <div className="text-center py-8">
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
             <TrendingUp className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
-            <h3 className="font-display text-xl font-bold tracking-tight text-ink mb-2">
+            <h3 className="headline text-[22px] font-bold text-ink mb-2">
               Select a team to see its multi-year SP+ trend
             </h3>
             <p className="text-neutral-600 max-w-md mx-auto">

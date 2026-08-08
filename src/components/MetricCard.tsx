@@ -21,7 +21,7 @@ const MetricCard: React.FC<Metric> = ({ label, value, icon, iconBg, iconColor })
   <div className="plate flex items-center justify-between gap-2 p-3.5 sm:gap-3 sm:p-5">
     <div className="min-w-0">
       <p className="text-[13px] font-medium leading-snug text-byline sm:text-sm">{label}</p>
-      <p className="tnum mt-1 font-display text-[22px] font-extrabold tracking-tight text-ink sm:text-2xl">
+      <p className="tnum mt-1 headline text-[23px] text-ink sm:text-[25px]">
         {value}
       </p>
     </div>
@@ -49,7 +49,7 @@ export const MetricRow: React.FC<MetricRowProps> = ({ metrics, title, titleColor
   <div className={className}>
     {title && (
       <p
-        className="mb-3 font-display text-[15px] font-bold tracking-tight"
+        className="mb-3 headline text-[16px] font-bold"
         style={{ color: titleColor || 'var(--accent)' }}
       >
         {title}

@@ -162,7 +162,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 Overall Team Performance
               </h3>
               <p className="text-sm text-neutral-600">
@@ -194,7 +194,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 SR and XR by Team (each game)
               </h3>
               <p className="text-sm text-neutral-600">
@@ -231,7 +231,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 SR and XR by Play Type (each game)
               </h3>
               <p className="text-sm text-neutral-600">
@@ -264,7 +264,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 Rush Rate (each game)
               </h3>
               <p className="text-sm text-neutral-600">
@@ -304,7 +304,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 SR and XR by Quarter
               </h3>
               <p className="text-sm text-neutral-600">
@@ -336,7 +336,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 SR and XR by Play Type
               </h3>
               <p className="text-sm text-neutral-600">
@@ -368,7 +368,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 SR and XR by Down
               </h3>
               <p className="text-sm text-neutral-600">
@@ -400,7 +400,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 SR and XR by Red Zone
               </h3>
               <p className="text-sm text-neutral-600">
@@ -432,7 +432,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
-              <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="headline text-[20px] font-bold text-ink">
                 SR and XR by Distance to Go
               </h3>
               <p className="text-sm text-neutral-600">

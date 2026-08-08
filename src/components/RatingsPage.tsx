@@ -593,7 +593,7 @@ const RatingsPage: React.FC = () => {
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between gap-3 border-b-2 border-[color:var(--rule)] px-4 py-3">
-          <h3 className="font-display text-[15px] font-bold tracking-tight text-ink">{title}</h3>
+          <h3 className="headline text-[16px] font-bold text-ink">{title}</h3>
           <button
             type="button"
             onClick={handleCopyEmbed}
@@ -992,7 +992,7 @@ const RatingsPage: React.FC = () => {
 
           {/* Page Header */}
           <div className="mb-8">
-            <h3 className="font-display text-2xl font-extrabold tracking-tight text-ink">
+            <h3 className="headline text-[26px] text-ink">
               SP+ team ratings
             </h3>
             <p className="text-neutral-600 mb-6">
@@ -1000,22 +1000,21 @@ const RatingsPage: React.FC = () => {
             </p>
 
             {/* Definitions and notes Section - matching Games page */}
-            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6 mb-4">
+            <div className="plate mb-4">
               <button
                 onClick={() => setShowDataDefinitions(!showDataDefinitions)}
-                className="flex items-center justify-between w-full text-left"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left sm:px-5"
+                aria-expanded={showDataDefinitions}
               >
-                <div className="flex items-center space-x-3">
-                  <BookOpen className="h-5 w-5 text-neutral-600" />
-                  <h2 className="font-display text-xl font-bold tracking-tight text-ink">
-                    <span className="hidden sm:inline">Data </span>Definitions and Notes
-                  </h2>
-                </div>
-                <ChevronDown className={`h-6 w-6 text-neutral-500 transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
+                <span className="flex items-center gap-2.5">
+                  <BookOpen className="h-[18px] w-[18px] text-byline" />
+                  <span className="headline text-[19px] font-bold text-ink">Definitions and notes</span>
+                </span>
+                <ChevronDown className={`h-5 w-5 flex-none text-byline transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
               </button>
 
               {showDataDefinitions && (
-                <div className="mt-6 space-y-4">
+                <div className="space-y-4 border-t border-hairline px-4 py-5 sm:px-5">
                   <div>
                     <h4 className="text-sm font-semibold text-neutral-900 mb-2">What is SP+?</h4>
                     <p className="text-sm text-neutral-700 leading-relaxed">

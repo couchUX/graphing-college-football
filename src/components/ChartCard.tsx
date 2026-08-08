@@ -39,11 +39,11 @@ const ChartCard: React.FC<ChartCardProps> = ({
   children,
 }) => (
   <div className={`plate flex flex-col ${className}`}>
-    <div className="flex items-start justify-between gap-3 border-b border-hairline px-4 py-3 sm:px-5">
+    {/* min-height keeps the header the same depth whether or not it carries a
+        control, so the title and the embed button stay optically centered. */}
+    <div className="flex min-h-[3.5rem] items-center justify-between gap-3 border-b border-hairline px-4 py-2.5 sm:px-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <h3 className="font-display text-[17px] font-bold leading-tight tracking-tight text-ink">
-          {title}
-        </h3>
+        <h3 className="headline text-[19px] font-bold leading-snug text-ink">{title}</h3>
         {headerControl}
       </div>
 

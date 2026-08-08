@@ -29,7 +29,7 @@ interface MainNavProps {
  */
 const MainNav = ({ current }: MainNavProps) => (
   <nav aria-label="Sections">
-    <ul className="-mb-0.5 flex items-end gap-5 sm:gap-6">
+    <ul className="-mb-px flex items-end gap-5 sm:gap-6">
       {NAV_ITEMS.map((item) => {
         const isActive = item.id === current;
         return (

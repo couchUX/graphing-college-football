@@ -281,7 +281,7 @@ const TeamTrendsPage: React.FC = () => {
           {chartData && currentParams && (
             <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div>
-                <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink">
+                <h2 className="headline text-[26px] text-ink">
                   {currentParams.team} - {currentParams.year} Season
                 </h2>
                 <p className="text-neutral-600">
@@ -374,15 +374,15 @@ const TeamTrendsPage: React.FC = () => {
 
           {/* Player Charts Section */}
           {chartData && chartData.topRushers && chartData.topPassers && chartData.topReceivers && (
-            <div className="mt-8">
-              <h2 className="rule-section mb-6 pt-9 font-display text-xl font-extrabold tracking-tight text-ink">Player charts</h2>
+            <div>
+              <h2 className="rule-section headline mb-6 text-[22px] text-ink">Player charts</h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left column - Rushers and Passers stacked */}
                 <div className="space-y-6">
                   {/* Top Rushers */}
                   <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                      <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+                      <h3 className="headline text-[20px] font-bold text-ink">
                         Top rushers
                       </h3>
                       <button
@@ -411,7 +411,7 @@ const TeamTrendsPage: React.FC = () => {
                   {/* Top Passers */}
                   <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                      <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+                      <h3 className="headline text-[20px] font-bold text-ink">
                         Top passers
                       </h3>
                       <button
@@ -441,7 +441,7 @@ const TeamTrendsPage: React.FC = () => {
                 {/* Right column - Receivers spanning full height */}
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                    <h3 className="font-display text-lg font-bold tracking-tight text-ink">
+                    <h3 className="headline text-[20px] font-bold text-ink">
                       Top receivers
                     </h3>
                     <button
@@ -486,7 +486,7 @@ const TeamTrendsPage: React.FC = () => {
             <div className="text-center py-8">
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
                 <TrendingUp className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
-                <h3 className="font-display text-xl font-bold tracking-tight text-ink mb-2">
+                <h3 className="headline text-[22px] font-bold text-ink mb-2">
                   Select a team and year to view season trends
                 </h3>
                 <p className="text-neutral-600 max-w-md mx-auto">

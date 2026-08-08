@@ -554,7 +554,7 @@ const TeamCompareView: React.FC = () => {
       {!loading && result && chartData && (
         <>
           <div className="mb-6">
-            <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink">
+            <h2 className="headline text-[26px] text-ink">
               {result.a.team} vs. {result.b.team}
             </h2>
             <p className="text-neutral-600">{result.year} season</p>
@@ -589,12 +589,12 @@ const TeamCompareView: React.FC = () => {
 
           {/* Player charts (both teams; per-team filter + top-N per chart) */}
           <div className="mt-8">
-            <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink mb-6">Player charts</h2>
+            <h2 className="headline text-[26px] text-ink mb-6">Player charts</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                    <h3 className="font-display text-lg font-bold tracking-tight text-ink">Top rushers</h3>
+                    <h3 className="headline text-[20px] font-bold text-ink">Top rushers</h3>
                     <PlayerTeamFilter
                       value={rushersFilter}
                       onChange={setRushersFilter}
@@ -622,7 +622,7 @@ const TeamCompareView: React.FC = () => {
 
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                    <h3 className="font-display text-lg font-bold tracking-tight text-ink">Top passers</h3>
+                    <h3 className="headline text-[20px] font-bold text-ink">Top passers</h3>
                     <PlayerTeamFilter
                       value={passersFilter}
                       onChange={setPassersFilter}
@@ -651,7 +651,7 @@ const TeamCompareView: React.FC = () => {
 
               <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                  <h3 className="font-display text-lg font-bold tracking-tight text-ink">Top receivers</h3>
+                  <h3 className="headline text-[20px] font-bold text-ink">Top receivers</h3>
                   <PlayerTeamFilter
                     value={receiversFilter}
                     onChange={setReceiversFilter}
@@ -685,7 +685,7 @@ const TeamCompareView: React.FC = () => {
         <div className="text-center py-8">
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
             <GitCompareArrows className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
-            <h3 className="font-display text-xl font-bold tracking-tight text-ink mb-2">Compare two teams' seasons</h3>
+            <h3 className="headline text-[22px] font-bold text-ink mb-2">Compare two teams' seasons</h3>
             <p className="text-neutral-600 max-w-md mx-auto">
               Pick two teams, choose which games to include for each, then click Compare to see the
               same season-trends charts — box score, success rate, explosiveness, play-type splits,

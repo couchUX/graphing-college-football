@@ -91,7 +91,7 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
           <div className="flex items-start justify-between gap-3 sm:pb-4">
             <div>
               <a href="/games" className="block">
-                <h1 className="font-display text-[22px] font-extrabold leading-none tracking-tight text-ink sm:text-2xl">
+                <h1 className="headline text-[23px] leading-none text-ink sm:text-[26px]">
                   Graphing College Football
                 </h1>
               </a>
@@ -131,7 +131,7 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
       <footer className="mt-14 border-t border-hairline">
         <div className="mx-auto max-w-7xl px-4 pb-14 pt-9 sm:px-6 lg:px-8">
           <div className="max-w-3xl space-y-4">
-            <h2 className="font-display text-lg font-bold text-ink">About this project</h2>
+            <h2 className="headline text-[20px] font-bold text-ink">About this project</h2>
             <p className="text-sm leading-relaxed text-neutral-700">{aboutCopy}</p>
             <p className="text-sm text-neutral-700">
               If you find this useful, feel free to buy me a coffee to support continued development.
@@ -165,7 +165,7 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
           >
             <div className="p-6">
               <div className="mb-4 flex items-start justify-between gap-4">
-                <h2 className="font-display text-xl font-bold text-ink">About this project</h2>
+                <h2 className="headline text-[22px] font-bold text-ink">About this project</h2>
                 <button
                   onClick={() => setShowInfoModal(false)}
                   className="-mr-1 -mt-1 flex h-8 w-8 items-center justify-center rounded-lg text-byline transition-colors hover:bg-neutral-100 hover:text-ink"
@@ -212,7 +212,7 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
             <form onSubmit={handleSubmit}>
               <div className="p-6">
                 <div className="mb-5 flex items-start justify-between gap-4">
-                  <h2 className="font-display text-xl font-bold text-ink">Get in touch</h2>
+                  <h2 className="headline text-[22px] font-bold text-ink">Get in touch</h2>
                   <button
                     type="button"
                     onClick={() => setShowContactModal(false)}

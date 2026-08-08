@@ -218,6 +218,22 @@ const Dashboard: React.FC = () => {
 
   const hasGame = plays.length > 0 && currentParams;
 
+  /**
+   * Game date for the subtitle. The plays endpoint has no kickoff field, so
+   * this comes from the first play's wallclock — accurate to the day, which is
+   * all the subtitle shows. Falls back to the season year if it's missing.
+   */
+  const gameDateLabel = (() => {
+    const wallclock = rawApiData[0]?.wallclock || plays[0]?.wallclock;
+    if (wallclock) {
+      const date = new Date(wallclock);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+    }
+    return currentParams ? String(currentParams.year) : '';
+  })();
+
   return (
     <>
       <MetaTags
@@ -247,13 +263,13 @@ const Dashboard: React.FC = () => {
             {/* Matchup headline */}
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="font-display text-[28px] font-extrabold leading-tight tracking-tight text-ink sm:text-[32px]">
+                <h2 className="headline text-[30px] leading-tight text-ink sm:text-[34px]">
                   {currentParams.team}
                   <span className="text-neutral-400"> vs. </span>
                   {opponentTeam}
                 </h2>
                 <p className="mt-1 text-sm text-byline">
-                  {currentParams.year} · Week {currentParams.week} ·{' '}
+                  {gameDateLabel} · Week {currentParams.week} ·{' '}
                   {currentParams.seasonType === 'regular' ? 'Regular season' : 'Postseason'}
                 </p>
               </div>
@@ -329,14 +345,14 @@ const Dashboard: React.FC = () => {
 
         {boxScoreLoading && currentParams && (
           <div className="plate mt-8 p-5">
-            <h2 className="font-display text-lg font-bold text-ink">Box score</h2>
+            <h2 className="headline text-[20px] font-bold text-ink">Box score</h2>
             <p className="mt-3 text-sm text-byline">Loading box score…</p>
           </div>
         )}
 
         {boxScoreError && currentParams && plays.length > 0 && (
           <div className="plate mt-8 p-5">
-            <h2 className="font-display text-lg font-bold text-ink">Box score</h2>
+            <h2 className="headline text-[20px] font-bold text-ink">Box score</h2>
             <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
               {boxScoreError}
             </p>
@@ -354,7 +370,7 @@ const Dashboard: React.FC = () => {
               >
                 <span className="flex items-center gap-2.5">
                   <BookOpen className="h-[18px] w-[18px] text-byline" />
-                  <span className="font-display text-[17px] font-bold text-ink">Definitions and notes</span>
+                  <span className="headline text-[17px] font-bold text-ink">Definitions and notes</span>
                 </span>
                 <ChevronDown
                   className={`h-5 w-5 flex-none text-byline transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`}
@@ -364,7 +380,7 @@ const Dashboard: React.FC = () => {
               {showDataDefinitions && (
                 <div className="grid grid-cols-1 gap-x-10 gap-y-8 border-t border-hairline px-4 py-6 lg:grid-cols-2 sm:px-5">
                   <div>
-                    <h3 className="font-display text-base font-bold text-ink">Data definitions</h3>
+                    <h3 className="headline text-[18px] font-bold text-ink">Data definitions</h3>
                     <dl className="mt-4 space-y-4 text-[15px] leading-relaxed">
                       <div>
                         <dt className="font-semibold text-ink">Analytics foundation</dt>
@@ -436,7 +452,7 @@ const Dashboard: React.FC = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-display text-base font-bold text-ink">Notes</h3>
+                    <h3 className="headline text-[18px] font-bold text-ink">Notes</h3>
                     <dl className="mt-4 space-y-4 text-[15px] leading-relaxed">
                       <div>
                         <dt className="font-semibold text-ink">Data accuracy</dt>
@@ -495,7 +511,7 @@ const Dashboard: React.FC = () => {
               >
                 <span className="flex items-center gap-2.5">
                   <Database className="h-[18px] w-[18px] text-byline" />
-                  <span className="font-display text-[17px] font-bold text-ink">All plays data</span>
+                  <span className="headline text-[17px] font-bold text-ink">All plays data</span>
                 </span>
                 <ChevronDown
                   className={`h-5 w-5 flex-none text-byline transition-transform ${showAllPlays ? 'rotate-180' : ''}`}
@@ -647,7 +663,7 @@ const Dashboard: React.FC = () => {
             {currentParams ? (
               <>
                 <AlertCircle className="mx-auto mb-4 h-9 w-9 text-neutral-400" />
-                <h3 className="font-display text-xl font-bold text-ink">No data available for this game</h3>
+                <h3 className="headline text-[22px] font-bold text-ink">No data available for this game</h3>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-byline">
                   We couldn&apos;t find play-by-play data for {currentParams.team} in{' '}
                   {currentParams.seasonType === 'regular'
@@ -662,7 +678,7 @@ const Dashboard: React.FC = () => {
             ) : (
               <>
                 <BarChart3 className="mx-auto mb-4 h-9 w-9 text-neutral-400" />
-                <h3 className="font-display text-xl font-bold text-ink">Find a game to load the charts</h3>
+                <h3 className="headline text-[22px] font-bold text-ink">Find a game to load the charts</h3>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-byline">
                   Pick a year, team and game above, then load it to start exploring the play-by-play analytics.
                 </p>

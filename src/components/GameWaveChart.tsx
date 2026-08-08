@@ -251,7 +251,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
   return (
     <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
       <div className="px-6 py-4 border-b border-neutral-200">
-        <h3 className="font-display text-lg font-bold tracking-tight text-ink">Game Wave</h3>
+        <h3 className="headline text-[20px] font-bold text-ink">Game Wave</h3>
       </div>
 
       <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">

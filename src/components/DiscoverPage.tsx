@@ -79,7 +79,7 @@ const DiscoverPage: React.FC = () => {
           <div>
             {/* Page intro */}
             <div className="mb-5">
-              <h2 className="font-display text-[26px] font-extrabold tracking-tight text-ink">Discover</h2>
+              <h2 className="headline text-[28px] text-ink">Discover</h2>
               <p className="mt-1 max-w-3xl text-[15px] leading-relaxed text-byline">
                 Auto-surfaced storylines from the data. Tweak the filters to slice it your way; use the copy button on any card to grab embeddable chart HTML for an article.
               </p>
@@ -148,7 +148,7 @@ const DiscoverPage: React.FC = () => {
                 <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center text-neutral-400">
                   {tab === 'weekly' ? <Calendar className="h-6 w-6" /> : <Layers className="h-6 w-6" />}
                 </div>
-                <p className="font-display text-lg font-bold text-ink">
+                <p className="headline text-[20px] font-bold text-ink">
                   {tab === 'weekly' ? 'Weekly view — coming soon' : 'Multi-season view — coming soon'}
                 </p>
                 <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-byline">

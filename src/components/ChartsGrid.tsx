@@ -358,7 +358,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   }));
 
   const sectionHeading = (text: string) => (
-    <h2 className="rule-section mb-6 pt-9 font-display text-xl font-extrabold tracking-tight text-ink">
+    <h2 className="rule-section headline mb-6 text-[22px] text-ink">
       {text}
     </h2>
   );
@@ -367,11 +367,11 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     <>
       <Toast message={toastMessage} type="success" isVisible={showToast} onClose={hideToast} />
 
-      <div className="space-y-4">
+      <div>
         <section>
           {sectionHeading('Game charts')}
 
-          <div className="mb-5">
+          <div className="mb-6">
             <GameWaveChart
               plays={plays}
               team={team}
@@ -392,7 +392,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <AlertCircle className="mb-3 h-8 w-8 text-neutral-400" />
-                <p className="font-display text-base font-bold text-ink">
+                <p className="headline text-[18px] font-bold text-ink">
                   Win probability unavailable for this game
                 </p>
                 <p className="mt-1 text-sm text-byline">This data may not be available for all games</p>
@@ -403,7 +403,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
 
         <section>
           {sectionHeading('Team charts')}
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {teamCharts.map(chart => (
               <ChartCard
                 key={chart.id}
@@ -419,9 +419,9 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
 
         <section>
           {sectionHeading('Player charts')}
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Rushers and passers stack beside the full-height receivers chart */}
-            <div className="space-y-5">
+            <div className="space-y-6">
               {playerCharts.slice(0, 2).map(chart => (
                 <ChartCard
                   key={chart.id}
