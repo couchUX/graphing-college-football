@@ -382,7 +382,7 @@ const TeamTrendsPage: React.FC = () => {
                   {/* Top Rushers */}
                   <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                      <h3 className="headline text-[20px] font-bold text-ink">
+                      <h3 className="headline relative top-px text-[17px] font-bold text-ink">
                         Top rushers
                       </h3>
                       <button
@@ -411,7 +411,7 @@ const TeamTrendsPage: React.FC = () => {
                   {/* Top Passers */}
                   <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                      <h3 className="headline text-[20px] font-bold text-ink">
+                      <h3 className="headline relative top-px text-[17px] font-bold text-ink">
                         Top passers
                       </h3>
                       <button
@@ -441,7 +441,7 @@ const TeamTrendsPage: React.FC = () => {
                 {/* Right column - Receivers spanning full height */}
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                    <h3 className="headline text-[20px] font-bold text-ink">
+                    <h3 className="headline relative top-px text-[17px] font-bold text-ink">
                       Top receivers
                     </h3>
                     <button

@@ -1008,7 +1008,7 @@ const RatingsPage: React.FC = () => {
               >
                 <span className="flex items-center gap-2.5">
                   <BookOpen className="h-[18px] w-[18px] text-byline" />
-                  <span className="headline text-[19px] font-bold text-ink">Definitions and notes</span>
+                  <span className="headline text-[17px] font-bold text-ink">Definitions and notes</span>
                 </span>
                 <ChevronDown className={`h-5 w-5 flex-none text-byline transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
               </button>

@@ -594,7 +594,7 @@ const TeamCompareView: React.FC = () => {
               <div className="space-y-6">
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                    <h3 className="headline text-[20px] font-bold text-ink">Top rushers</h3>
+                    <h3 className="headline relative top-px text-[17px] font-bold text-ink">Top rushers</h3>
                     <PlayerTeamFilter
                       value={rushersFilter}
                       onChange={setRushersFilter}
@@ -622,7 +622,7 @@ const TeamCompareView: React.FC = () => {
 
                 <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                    <h3 className="headline text-[20px] font-bold text-ink">Top passers</h3>
+                    <h3 className="headline relative top-px text-[17px] font-bold text-ink">Top passers</h3>
                     <PlayerTeamFilter
                       value={passersFilter}
                       onChange={setPassersFilter}
@@ -651,7 +651,7 @@ const TeamCompareView: React.FC = () => {
 
               <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
-                  <h3 className="headline text-[20px] font-bold text-ink">Top receivers</h3>
+                  <h3 className="headline relative top-px text-[17px] font-bold text-ink">Top receivers</h3>
                   <PlayerTeamFilter
                     value={receiversFilter}
                     onChange={setReceiversFilter}

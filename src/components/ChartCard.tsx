@@ -43,7 +43,10 @@ const ChartCard: React.FC<ChartCardProps> = ({
         control, so the title and the embed button stay optically centered. */}
     <div className="flex min-h-[3.5rem] items-center justify-between gap-3 border-b border-hairline px-4 py-2.5 sm:px-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <h3 className="headline text-[19px] font-bold leading-snug text-ink">{title}</h3>
+        {/* top-px: most of these titles have no descender, so the glyphs sit
+            in the upper part of the line box and read high even when the box
+            itself is centered. A single pixel settles them optically. */}
+        <h3 className="headline relative top-px text-[17px] font-bold leading-snug text-ink">{title}</h3>
         {headerControl}
       </div>
 
