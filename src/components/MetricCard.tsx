@@ -4,35 +4,38 @@ export interface Metric {
   /** Sentence-case label, e.g. "Success rate". */
   label: string;
   value: string | number;
-  /** Icon shown in the tinted square, e.g. <BarChart3 />. */
+  /** Icon shown in the tinted side panel, e.g. <BarChart3 />. */
   icon?: React.ReactNode;
-  /** Tint behind the icon — the team's light color. */
+  /** Panel tint — the team's light color. */
   iconBg?: string;
   /** Icon color — the team's dark color. */
   iconColor?: string;
 }
 
 /**
- * A headline stat: label and figure on the left, a team-tinted icon on the
- * right. Shared by the Games and Team Trends summaries so the two pages can't
- * drift apart again.
+ * A headline stat: a team-tinted panel down the left edge, then the label and
+ * figure. The panel runs the full height of the card and sits flush to its
+ * edges, giving the card something to stand on. Being flush also lets it go
+ * narrow on phones without leaving awkward gaps around it, which buys the
+ * label and figure more room in the two-up layout.
+ *
+ * Shared by the Games and Team Trends summaries so the two can't drift apart.
  */
 const MetricCard: React.FC<Metric> = ({ label, value, icon, iconBg, iconColor }) => (
-  <div className="plate flex items-center justify-between gap-2 p-3.5 sm:gap-3 sm:p-5">
-    <div className="min-w-0">
-      <p className="text-[13px] font-medium leading-snug text-byline sm:text-sm">{label}</p>
-      <p className="tnum mt-1 headline text-[23px] text-ink sm:text-[25px]">
-        {value}
-      </p>
-    </div>
+  <div className="plate flex items-stretch overflow-hidden">
     {icon && (
       <div
-        className="flex h-9 w-9 flex-none items-center justify-center rounded-lg sm:h-11 sm:w-11"
+        className="flex w-8 flex-none items-center justify-center sm:w-12"
         style={{ backgroundColor: iconBg, color: iconColor }}
+        aria-hidden="true"
       >
         {icon}
       </div>
     )}
+    <div className="min-w-0 px-3 py-3.5 sm:px-4 sm:py-4">
+      <p className="text-[13px] font-medium leading-snug text-byline sm:text-sm">{label}</p>
+      <p className="tnum headline mt-1 text-[23px] text-ink sm:text-[25px]">{value}</p>
+    </div>
   </div>
 );
 
