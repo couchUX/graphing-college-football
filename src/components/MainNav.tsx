@@ -22,10 +22,14 @@ interface MainNavProps {
  * Section navigation as underlined text tabs — the masthead treatment, so it
  * reads as a publication's sections rather than an app's button group. Short
  * labels mean the same row works from 390px up; no mobile dropdown needed.
+ *
+ * The tabs carry the header's bottom padding themselves and sit flush against
+ * the masthead rule, so the active underline lands *on* that rule the way the
+ * in-page SubTabs do — a tab that floats above its boundary reads as a mistake.
  */
 const MainNav = ({ current }: MainNavProps) => (
   <nav aria-label="Sections">
-    <ul className="flex items-center gap-5 sm:gap-6">
+    <ul className="-mb-0.5 flex items-end gap-5 sm:gap-6">
       {NAV_ITEMS.map((item) => {
         const isActive = item.id === current;
         return (
@@ -34,9 +38,9 @@ const MainNav = ({ current }: MainNavProps) => (
               href={item.href}
               title={item.title}
               aria-current={isActive ? 'page' : undefined}
-              className={`relative block py-1 text-[15px] font-medium transition-colors ${
+              className={`relative block pb-3 pt-3 text-[15px] font-medium transition-colors sm:pb-4 ${
                 isActive
-                  ? 'text-ink after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:bg-accent after:content-[""]'
+                  ? 'text-ink after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-accent after:content-[""]'
                   : 'text-byline hover:text-ink'
               }`}
             >

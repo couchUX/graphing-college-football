@@ -31,9 +31,9 @@ const Toast: React.FC<ToastProps> = ({
   }, [isVisible, duration, onClose]);
 
   const typeStyles = {
-    success: 'bg-gray-800 text-white',
+    success: 'bg-ink text-white',
     error: 'bg-red-600 text-white',
-    info: 'bg-gray-800 text-white'
+    info: 'bg-ink text-white'
   };
 
   const icons = {

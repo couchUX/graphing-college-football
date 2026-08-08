@@ -592,7 +592,7 @@ const RatingsPage: React.FC = () => {
 
     return (
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between gap-3 border-b-2 border-ink px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b-2 border-[color:var(--rule)] px-4 py-3">
           <h3 className="font-display text-[15px] font-bold tracking-tight text-ink">{title}</h3>
           <button
             type="button"
@@ -731,7 +731,7 @@ const RatingsPage: React.FC = () => {
               <col style={{ minWidth: '140px' }} /> {/* Def Rating */}
               <col style={{ minWidth: '140px' }} /> {/* Special Teams */}
             </colgroup>
-            <thead className="border-b-2 border-ink bg-neutral-50 text-ink">
+            <thead className="border-b-2 border-[color:var(--rule)] bg-neutral-50 text-ink">
               <tr>
                 <th
                   className="px-3 py-3 text-left text-sm font-semibold"
@@ -942,7 +942,7 @@ const RatingsPage: React.FC = () => {
       <AppShell current="ratings">
         <div>
           {/* Filters - matching Games page style */}
-          <div className="pb-6 mb-6 border-b border-neutral-200 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+          <div className="config-panel mb-7 sm:mb-8">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
@@ -953,8 +953,7 @@ const RatingsPage: React.FC = () => {
                     id="year-select"
                     value={year}
                     onChange={(e) => setYear(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg shadow-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 appearance-none bg-[length:1.5em_1.5em] bg-[position:calc(100%-0.75rem)_center] bg-no-repeat"
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+                    className="select-field"
                   >
                     {yearOptions.map((y) => (
                       <option key={y} value={y}>
@@ -972,8 +971,7 @@ const RatingsPage: React.FC = () => {
                     id="conference-select"
                     value={selectedConference}
                     onChange={(e) => setSelectedConference(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg shadow-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 appearance-none bg-[length:1.5em_1.5em] bg-[position:calc(100%-0.75rem)_center] bg-no-repeat"
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+                    className="select-field"
                   >
                     {conferences.map((conf) => (
                       <option key={conf} value={conf}>

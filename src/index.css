@@ -13,6 +13,11 @@
   --accent: #8E2434;
   --accent-soft: rgba(142, 36, 52, 0.10);
   --accent-ink: #FFFFFF;
+
+  /* Structural rules. Warm brown rather than black — a hard ink rule reads
+     heavier than anything else on a paper ground and fights the charts. */
+  --rule: #C4B4A0;
+  --rule-soft: #E0D8CD;
 }
 
 @layer base {
@@ -30,6 +35,13 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Placeholders inherit the browser's cool gray otherwise, which is the one
+     spot the warm palette leaks. */
+  ::placeholder {
+    color: #A8A29B;
+    opacity: 1;
+  }
+
   /* One focus style across the app, in the editorial accent rather than
      the browser/Tailwind default blue. */
   :focus-visible {
@@ -40,15 +52,20 @@
 }
 
 @layer components {
-  /* The page's structural devices: a heavy rule for section tops and a
-     hairline for everything else. */
-  .rule-heavy {
-    @apply border-t-2 border-ink;
+  /* Section divider. Used with generous space above and below — the rule is a
+     breath between sections, not a box around them. */
+  .rule-section {
+    border-top: 2px solid var(--rule);
   }
 
   /* Chart plates and content cards: hairline border, no elevation. */
   .plate {
     @apply bg-surface border border-hairline rounded-lg;
+  }
+
+  /* The settings strip at the top of each page (team/game/year pickers). */
+  .config-panel {
+    @apply bg-surface border border-hairline rounded-lg p-4 sm:p-5;
   }
 
   /* Responsive chart height without mounting the chart twice. Consumers set
@@ -63,10 +80,11 @@
     }
   }
 
-  /* Masthead double rule (thick over thin), the publication signature. */
+  /* Masthead double rule. Light warm greys, not ink: the masthead shouldn't
+     be the highest-contrast edge on the page. */
   .masthead-rule {
-    border-bottom: 2px solid #1C1917;
-    box-shadow: 0 3px 0 -1px #E5E1DB;
+    border-bottom: 2px solid var(--rule-soft);
+    box-shadow: 0 4px 0 -3px var(--rule-soft);
   }
 
   /* Primary action. Disabled goes to an outlined ghost rather than a gray
@@ -82,6 +100,25 @@
 
   .btn-ink:disabled {
     @apply cursor-not-allowed border-neutral-300 bg-transparent text-neutral-400;
+  }
+
+  /*
+   * Native <select> styled to match the Headless UI listboxes elsewhere:
+   * the browser's own arrow sits flush against the right edge and ignores
+   * padding, so it's replaced with an inset chevron.
+   */
+  .select-field {
+    @apply w-full appearance-none rounded-lg border border-neutral-300 bg-surface
+           py-2.5 pl-3 pr-10 text-ink transition-colors hover:border-neutral-400
+           focus:border-accent focus:outline-none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2378716C' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.15em 1.15em;
+  }
+
+  .select-field:disabled {
+    @apply cursor-not-allowed bg-neutral-100 text-neutral-400;
   }
 }
 

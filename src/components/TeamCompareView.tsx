@@ -71,7 +71,7 @@ interface CompareResult {
 // scope so its identity is stable across renders (otherwise the dropdown would
 // remount and close mid-interaction).
 const FILTER_SELECT_CLASS =
-  'text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat';
+  'select-field w-auto py-1 pl-2.5 pr-8 text-sm text-neutral-700';
 const FILTER_SELECT_STYLE: React.CSSProperties = {
   backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
   paddingRight: '2rem',
@@ -447,7 +447,7 @@ const TeamCompareView: React.FC = () => {
   return (
     <div>
       {/* Inputs: a row per team, then year + compare */}
-      <div className="pb-6 mb-6 border-b border-neutral-200 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+      <div className="config-panel mb-7 sm:mb-8">
         <div className="flex flex-col gap-4">
           {/* Team A */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -499,7 +499,7 @@ const TeamCompareView: React.FC = () => {
               <select
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
-                className="w-full sm:w-auto bg-white border border-neutral-300 rounded-lg px-4 py-3 shadow-sm hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none transition-colors"
+                className="select-field w-full sm:w-auto"
               >
                 {YEARS.map((y) => (
                   <option key={y} value={y}>
@@ -684,7 +684,7 @@ const TeamCompareView: React.FC = () => {
       {!loading && !result && !error && (
         <div className="text-center py-8">
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
-            <GitCompareArrows className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+            <GitCompareArrows className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
             <h3 className="font-display text-xl font-bold tracking-tight text-ink mb-2">Compare two teams' seasons</h3>
             <p className="text-neutral-600 max-w-md mx-auto">
               Pick two teams, choose which games to include for each, then click Compare to see the

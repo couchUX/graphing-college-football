@@ -4,52 +4,60 @@ export interface Metric {
   /** Sentence-case label, e.g. "Success rate". */
   label: string;
   value: string | number;
-  /** Rendered smaller and in byline gray, e.g. "%". */
-  unit?: string;
-  /** Team color for the column's left rule; falls back to the page accent. */
-  accent?: string;
+  /** Icon shown in the tinted square, e.g. <BarChart3 />. */
+  icon?: React.ReactNode;
+  /** Tint behind the icon — the team's light color. */
+  iconBg?: string;
+  /** Icon color — the team's dark color. */
+  iconColor?: string;
 }
 
 /**
- * A single stat, set as a ruled column rather than a boxed tile — the most
- * "print" moment on the page. Digits are tabular so the row lines up.
+ * A headline stat: label and figure on the left, a team-tinted icon on the
+ * right. Shared by the Games and Team Trends summaries so the two pages can't
+ * drift apart again.
  */
-const MetricCard: React.FC<Metric> = ({ label, value, unit, accent }) => (
-  <div
-    className="border-l-2 pl-3"
-    style={{ borderColor: accent || 'var(--accent)' }}
-  >
-    <p className="text-[13px] font-medium leading-tight text-byline">{label}</p>
-    <p className="tnum mt-1 font-display text-2xl font-bold leading-none tracking-tight text-ink sm:text-[26px]">
-      {value}
-      {unit && <span className="ml-0.5 text-base font-semibold text-byline">{unit}</span>}
-    </p>
+const MetricCard: React.FC<Metric> = ({ label, value, icon, iconBg, iconColor }) => (
+  <div className="plate flex items-center justify-between gap-2 p-3.5 sm:gap-3 sm:p-5">
+    <div className="min-w-0">
+      <p className="text-[13px] font-medium leading-snug text-byline sm:text-sm">{label}</p>
+      <p className="tnum mt-1 font-display text-[22px] font-extrabold tracking-tight text-ink sm:text-2xl">
+        {value}
+      </p>
+    </div>
+    {icon && (
+      <div
+        className="flex h-9 w-9 flex-none items-center justify-center rounded-lg sm:h-11 sm:w-11"
+        style={{ backgroundColor: iconBg, color: iconColor }}
+      >
+        {icon}
+      </div>
+    )}
   </div>
 );
 
 interface MetricRowProps {
   metrics: Metric[];
-  /** Whose numbers these are. Named once per row so the stat labels below can
-   *  stay short, instead of repeating "Alabama SR / Alabama XR / …". */
+  /** Whose numbers these are, named once per row so the stat labels below can
+   *  stay short instead of repeating "Alabama SR / Alabama XR / …". */
   title?: string;
   titleColor?: string;
   className?: string;
 }
 
-/**
- * The stat row under the matchup headline. Two columns on phones, four up.
- */
 export const MetricRow: React.FC<MetricRowProps> = ({ metrics, title, titleColor, className = '' }) => (
   <div className={className}>
     {title && (
       <p
-        className="mb-2 font-display text-[15px] font-bold tracking-tight"
+        className="mb-3 font-display text-[15px] font-bold tracking-tight"
         style={{ color: titleColor || 'var(--accent)' }}
       >
         {title}
       </p>
     )}
-    <div className="grid grid-cols-2 gap-x-5 gap-y-4 lg:grid-cols-4">
+    {/* Two-up on phones: the Games page shows two of these rows, and one card
+        per line pushes the charts a long way down. */}
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       {metrics.map((metric) => (
         <MetricCard key={metric.label} {...metric} />
       ))}

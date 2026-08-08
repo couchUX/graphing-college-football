@@ -20,6 +20,7 @@ import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCs
 import MultiYearSpTrends from './MultiYearSpTrends';
 import TeamCompareView from './TeamCompareView';
 import AppShell from './AppShell';
+import { MetricRow } from './MetricCard';
 import SubTabs from './SubTabs';
 import { readParams, writeParams } from '../utils/trendsUrl';
 
@@ -250,7 +251,7 @@ const TeamTrendsPage: React.FC = () => {
           {trendsView === 'season' && (
             <>
           {/* Data Input */}
-          <div className="pb-6 mb-6 border-b border-neutral-200 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+          <div className="config-panel mb-7 sm:mb-8">
             <SeasonSelector
               onFetchData={handleFetchSeasonData}
               isLoading={isLoading}
@@ -300,77 +301,41 @@ const TeamTrendsPage: React.FC = () => {
             </div>
           )}
 
-          {/* Season Metrics Summary Cards */}
+          {/* Season summary */}
           {chartData && teamColors && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white rounded-xl p-6 border shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">Total Plays</p>
-                    <p className="font-display text-2xl font-extrabold tracking-tight text-ink mt-1">
-                      {chartData.seasonMetrics.totalPlays}
-                    </p>
-                  </div>
-                  <div
-                    className="p-3 rounded-lg"
-                    style={{ backgroundColor: teamColors.light }}
-                  >
-                    <BarChart3 className="h-6 w-6" style={{ color: teamColors.colorDark }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">Success Rate</p>
-                    <p className="font-display text-2xl font-extrabold tracking-tight text-ink mt-1">
-                      {(chartData.seasonMetrics.successRate * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                  <div
-                    className="p-3 rounded-lg"
-                    style={{ backgroundColor: teamColors.light }}
-                  >
-                    <TrendingUp className="h-6 w-6" style={{ color: teamColors.colorDark }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">Explosiveness Rate</p>
-                    <p className="font-display text-2xl font-extrabold tracking-tight text-ink mt-1">
-                      {(chartData.seasonMetrics.explosivenessRate * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                  <div
-                    className="p-3 rounded-lg"
-                    style={{ backgroundColor: teamColors.light }}
-                  >
-                    <Flame className="h-6 w-6" style={{ color: teamColors.colorDark }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-600">Avg Yards/Play</p>
-                    <p className="font-display text-2xl font-extrabold tracking-tight text-ink mt-1">
-                      {chartData.seasonMetrics.avgYardsPerPlay.toFixed(1)}
-                    </p>
-                  </div>
-                  <div
-                    className="p-3 rounded-lg"
-                    style={{ backgroundColor: teamColors.light }}
-                  >
-                    <Ruler className="h-6 w-6" style={{ color: teamColors.colorDark }} />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <MetricRow
+              className="mb-8"
+              metrics={[
+                {
+                  label: 'Total plays',
+                  value: chartData.seasonMetrics.totalPlays,
+                  icon: <BarChart3 className="h-5 w-5" />,
+                  iconBg: teamColors.light,
+                  iconColor: teamColors.colorDark || teamColors.explosive,
+                },
+                {
+                  label: 'Success rate',
+                  value: `${(chartData.seasonMetrics.successRate * 100).toFixed(1)}%`,
+                  icon: <TrendingUp className="h-5 w-5" />,
+                  iconBg: teamColors.light,
+                  iconColor: teamColors.colorDark || teamColors.explosive,
+                },
+                {
+                  label: 'Explosiveness rate',
+                  value: `${(chartData.seasonMetrics.explosivenessRate * 100).toFixed(1)}%`,
+                  icon: <Flame className="h-5 w-5" />,
+                  iconBg: teamColors.light,
+                  iconColor: teamColors.colorDark || teamColors.explosive,
+                },
+                {
+                  label: 'Avg yards/play',
+                  value: chartData.seasonMetrics.avgYardsPerPlay.toFixed(1),
+                  icon: <Ruler className="h-5 w-5" />,
+                  iconBg: teamColors.light,
+                  iconColor: teamColors.colorDark || teamColors.explosive,
+                },
+              ]}
+            />
           )}
 
           {/* Advanced Box Score */}
@@ -410,7 +375,7 @@ const TeamTrendsPage: React.FC = () => {
           {/* Player Charts Section */}
           {chartData && chartData.topRushers && chartData.topPassers && chartData.topReceivers && (
             <div className="mt-8">
-              <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink mb-6">Player charts</h2>
+              <h2 className="rule-section mb-6 pt-9 font-display text-xl font-extrabold tracking-tight text-ink">Player charts</h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left column - Rushers and Passers stacked */}
                 <div className="space-y-6">
@@ -520,7 +485,7 @@ const TeamTrendsPage: React.FC = () => {
           {!chartData && !isLoading && !error && (
             <div className="text-center py-8">
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
-                <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                <TrendingUp className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
                 <h3 className="font-display text-xl font-bold tracking-tight text-ink mb-2">
                   Select a team and year to view season trends
                 </h3>

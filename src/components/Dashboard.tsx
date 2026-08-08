@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { BarChart3, Database, ChevronDown, BookOpen, AlertCircle, Link, Download } from 'lucide-react';
+import { BarChart3, Database, ChevronDown, BookOpen, AlertCircle, Link, Download, TrendingUp, Flame, Ruler } from 'lucide-react';
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
@@ -194,17 +194,24 @@ const Dashboard: React.FC = () => {
   const teamPlays = plays.filter(p => p.offense === currentParams?.team);
   const opponentPlays = plays.filter(p => p.offense === opponentTeam);
 
-  const buildMetrics = (sidePlays: PlayData[], accent: string | undefined): Metric[] => {
+  const buildMetrics = (
+    sidePlays: PlayData[],
+    colors: { light: string; colorDark?: string; explosive: string }
+  ): Metric[] => {
     const total = sidePlays.length;
-    const rate = (n: number) => (total > 0 ? ((n / total) * 100).toFixed(1) : '0.0');
+    const rate = (n: number) => (total > 0 ? `${((n / total) * 100).toFixed(1)}%` : '0.0%');
+    const iconBg = colors.light;
+    const iconColor = colors.colorDark || colors.explosive;
     return [
-      { label: 'Plays', value: total, accent },
-      { label: 'Success rate', value: rate(sidePlays.filter(p => p.success).length), unit: '%', accent },
-      { label: 'Explosiveness', value: rate(sidePlays.filter(p => p.explosiveness).length), unit: '%', accent },
+      { label: 'Total plays', value: total, icon: <BarChart3 className="h-5 w-5" />, iconBg, iconColor },
+      { label: 'Success rate', value: rate(sidePlays.filter(p => p.success).length), icon: <TrendingUp className="h-5 w-5" />, iconBg, iconColor },
+      { label: 'Explosiveness rate', value: rate(sidePlays.filter(p => p.explosiveness).length), icon: <Flame className="h-5 w-5" />, iconBg, iconColor },
       {
-        label: 'Yards per play',
+        label: 'Avg yards/play',
         value: total > 0 ? (sidePlays.reduce((sum, p) => sum + p.yardsGained, 0) / total).toFixed(1) : '0.0',
-        accent,
+        icon: <Ruler className="h-5 w-5" />,
+        iconBg,
+        iconColor,
       },
     ];
   };
@@ -271,20 +278,19 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Stat columns, both teams */}
+            {/* Headline stats, both teams */}
             {teamColors && (
-              <div className="mt-6 space-y-6 border-t-2 border-ink pt-5">
+              <div className="mt-7 space-y-6">
                 <MetricRow
                   title={currentParams.team}
-                  // Team names are set as text, so they take the darker variant;
-                  // the column rules keep the brighter one the charts use.
+                  // Team names are set as text, so they take the darker variant.
                   titleColor={teamColors.colorDark || teamColors.explosive}
-                  metrics={buildMetrics(teamPlays, teamColors.colorDark || teamColors.success)}
+                  metrics={buildMetrics(teamPlays, teamColors)}
                 />
                 <MetricRow
                   title={opponentTeam}
                   titleColor={opponentColors.colorDark || opponentColors.explosive}
-                  metrics={buildMetrics(opponentPlays, opponentColors.colorDark || opponentColors.success)}
+                  metrics={buildMetrics(opponentPlays, opponentColors)}
                 />
               </div>
             )}

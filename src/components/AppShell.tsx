@@ -84,9 +84,11 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
 
   return (
     <div className="flex min-h-screen flex-col bg-paper">
+      {/* No bottom padding on the header itself — the nav tabs supply it, so
+          the active tab's underline meets the masthead rule. */}
       <header className="masthead-rule bg-paper">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:px-6 sm:py-5 lg:px-8">
-          <div className="flex items-start justify-between gap-3">
+        <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 pt-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:px-6 sm:pt-5 lg:px-8">
+          <div className="flex items-start justify-between gap-3 sm:pb-4">
             <div>
               <a href="/games" className="block">
                 <h1 className="font-display text-[22px] font-extrabold leading-none tracking-tight text-ink sm:text-2xl">
@@ -108,11 +110,11 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
             </button>
           </div>
 
-          <div className="flex items-center gap-5 sm:gap-6">
+          <div className="flex items-end gap-5 sm:gap-6">
             <MainNav current={current} />
             <button
               onClick={() => setShowInfoModal(true)}
-              className="hidden h-8 w-8 items-center justify-center rounded-lg text-byline transition-colors hover:bg-neutral-100 hover:text-ink sm:flex"
+              className="mb-3 hidden h-8 w-8 items-center justify-center rounded-lg text-byline transition-colors hover:bg-neutral-100 hover:text-ink sm:mb-4 sm:flex"
               title="About this project"
               aria-label="About this project"
             >

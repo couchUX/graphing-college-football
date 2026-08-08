@@ -119,7 +119,7 @@ const TeamFilterDropdown: React.FC<{
     value={value}
     onChange={(e) => onChange(e.target.value)}
     aria-label={label}
-    className="rounded-lg border border-neutral-300 bg-surface px-2 py-1 text-[13px] text-neutral-700 transition-colors hover:border-neutral-400 focus:border-accent focus:outline-none"
+    className="select-field w-auto py-1 pl-2.5 pr-8 text-[13px] text-neutral-700"
   >
     <option value="both">Both teams</option>
     <option value={teamName}>{teamName}</option>
@@ -358,7 +358,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   }));
 
   const sectionHeading = (text: string) => (
-    <h2 className="mb-4 border-t-2 border-ink pt-3 font-display text-xl font-extrabold tracking-tight text-ink">
+    <h2 className="rule-section mb-6 pt-9 font-display text-xl font-extrabold tracking-tight text-ink">
       {text}
     </h2>
   );
@@ -367,7 +367,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     <>
       <Toast message={toastMessage} type="success" isVisible={showToast} onClose={hideToast} />
 
-      <div className="space-y-9">
+      <div className="space-y-4">
         <section>
           {sectionHeading('Game charts')}
 

@@ -100,8 +100,7 @@ const DiscoverPage: React.FC = () => {
                       id="discover-year"
                       value={year}
                       onChange={e => setYear(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg shadow-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 appearance-none bg-[length:1.5em_1.5em] bg-[position:calc(100%-0.75rem)_center] bg-no-repeat pr-10"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+                      className="select-field"
                     >
                       {yearOptions.map(y => (
                         <option key={y} value={y}>{y}</option>
@@ -116,8 +115,7 @@ const DiscoverPage: React.FC = () => {
                       id="discover-conference"
                       value={conference}
                       onChange={e => setConference(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-lg shadow-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 appearance-none bg-[length:1.5em_1.5em] bg-[position:calc(100%-0.75rem)_center] bg-no-repeat pr-10"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+                      className="select-field"
                     >
                       {CONFERENCES.map(c => (
                         <option key={c} value={c}>

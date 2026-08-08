@@ -345,7 +345,7 @@ const MultiYearSpTrends: React.FC = () => {
 
   return (
     <div>
-      <div className="pb-6 mb-6 border-b border-neutral-200 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+      <div className="config-panel mb-7 sm:mb-8">
         <div className="flex flex-col gap-4 sm:flex-row">
           <div className="flex-1 min-w-0">
             <TeamPicker
@@ -433,7 +433,7 @@ const MultiYearSpTrends: React.FC = () => {
                     id="sp-aspect"
                     value={aspect}
                     onChange={(e) => handleAspectChange(e.target.value as SeriesKey)}
-                    className="bg-white border border-neutral-300 rounded-lg px-3 py-2 shadow-sm hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none transition-colors"
+                    className="select-field w-auto py-2 pl-3 pr-9 text-sm"
                   >
                     {SERIES.map((s) => (
                       <option key={s.key} value={s.key}>
@@ -499,7 +499,7 @@ const MultiYearSpTrends: React.FC = () => {
       {!combinedLoading && !combinedError && !selectedTeam && (
         <div className="text-center py-8">
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
-            <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+            <TrendingUp className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
             <h3 className="font-display text-xl font-bold tracking-tight text-ink mb-2">
               Select a team to see its multi-year SP+ trend
             </h3>
