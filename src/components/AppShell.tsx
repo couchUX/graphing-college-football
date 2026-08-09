@@ -110,14 +110,17 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
             </button>
           </div>
 
-          <div className="flex items-end gap-5 sm:gap-6">
+          {/* gap-5 + a 28px button puts the info glyph ~25px from the last tab,
+              matching the 24px rhythm between the tabs themselves. A 32px
+              button at gap-6 read as 31px — visibly detached from the group. */}
+          <div className="flex items-end gap-5">
             <MainNav current={current} />
             {/* The tabs carry 1rem of padding below their text, so matching
                 that margin would centre the icon on the tab *box* and leave it
                 riding high above the labels. This lines it up with the text. */}
             <button
               onClick={() => setShowInfoModal(true)}
-              className="mb-3 hidden h-8 w-8 items-center justify-center rounded-lg text-byline transition-colors hover:bg-neutral-100 hover:text-ink sm:mb-2.5 sm:flex"
+              className="mb-3 hidden h-7 w-7 items-center justify-center rounded-lg text-byline transition-colors hover:bg-neutral-100 hover:text-ink sm:flex"
               title="About this project"
               aria-label="About this project"
             >
