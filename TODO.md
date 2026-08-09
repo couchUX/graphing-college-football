@@ -5,12 +5,6 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ### Queued after the Press Box styling PR
 
-- **UCLA should be baby blue.** Its entry in `src/utils/teamColors.ts` doesn't
-  reflect the actual program color. Chart color values are on the no-touch list
-  for incidental work, so this is a deliberate, explicit data fix — check the
-  `success` / `explosive` / `light` triple stays internally consistent with how
-  the other teams are built.
-
 - **Pages should retain their state across tab switches.** Loading the 2025
   Alabama–Missouri game on Games, switching to Trends, then coming back resets
   the page instead of restoring the game. Team Trends already solved this by
@@ -26,6 +20,10 @@ sessions (not just in a chat). Also mirrored in the PR description.
   yet; an existing comparison wins.
 
 ## Shipped
+
+- **UCLA's colors** — done. The sheet had a dull slate blue; the triple is now
+  a light sky blue (`success`) with a deeper steel blue for explosives and a
+  pale tint, built the same way as every other team's entry.
 
 - **URL routing / shareable state for Team Trends sub-tabs** — done. The active
   sub-tab persists via `?view=compare|spTrends` (default `season` omitted).

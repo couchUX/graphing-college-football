@@ -354,7 +354,7 @@ const teamColorsData: { [key: string]: TeamColor } = {
   "UC Santa Barbara": { success: "rgba(37, 37, 244, 0.8)", explosive: "rgba(0, 0, 128, 0.8)", light: "rgba(230, 230, 255, 0.8)" },
   "UC Santa Cruz": { success: "rgba(37, 152, 244, 0.8)", explosive: "rgba(0, 71, 128, 0.8)", light: "rgba(230, 244, 255, 0.8)" },
   "UCF": { success: "rgba(191, 167, 89, 0.8)", explosive: "rgba(98, 82, 29, 0.8)", light: "rgba(249, 246, 235, 0.8)" },
-  "UCLA": { success: "rgba(119, 133, 161, 0.8)", explosive: "rgba(46, 57, 82, 0.8)", light: "rgba(239, 241, 246, 0.8)" },
+  "UCLA": { success: "rgba(93, 166, 228, 0.8)", explosive: "rgba(29, 90, 150, 0.8)", light: "rgba(230, 242, 252, 0.8)" },
   "UMBC": { success: "rgba(244, 191, 37, 0.8)", explosive: "rgba(128, 95, 0, 0.8)", light: "rgba(255, 249, 230, 0.8)" },
   "UMKC": { success: "rgba(198, 178, 82, 0.8)", explosive: "rgba(102, 89, 25, 0.8)", light: "rgba(250, 247, 235, 0.8)" },
   "UNC Greensboro": { success: "rgba(244, 202, 37, 0.8)", explosive: "rgba(128, 102, 0, 0.8)", light: "rgba(255, 250, 230, 0.8)" },

@@ -36,8 +36,8 @@ const QUARTER_MINUTES = 15;
 // Half-height of the central axis lane reserved for the minute labels; the two
 // teams' dots stack above and below it (never into it).
 const AXIS_HALF = 0.625;
-// Light gray for the quarter dividers, matching the card border / chart axes.
-const GRID_COLOR = '#e5e5e5';
+// Quarter dividers, matching the warm hairline used by card borders.
+const GRID_COLOR = '#E5E1DB';
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
@@ -279,7 +279,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
         ref={containerRef}
         className={`relative w-full ${draggingSide ? 'select-none' : ''}`}
         style={{
-          backgroundImage: 'radial-gradient(circle, #e5e5e5 1.1px, transparent 1.1px)',
+          backgroundImage: 'radial-gradient(circle, #E0D8CD 1.1px, transparent 1.1px)',
           backgroundSize: '9px 9px',
         }}
       >
@@ -353,7 +353,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 x={mark.x}
                 y={geom.minuteLabelY}
                 fontSize={0.55}
-                fill="#9ca3af"
+                fill="#A8A29B"
                 textAnchor="middle"
                 dominantBaseline="central"
               >

@@ -35,9 +35,15 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Placeholders inherit the browser's cool gray otherwise, which is the one
-     spot the warm palette leaks. */
-  ::placeholder {
+  /*
+   * Placeholders. Tailwind's preflight sets these to a blue-tinted gray
+   * (#9ca3af) via `input::placeholder, textarea::placeholder` — matching that
+   * selector matters, because a bare `::placeholder` rule loses to it on
+   * specificity and the cool gray survives.
+   */
+  input::placeholder,
+  textarea::placeholder,
+  select::placeholder {
     color: #A8A29B;
     opacity: 1;
   }

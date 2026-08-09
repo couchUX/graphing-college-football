@@ -72,10 +72,6 @@ interface CompareResult {
 // remount and close mid-interaction).
 const FILTER_SELECT_CLASS =
   'select-field w-auto py-1 pl-2.5 pr-8 text-sm text-neutral-700';
-const FILTER_SELECT_STYLE: React.CSSProperties = {
-  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-  paddingRight: '2rem',
-};
 
 const FilterSelect: React.FC<{
   value: string;
@@ -86,7 +82,7 @@ const FilterSelect: React.FC<{
     value={value}
     onChange={(e) => onChange(e.target.value)}
     className={FILTER_SELECT_CLASS}
-    style={FILTER_SELECT_STYLE}
+   
   >
     {children}
   </select>

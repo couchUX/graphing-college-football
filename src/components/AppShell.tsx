@@ -87,7 +87,7 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
       {/* No bottom padding on the header itself — the nav tabs supply it, so
           the active tab's underline meets the masthead rule. */}
       <header className="masthead-rule bg-paper">
-        <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 pt-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:px-6 sm:pt-5 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 pt-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:px-6 sm:pt-6 lg:px-8">
           <div className="flex items-start justify-between gap-3 sm:pb-4">
             <div>
               <a href="/games" className="block">
@@ -112,9 +112,12 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
 
           <div className="flex items-end gap-5 sm:gap-6">
             <MainNav current={current} />
+            {/* The tabs carry 1rem of padding below their text, so matching
+                that margin would centre the icon on the tab *box* and leave it
+                riding high above the labels. This lines it up with the text. */}
             <button
               onClick={() => setShowInfoModal(true)}
-              className="mb-3 hidden h-8 w-8 items-center justify-center rounded-lg text-byline transition-colors hover:bg-neutral-100 hover:text-ink sm:mb-4 sm:flex"
+              className="mb-3 hidden h-8 w-8 items-center justify-center rounded-lg text-byline transition-colors hover:bg-neutral-100 hover:text-ink sm:mb-2.5 sm:flex"
               title="About this project"
               aria-label="About this project"
             >
