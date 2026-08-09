@@ -2,6 +2,16 @@
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
+    // Declared in full rather than extended so `xs` sorts ahead of `sm` in the
+    // generated CSS; the rest match Tailwind's defaults.
+    screens: {
+      xs: '480px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
         // Press Box palette. The `neutral` scale is deliberately remapped from

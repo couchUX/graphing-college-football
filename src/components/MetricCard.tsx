@@ -25,11 +25,13 @@ const MetricCard: React.FC<Metric> = ({ label, value, icon, iconBg, iconColor })
   <div className="plate flex items-stretch overflow-hidden">
     {icon && (
       <div
-        className="flex w-8 flex-none items-center justify-center sm:w-12"
+        className="flex w-3 flex-none items-center justify-center xs:w-12 sm:w-16"
         style={{ backgroundColor: iconBg, color: iconColor }}
         aria-hidden="true"
       >
-        {icon}
+        {/* Below 480px the icon is dropped and the panel narrows to a colored
+            band — at that width an icon costs more room than it earns. */}
+        <span className="hidden xs:block">{icon}</span>
       </div>
     )}
     <div className="min-w-0 px-3 py-3.5 sm:px-4 sm:py-4">
