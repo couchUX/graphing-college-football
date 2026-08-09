@@ -25,7 +25,7 @@ const MetricCard: React.FC<Metric> = ({ label, value, icon, iconBg, iconColor })
   <div className="plate flex items-stretch overflow-hidden">
     {icon && (
       <div
-        className="flex w-3 flex-none items-center justify-center xs:w-12 sm:w-16"
+        className="flex w-3 flex-none items-center justify-center xs:w-14"
         style={{ backgroundColor: iconBg, color: iconColor }}
         aria-hidden="true"
       >
