@@ -224,7 +224,6 @@ export const calculateAveragedBoxScore = (
   });
 
   const n = accumulators.gamesCount || 1; // Avoid division by zero
-  const divisor = mode === 'totals' ? 1 : n; // Use 1 for totals, n for averages
 
   // Helper to format minutes to MM:SS
   const formatPossessionTime = (totalMinutes: number): string => {

@@ -1,3 +1,153 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Press Box design tokens. Light-only by design: the charts render on white
+ * and dark chrome behind a white canvas is too high contrast, so there is no
+ * dark theme and no prefers-color-scheme variant here.
+ */
+:root {
+  /* Editorial accent. Overridden per selected team at runtime by
+     applyAccent() in src/utils/accent.ts; crimson is the no-team default. */
+  --accent: #8E2434;
+  --accent-soft: rgba(142, 36, 52, 0.10);
+  --accent-ink: #FFFFFF;
+
+  /* Structural rules. Warm brown rather than black — a hard ink rule reads
+     heavier than anything else on a paper ground and fights the charts. */
+  --rule: #C4B4A0;
+  --rule-soft: #E0D8CD;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+
+  /* Digits line up in stat columns, box scores and play tables. */
+  table,
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * Placeholders. Tailwind's preflight sets these to a blue-tinted gray
+   * (#9ca3af) via `input::placeholder, textarea::placeholder` — matching that
+   * selector matters, because a bare `::placeholder` rule loses to it on
+   * specificity and the cool gray survives.
+   */
+  input::placeholder,
+  textarea::placeholder,
+  select::placeholder {
+    color: #A8A29B;
+    opacity: 1;
+  }
+
+  /* One focus style across the app, in the editorial accent rather than
+     the browser/Tailwind default blue. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /*
+   * Section divider. A hairline in warm brown, carrying its own space above
+   * and below so the rhythm doesn't depend on whatever the parent's `space-y`
+   * happens to be — the rule is a breath between sections, not a box.
+   */
+  .rule-section {
+    border-top: 1px solid var(--rule);
+    margin-top: 3rem;     /* 48px of air above */
+    padding-top: 2.5rem;  /* 40px between the rule and the heading */
+  }
+
+  /*
+   * Display headings. Inter Tight at display sizes needs less negative
+   * tracking than Tailwind's `tracking-tight` (-0.025em), which squeezes it.
+   */
+  .headline {
+    @apply font-display font-extrabold;
+    letter-spacing: -0.006em;
+  }
+
+  /* Chart plates and content cards: hairline border, no elevation. */
+  .plate {
+    @apply bg-surface border border-hairline rounded-lg;
+  }
+
+  /* The settings strip at the top of each page (team/game/year pickers). */
+  .config-panel {
+    @apply bg-surface border border-hairline rounded-lg p-4 sm:p-5;
+  }
+
+  /* Responsive chart height without mounting the chart twice. Consumers set
+     --chart-h / --chart-h-mobile per card (see ChartCard). */
+  .chart-box {
+    height: var(--chart-h-mobile, var(--chart-h, 280px));
+  }
+
+  @media (min-width: 640px) {
+    .chart-box {
+      height: var(--chart-h, 325px);
+    }
+  }
+
+  /* Masthead rule: a single warm hairline. The masthead shouldn't be the
+     highest-contrast edge on the page. */
+  .masthead-rule {
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  /* Primary action. Disabled goes to an outlined ghost rather than a gray
+     fill, so an unavailable button never reads as an available one. */
+  .btn-ink {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink bg-ink px-5 py-2.5
+           font-medium text-white transition-opacity;
+  }
+
+  .btn-ink:hover:not(:disabled) {
+    @apply opacity-90;
+  }
+
+  .btn-ink:disabled {
+    @apply cursor-not-allowed border-neutral-300 bg-transparent text-neutral-400;
+  }
+
+  /*
+   * Native <select> styled to match the Headless UI listboxes elsewhere:
+   * the browser's own arrow sits flush against the right edge and ignores
+   * padding, so it's replaced with an inset chevron.
+   */
+  .select-field {
+    @apply w-full appearance-none rounded-lg border border-neutral-300 bg-surface
+           py-2.5 pl-3 pr-10 text-ink transition-colors hover:border-neutral-400
+           focus:border-accent focus:outline-none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2378716C' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.15em 1.15em;
+  }
+
+  .select-field:disabled {
+    @apply cursor-not-allowed bg-neutral-100 text-neutral-400;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

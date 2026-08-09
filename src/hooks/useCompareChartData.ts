@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { isRushPlay } from '../utils/playType';
 import { PlayData } from '../types';
 import { TeamGame } from '../services/api';
 import {
@@ -21,10 +22,6 @@ export interface CompareSide {
   // slot so a filtered-out game leaves a gap instead of shifting later games up.
   allGameIds: number[];
 }
-
-const isRushPlay = (p: PlayData) =>
-  !!p.playType &&
-  (p.playType.toLowerCase().includes('rush') || p.playType.toLowerCase().includes('run'));
 
 const isPassPlay = (p: PlayData) =>
   !!p.playType &&

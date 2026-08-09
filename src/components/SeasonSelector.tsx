@@ -441,7 +441,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 						</label>
 						<Listbox value={year} onChange={setYear}>
 							<div className="relative">
-								<Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-default">
+								<Listbox.Button className="relative w-full bg-white border border-neutral-300 rounded-lg px-3 py-2.5 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none transition-colors cursor-default">
 									<span className="block truncate">{year}</span>
 									<span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
 										<ChevronDown
@@ -457,7 +457,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 											className={({ active }) =>
 												`relative cursor-default select-none py-2 pl-3 pr-9 ${
 													active
-														? "bg-blue-100 text-blue-900"
+														? "bg-accent-soft text-accent"
 														: "text-neutral-900"
 												}`
 											}
@@ -471,7 +471,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 														{yearOption}
 													</span>
 													{selected ? (
-														<span className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-600">
+														<span className="absolute inset-y-0 right-0 flex items-center pr-3 text-accent">
 															<Check className="h-4 w-4" aria-hidden="true" />
 														</span>
 													) : null}
@@ -492,7 +492,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 						<Combobox value={selectedTeam} onChange={setSelectedTeam}>
 							<div className="relative">
 								<Combobox.Input
-									className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 pr-16 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+									className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 pr-16 shadow-sm hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none transition-colors"
 									displayValue={(team: Team | null) => team?.school || ""}
 									onChange={(event) => setTeamQuery(event.target.value)}
 									placeholder="e.g., Alabama"
@@ -548,7 +548,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 												className={({ active }) =>
 													`relative cursor-default select-none py-2 pl-3 pr-9 ${
 														active
-															? "bg-blue-100 text-blue-900"
+															? "bg-accent-soft text-accent"
 															: "text-neutral-900"
 													}`
 												}
@@ -562,7 +562,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 															{team.school}
 														</span>
 														{selected ? (
-															<span className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-600">
+															<span className="absolute inset-y-0 right-0 flex items-center pr-3 text-accent">
 																<Check className="h-4 w-4" aria-hidden="true" />
 															</span>
 														) : null}
@@ -649,7 +649,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 							type="button"
 							onClick={() => setShowGameSelector(!showGameSelector)}
 							disabled={!selectedTeam || loadingGames}
-							className="relative w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-neutral-100 disabled:cursor-not-allowed"
+							className="relative w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none transition-colors disabled:bg-neutral-100 disabled:cursor-not-allowed"
 						>
 							<span className="block truncate">
 								{loadingGames
@@ -682,7 +682,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 												setSelectedGameIds(availableGames.map((g) => g.id));
 											}
 										}}
-										className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+										className="text-sm text-accent hover:text-accent font-medium"
 									>
 										{selectedGameIds.length === availableGames.length
 											? "Deselect All"
@@ -724,7 +724,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 															);
 														}
 													}}
-													className="h-4 w-4 text-blue-600 rounded border-neutral-300 focus:ring-blue-500"
+													className="h-4 w-4 text-accent rounded border-neutral-300 focus:ring-accent"
 												/>
 												<span className="ml-3 text-sm text-neutral-900">
 													{label}
@@ -744,7 +744,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 				<button
 					onClick={handleFetchData}
 					disabled={!selectedTeam || isLoading || selectedGameIds.length === 0}
-					className="w-full sm:w-auto flex items-center justify-center sm:justify-start space-x-2 px-6 py-3 bg-neutral-800 hover:bg-neutral-900 disabled:bg-neutral-400 text-white font-medium rounded-lg shadow-sm transition-colors disabled:cursor-not-allowed"
+					className="btn-ink w-full sm:w-auto sm:justify-start"
 				>
 					{isLoading && loadingProgress.total > 0 ? (
 						<span>

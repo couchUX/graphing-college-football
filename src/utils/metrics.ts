@@ -1,4 +1,5 @@
-import { ApiPlayData, PlayData, ProcessedMetrics, DriveMetrics, PlayerStats } from '../types';
+import { PlayData, PlayerStats } from '../types';
+import type { ApiPlayData } from '../services/api';
 
 const calculateSuccess = (down: number, distance: number, yardsGained: number, playType: string = '', playText: string = ''): boolean => {
   // Special handling for two-point conversions
@@ -91,7 +92,7 @@ const stripTimestamp = (playText: string): string => {
   if (hasTimestamp) {
     // If there's a timestamp, look for the first #\d+ that's NOT in parentheses
     // Strategy: Remove timestamp, then find first standalone #\d+ (not preceded by opening paren)
-    let afterTimestamp = playText.replace(/^\s*\(\d{1,2}:\d{2}\)\s*/, '');
+    const afterTimestamp = playText.replace(/^\s*\(\d{1,2}:\d{2}\)\s*/, '');
 
     // Find first # that's not inside parentheses
     // Look for #\d+ followed by space and then capture everything after it
@@ -114,7 +115,7 @@ const standardizePlayerName = (name: string): string => {
   if (!name) return '';
 
   // Remove common suffixes
-  let cleaned = name
+  const cleaned = name
     .replace(/\s+Jr\.?$/i, '')
     .replace(/\s+Sr\.?$/i, '')
     .replace(/\s+III$/i, '')
@@ -461,54 +462,6 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   return processedPlays;
 };
 
-const calculateTeamMetrics = (plays: PlayData[], teamName: string): ProcessedMetrics => {
-  const teamPlays = plays.filter(play => play.offense === teamName);
-  
-  if (teamPlays.length === 0) {
-    return {
-      successRate: 0,
-      explosivenessRate: 0,
-      totalPlays: 0,
-      avgYardsPerPlay: 0
-    };
-  }
-
-  const successfulPlays = teamPlays.filter(play => play.success).length;
-  const explosivePlays = teamPlays.filter(play => play.explosiveness).length;
-  const totalYards = teamPlays.reduce((sum, play) => sum + play.yardsGained, 0);
-
-  return {
-    successRate: (successfulPlays / teamPlays.length) * 100,
-    explosivenessRate: (explosivePlays / teamPlays.length) * 100,
-    totalPlays: teamPlays.length,
-    avgYardsPerPlay: totalYards / teamPlays.length
-  };
-};
-
-const calculateDriveMetrics = (plays: PlayData[], teamName: string): DriveMetrics[] => {
-  const teamPlays = plays.filter(play => play.offense === teamName);
-  const driveGroups = teamPlays.reduce((acc, play) => {
-    if (!acc[play.driveNumber]) {
-      acc[play.driveNumber] = [];
-    }
-    acc[play.driveNumber].push(play);
-    return acc;
-  }, {} as Record<number, PlayData[]>);
-
-  return Object.entries(driveGroups).map(([driveNum, drivePlays]) => {
-    const successfulPlays = drivePlays.filter(play => play.success).length;
-    const explosivePlays = drivePlays.filter(play => play.explosiveness).length;
-    const totalYards = drivePlays.reduce((sum, play) => sum + play.yardsGained, 0);
-
-    return {
-      driveNumber: parseInt(driveNum),
-      playCount: drivePlays.length,
-      successRate: drivePlays.length > 0 ? (successfulPlays / drivePlays.length) * 100 : 0,
-      explosivenessRate: drivePlays.length > 0 ? (explosivePlays / drivePlays.length) * 100 : 0,
-      totalYards
-    };
-  }).sort((a, b) => a.driveNumber - b.driveNumber);
-};
 
 export const calculatePlayerStats = (plays: PlayData[], playType: 'rush' | 'pass' | 'receive'): PlayerStats[] => {
   let relevantPlays: PlayData[];

@@ -26,7 +26,6 @@ export interface SPRating {
 export const fetchSPRatings = async (year: number): Promise<SPRating[]> => {
   try {
     const url = `${API_BASE_URL}/ratings/sp?year=${year}`;
-    console.log('Fetching SP+ ratings from:', url);
 
     const response = await fetch(url, { headers: getApiHeaders() });
 

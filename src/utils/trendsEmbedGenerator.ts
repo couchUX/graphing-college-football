@@ -270,8 +270,8 @@ export const generateTrendsEmbedCode = (
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\u002fscript>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"><\u002fscript>
 
     <script>
         // Toggle data definitions accordion
@@ -331,7 +331,6 @@ export const generateTrendsEmbedCode = (
                 }
 
                 if (canvas.chartInstance) {
-                    console.log('Chart already initialized');
                     return;
                 }
 
@@ -512,6 +511,6 @@ export const generateTrendsEmbedCode = (
                 initChart();
             }
         })();
-    <\/script>
+    <\u002fscript>
 </div>`;
 };

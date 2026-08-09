@@ -1,61 +1,41 @@
-import React from 'react';
-import Dashboard from './components/Dashboard';
-import RatingsPage from './components/RatingsPage';
-import TeamTrendsPage from './components/TeamTrendsPage';
-import DiscoverPage from './components/DiscoverPage';
+import { lazy, Suspense } from 'react';
 import './index.css';
 
+// Each section is its own chunk: visiting /ratings no longer downloads the
+// Games dashboard, the Discover detectors and the season-trends charts too.
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const RatingsPage = lazy(() => import('./components/RatingsPage'));
+const TeamTrendsPage = lazy(() => import('./components/TeamTrendsPage'));
+const DiscoverPage = lazy(() => import('./components/DiscoverPage'));
+
+const ROUTES = {
+  '/games': Dashboard,
+  '/ratings': RatingsPage,
+  '/trends': TeamTrendsPage,
+  '/discover': DiscoverPage,
+} as const;
+
+type RoutePath = keyof typeof ROUTES;
+
+const isRoutePath = (path: string): path is RoutePath => path in ROUTES;
+
 function App() {
-  // Simple routing based on pathname
   const path = window.location.pathname;
 
-  // Redirect root to /games, preserving query parameters
-  if (path === '/') {
-    const searchParams = window.location.search;
-    // If there are query parameters, redirect to /games with them
-    if (searchParams) {
-      window.location.href = '/games' + searchParams;
-    } else {
-      window.location.href = '/games';
-    }
+  // Root and unknown paths land on /games, preserving any query string so
+  // shared links keep working.
+  if (!isRoutePath(path)) {
+    window.location.href = `/games${window.location.search}`;
     return null;
   }
 
-  if (path === '/ratings') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <RatingsPage />
-      </div>
-    );
-  }
+  const Page = ROUTES[path];
 
-  if (path === '/trends') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <TeamTrendsPage />
-      </div>
-    );
-  }
-
-  if (path === '/discover') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <DiscoverPage />
-      </div>
-    );
-  }
-
-  if (path === '/games') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Dashboard />
-      </div>
-    );
-  }
-
-  // 404 fallback - redirect to games
-  window.location.href = '/games';
-  return null;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-paper" />}>
+      <Page />
+    </Suspense>
+  );
 }
 
 export default App;

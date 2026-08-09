@@ -210,7 +210,7 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCop
             title={copied ? 'Copied!' : 'Copy embed code'}
             className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 ${
               copied
-                ? 'border-emerald-300 bg-emerald-500/90 text-white shadow-sm'
+                ? 'border-ink bg-ink text-white'
                 : 'border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed'
             }`}
           >

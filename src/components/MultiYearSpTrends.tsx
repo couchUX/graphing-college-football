@@ -345,7 +345,7 @@ const MultiYearSpTrends: React.FC = () => {
 
   return (
     <div>
-      <div className="pb-6 mb-6 border-b border-neutral-200 sm:bg-gradient-to-br sm:from-neutral-50 sm:to-neutral-100 sm:rounded-2xl sm:shadow sm:border sm:border-neutral-200 sm:pt-5 sm:px-6 sm:pb-6 sm:mb-8 sm:border-b-0">
+      <div className="config-panel mb-7 sm:mb-8">
         <div className="flex flex-col gap-4 sm:flex-row">
           <div className="flex-1 min-w-0">
             <TeamPicker
@@ -398,7 +398,7 @@ const MultiYearSpTrends: React.FC = () => {
       {!combinedLoading && !combinedError && selectedTeam && hasData && (
         <>
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-neutral-900">
+            <h2 className="headline text-[26px] text-ink">
               {compareMode && selectedTeamB
                 ? `${selectedTeam.school} vs. ${selectedTeamB.school} — SP+ ${aspectLabel}`
                 : `${selectedTeam.school} - SP+ rating history`}
@@ -433,7 +433,7 @@ const MultiYearSpTrends: React.FC = () => {
                     id="sp-aspect"
                     value={aspect}
                     onChange={(e) => handleAspectChange(e.target.value as SeriesKey)}
-                    className="bg-white border border-neutral-300 rounded-lg px-3 py-2 shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="select-field w-auto py-2 pl-3 pr-9 text-sm"
                   >
                     {SERIES.map((s) => (
                       <option key={s.key} value={s.key}>
@@ -456,7 +456,7 @@ const MultiYearSpTrends: React.FC = () => {
                         onChange={(e) =>
                           setVisibleSeries((v) => ({ ...v, [series.key]: e.target.checked }))
                         }
-                        className="h-4 w-4 rounded border-neutral-300 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-neutral-300 focus:ring-accent"
                         style={{ accentColor: seriesColors[i] }}
                       />
                       <span
@@ -499,8 +499,8 @@ const MultiYearSpTrends: React.FC = () => {
       {!combinedLoading && !combinedError && !selectedTeam && (
         <div className="text-center py-8">
           <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-16">
-            <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">
+            <TrendingUp className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
+            <h3 className="headline text-[22px] font-bold text-ink mb-2">
               Select a team to see its multi-year SP+ trend
             </h3>
             <p className="text-neutral-600 max-w-md mx-auto">

@@ -36,8 +36,8 @@ const QUARTER_MINUTES = 15;
 // Half-height of the central axis lane reserved for the minute labels; the two
 // teams' dots stack above and below it (never into it).
 const AXIS_HALF = 0.625;
-// Light gray for the quarter dividers, matching the card border / chart axes.
-const GRID_COLOR = '#e5e5e5';
+// Quarter dividers, matching the warm hairline used by card borders.
+const GRID_COLOR = '#E5E1DB';
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
@@ -89,7 +89,7 @@ const LegendSwatch = ({ dotClass, label }: { dotClass: string; label: string }) 
 const HANDLE_CLASS =
   'absolute z-10 flex h-11 w-2.5 cursor-ew-resize items-center justify-center rounded-full border ' +
   'border-neutral-300 bg-white shadow-sm transition-colors hover:border-neutral-400 hover:shadow ' +
-  'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent';
 
 // Two short vertical bars — the grip texture inside each resize handle.
 const Grip = () => (
@@ -251,7 +251,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
   return (
     <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
       <div className="px-6 py-4 border-b border-neutral-200">
-        <h3 className="text-lg font-semibold text-neutral-900">Game Wave</h3>
+        <h3 className="headline relative top-px text-[17px] font-bold text-ink">Game Wave</h3>
       </div>
 
       <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -279,7 +279,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
         ref={containerRef}
         className={`relative w-full ${draggingSide ? 'select-none' : ''}`}
         style={{
-          backgroundImage: 'radial-gradient(circle, #e5e5e5 1.1px, transparent 1.1px)',
+          backgroundImage: 'radial-gradient(circle, #E0D8CD 1.1px, transparent 1.1px)',
           backgroundSize: '9px 9px',
         }}
       >
@@ -353,7 +353,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 x={mark.x}
                 y={geom.minuteLabelY}
                 fontSize={0.55}
-                fill="#9ca3af"
+                fill="#A8A29B"
                 textAnchor="middle"
                 dominantBaseline="central"
               >

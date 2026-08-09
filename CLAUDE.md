@@ -1,88 +1,93 @@
-# Claude Code Session History
+# Project guide — graphingcollegefootball.com
 
-> **Pending TODOs live in [`TODO.md`](./TODO.md)** — check it for tracked
-> follow-up work (e.g. URL routing / shareable state for Team Trends sub-tabs).
+Advanced college football analytics: play-by-play charts, season trends, SP+
+ratings, and auto-surfaced storylines. React + TypeScript + Vite + Tailwind,
+Chart.js for every visualization, deployed on Vercel.
 
-## Latest Session Summary (Enhanced Refactoring)
+> Pending work lives in [`TODO.md`](./TODO.md). Design and review plans live in
+> [`docs/plan/`](./docs/plan/).
 
-**Main Accomplishment: Enhanced ChartsGrid.tsx Refactoring with Bolt Improvements**
-- **Reduced from 1,664 lines to 279 lines** (83% reduction!)
-- **Maintained ALL enhanced features** from Bolt.new including improved player stats
-- **Preserved exact visual output** with new categorizations
+## The one rule that matters
 
-**What Was Created (Enhanced Version):**
+**The visualizations are the product.** Chart datasets, options, colors,
+datalabels, legends, reference lines and heights are deliberately designed —
+do not restyle them as a side effect of other work. Specifically off-limits
+without an explicit ask:
 
-1. **`src/utils/chartConfig.ts`** - Enhanced Chart.js setup with improved datalabels configuration from Bolt
-2. **`src/utils/chartOptions.ts`** - Advanced chart option configurations with enhanced styling
-3. **`src/utils/chartHelpers.ts`** - Enhanced data transformation functions with new player categorization logic  
-4. **`src/hooks/useChartData.ts`** - Comprehensive custom hook handling ALL enhanced data processing
-5. **Refactored `ChartsGrid.tsx`** - Clean component (279 lines) focused purely on rendering
+- `src/utils/teamColors.ts`, `colorPalette.ts`, `displayTeamColors.ts` (values)
+- `src/utils/chartConfig.ts` defaults, `chartOptions.ts`, `chartHelpers.ts`
+- `src/constants/chartDimensions.ts`
+- Charts always render on a white canvas.
 
-**Enhanced Features Preserved:**
-- **Improved Player Charts** - Better categorization (explosive/successful/other catches/incompletes/interceptions)
-- **Enhanced Data Labels** - Better formatting and styling from Bolt improvements
-- **Advanced Chart Types** - All chart varieties with enhanced visualizations
-- **Better Player Stats** - More detailed breakdowns for rush/pass/receive
+The site is **light-only by design**. Dark chrome behind a white chart canvas
+is too high contrast — there is no dark theme and no `prefers-color-scheme`
+variant. Don't add one.
 
-**Benefits Achieved:**
-- **83% code reduction** while maintaining ALL functionality
-- **Modular architecture** - each file has single responsibility
-- **Enhanced maintainability** - specific chart logic easily found and modified
-- **Reusable components** - utilities can be used across other components
-- **Better TypeScript support** - focused modules with clear interfaces
-- **Improved testing capability** - individual functions can be unit tested
-- **Cleaner git workflow** - focused diffs for future changes
+## Structure
 
-**Performance Improvements:**
-- **Faster development** - changes to specific chart types isolated to relevant files
-- **Better debugging** - errors localized to specific modules
-- **Easier feature additions** - new chart types follow established patterns
-
-**Previous Work Comparison:**
-- First refactor: 1,569 → 298 lines (81% reduction)
-- Enhanced refactor: 1,664 → 279 lines (83% reduction) 
-- **Best of both worlds**: Bolt's enhanced features + clean architecture
-
-**Current State:**
-Enhanced codebase with all Bolt improvements working perfectly in modular architecture. Server running at http://localhost:5173/
-
----
-
-## Development Commands
-
-```bash
-# Start development server
-npm run dev
-
-# Install dependencies
-npm install
-
-# Check TypeScript errors
-npm run lint
+```
+src/
+  App.tsx              pathname router; each page is React.lazy'd into its own chunk
+  components/
+    AppShell.tsx       masthead, nav, footer, About/Contact modals — every page wraps in this
+    ChartCard.tsx      the white plate a chart sits on (title, embed button, one responsive canvas)
+    MetricCard.tsx     ruled stat columns + MetricRow
+    SubTabs.tsx        within-page view switcher (Trends, Discover)
+    Dashboard.tsx      /games
+    RatingsPage.tsx    /ratings
+    TeamTrendsPage.tsx /trends  (season trends, Team vs. Team, multi-year SP+)
+    DiscoverPage.tsx   /discover
+    ChartsGrid.tsx     the Games chart grid
+    TrendsChartsGrid.tsx  the season-trends chart grid
+  hooks/               useChartData, useSeasonChartData, useCompareChartData, useBoxScore, useToast
+  services/            api.ts (CFBD via the /api/cfbd proxy), boxScoreApi, ratingsApi, seasonApi
+  detectors/           Discover storyline detectors + registry
+  utils/               chart helpers, metrics, embed generators, accent, playType, analytics
 ```
 
-## Project Structure Notes
+### Design system
 
-- Main dashboard component: `src/components/Dashboard.tsx`
-- Chart components: `src/components/ChartsGrid.tsx` (recently refactored)
-- API services: `src/services/api.ts`, `src/services/boxScoreApi.ts`
-- Types: `src/types/index.ts`
-- Utilities: `src/utils/` (expanded with chart utilities)
-- Hooks: `src/hooks/` (added useChartData.ts)
+Tokens live in `tailwind.config.js` and `src/index.css`. The Tailwind `neutral`
+scale is **remapped to a warm paper/ink palette**, so `neutral-*` utilities
+across the app carry the design; radii collapse toward 4px and card-weight
+shadows are neutralized (structure comes from hairlines).
 
-## Git Workflow
+- `bg-paper` ground, `bg-surface` (white) for plates, `text-ink`, `text-byline`
+- `.plate` — bordered white card; `.btn-ink` — primary action (disabled becomes
+  an outlined ghost, never a gray fill); `.chart-box` — responsive chart height
+- `--accent` is the **selected team's color** at runtime (`src/utils/accent.ts`,
+  with a luminance clamp so pale golds stay legible); crimson is the default.
+- Type is Inter Tight, self-hosted via `@fontsource-variable/inter-tight`.
+  Sentence case everywhere — no all-caps or letterspaced labels.
 
-**IMPORTANT**: Do NOT push changes to the main branch (production) without explicit user approval.
+### Embeds
 
-- **Always commit changes locally** when work is complete
-- **Ask for confirmation before pushing** - e.g., "Ready to push this to production?" or "Should I deploy these changes?"
-- **Wait for user approval** before running `git push`
-- User will review changes before they go live on production
+`src/utils/chartEmbedGenerator.ts` is the generic engine: hand it the exact
+data + options a chart renders with and it emits self-contained HTML. Callbacks
+that close over local data are "baked" at copy time, so **any function stored on
+chart data/options must be closure-free** (arguments and globals only) or it
+won't survive serialization. `trendsEmbedGenerator.ts` and `boxScoreEmbed.ts`
+are older bespoke templates still used by the season-trends and box-score paths.
 
-This ensures the user maintains control over what gets deployed and when.
+## Commands
 
-## Code Review
+```bash
+npm run dev      # vite dev server (proxies /api/cfbd with CFB_API_KEY from .env)
+npm run build    # production build
+npm run lint     # eslint
+npx tsc --noEmit -p tsconfig.app.json   # typecheck (build does not typecheck)
+```
 
-- **Greptile is the only code reviewer** for this repo. Trigger it with a
-  `@greptile review` comment on the PR and iterate to a 5/5 score.
-- **CodeRabbit is disabled** — don't trigger it or wait on its reviews.
+A `CFB_API_KEY` in `.env` is required for live data; it stays server-side via
+the `/api/cfbd` proxy (`api/cfbd.js` in production, the Vite proxy locally).
+
+## Git workflow
+
+**Do NOT push to `main` without explicit approval.** Commit locally, then ask
+before pushing or deploying — the user reviews changes before they go live.
+
+## Code review
+
+**Greptile is the only code reviewer.** Trigger it with a `@greptile review`
+comment on the PR and iterate to a 5/5 score. **CodeRabbit is disabled** — don't
+trigger it or wait on its reviews.

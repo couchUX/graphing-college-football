@@ -6,7 +6,6 @@ import {
   LineElement,
   BarElement,
   Title,
-  ChartOptions,
   Tooltip,
   Legend,
   Filler
@@ -29,6 +28,12 @@ ChartJS.register(
 
 // Set Chart.js global defaults
 export const initializeChartDefaults = () => {
+  // Chart.js accepts the `point*` aliases at runtime but doesn't declare them
+  // on the element defaults, and `plugins.datalabels` is optional in its types
+  // until the plugin registers. Narrow both rather than changing any value.
+  const pointDefaults = ChartJS.defaults.elements.point as unknown as Record<string, number>;
+  const datalabelDefaults = ChartJS.defaults.plugins.datalabels as unknown as Record<string, unknown>;
+
   ChartJS.defaults.plugins.legend.align = 'start';
   ChartJS.defaults.maintainAspectRatio = false;
   ChartJS.defaults.plugins.legend.labels.borderRadius = 15;
@@ -37,13 +42,13 @@ export const initializeChartDefaults = () => {
   ChartJS.defaults.plugins.legend.labels.usePointStyle = true;
   ChartJS.defaults.elements.line.tension = 0.25;
   ChartJS.defaults.elements.line.borderWidth = 1;
-  ChartJS.defaults.elements.point.pointRadius = 4;
-  ChartJS.defaults.elements.point.pointHoverRadius = 8;
-  ChartJS.defaults.elements.point.pointBorderWidth = 1;
-  ChartJS.defaults.plugins.datalabels.color = 'white';
-  ChartJS.defaults.plugins.datalabels.backgroundColor = '#26262660';
-  ChartJS.defaults.plugins.datalabels.padding = 4;
-  ChartJS.defaults.plugins.datalabels.borderRadius = 4;
+  pointDefaults.pointRadius = 4;
+  pointDefaults.pointHoverRadius = 8;
+  pointDefaults.pointBorderWidth = 1;
+  datalabelDefaults.color = 'white';
+  datalabelDefaults.backgroundColor = '#26262660';
+  datalabelDefaults.padding = 4;
+  datalabelDefaults.borderRadius = 4;
 };
 
 // Constants

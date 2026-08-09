@@ -39,7 +39,6 @@ export const fetchBoxScore = async (params: {
     if (gameId) {
       // Get game info first
       const gameInfoUrl = `${API_BASE_URL}/games?id=${gameId}`;
-      console.log('Fetching game info for box score from:', gameInfoUrl);
       
       try {
         const gameInfoResponse = await fetch(gameInfoUrl, { headers: getApiHeaders() });
@@ -50,7 +49,6 @@ export const fetchBoxScore = async (params: {
             
             // Try to get box score by gameId (using the game's week)
             const gameSpecificUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${encodeURIComponent(team)}&week=${game.week}`;
-            console.log('Fetching box score by game week from:', gameSpecificUrl);
             
             const gameSpecificResponse = await fetch(gameSpecificUrl, { headers: getApiHeaders() });
             if (gameSpecificResponse.ok) {
@@ -60,24 +58,21 @@ export const fetchBoxScore = async (params: {
               const filteredData = gameSpecificData.filter((g: any) => g.id.toString() === gameId.toString());
               
               if (filteredData.length > 0) {
-                console.log('Successfully filtered box score data by gameId:', filteredData.length);
                 data = filteredData;
               } else {
-                console.log('No box score data found for specific gameId, falling back to week-based fetch');
                 data = gameSpecificData;
               }
             }
           }
         }
-      } catch (error) {
-        console.log('Game-specific box score fetch failed, falling back to week-based fetch:', error);
-      }
+      } catch {
+      // Non-fatal: fall through to the caller's default.
+    }
     }
     
     // Fallback to week-based fetch if gameId approach failed
     if (!data) {
       const baseUrl = `${API_BASE_URL}/games/teams?seasonType=${seasonType}&year=${year}&team=${encodeURIComponent(team)}&week=${week}`;
-      console.log('Fetching box score by week from:', baseUrl);
       
       const response = await fetch(baseUrl, { headers: getApiHeaders() });
       
@@ -88,7 +83,6 @@ export const fetchBoxScore = async (params: {
       data = await response.json();
     }
     
-    console.log('Fetched box score data:', data);
     
     // Enhance with additional metrics for each game
     const enhancedGames = await Promise.all(
@@ -103,7 +97,6 @@ export const fetchBoxScore = async (params: {
             const gamesData = await gamesResponse.json();
             if (gamesData.length > 0) {
               excitementIndex = gamesData[0].excitementIndex;
-              console.log('Fetched excitement index:', excitementIndex);
             }
           }
           
@@ -114,7 +107,6 @@ export const fetchBoxScore = async (params: {
           
           if (advancedResponse.ok) {
             const advancedData = await advancedResponse.json();
-            console.log('Fetched advanced stats for all teams:', advancedData);
             
             // Map explosiveness data by team name
             advancedData.forEach((teamStats: any) => {
@@ -126,8 +118,7 @@ export const fetchBoxScore = async (params: {
             });
           } else {
             // Fallback: fetch each team individually if gameId doesn't work
-            console.log('GameId fetch failed, trying individual team fetches');
-            const teamNames = game.teams?.map(t => t.team) || [team];
+            const teamNames: string[] = game.teams?.map(t => t.team).filter((t): t is string => Boolean(t)) || [team];
             
             for (const teamName of teamNames) {
               try {
@@ -136,7 +127,6 @@ export const fetchBoxScore = async (params: {
                 
                 if (teamResponse.ok) {
                   const teamAdvancedData = await teamResponse.json();
-                  console.log(`Fetched advanced stats for ${teamName}:`, teamAdvancedData);
                   
                   teamAdvancedData.forEach((teamStats: any) => {
                     if (teamStats.offense?.explosiveness && teamStats.team === teamName) {

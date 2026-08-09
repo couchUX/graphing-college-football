@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { PlayData, PerGameMetric } from '../types';
+import { isRushPlayType } from '../utils/playType';
+import { PlayData } from '../types';
 import { TeamGame } from '../services/api';
 import { getDisplayTeamColors, getDisplayTeamColorsForPlayerChart } from '../utils/displayTeamColors';
 import { calculateSeasonMetrics, calculatePerGameMetrics, calculateAggregateOpponentMetrics } from '../utils/seasonMetrics';
@@ -60,7 +61,7 @@ export const useSeasonChartData = (
           stack: 'SRXR',
           datalabels: {
             display: true,
-            formatter: (value: number, context: any) => {
+            formatter: (_value: number, context: any) => {
               return context.dataIndex === 0 ? seasonMetrics.totalPlays : aggregateOppMetrics.totalPlays;
             }
           }
@@ -256,7 +257,7 @@ export const useSeasonChartData = (
           data: perGameMetrics.map(g => {
             const gameTeamPlays = (perGamePlays.get(g.gameId) || []).filter(p => p.offense === team);
             const rushPlays = gameTeamPlays.filter(p =>
-              p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run')
+              isRushPlayType(p.playType)
             );
             return gameTeamPlays.length > 0 ? (rushPlays.length / gameTeamPlays.length) * 100 : 0;
           }),
@@ -276,7 +277,7 @@ export const useSeasonChartData = (
           data: perGameMetrics.map(g => {
             const gameOppPlays = (perGamePlays.get(g.gameId) || []).filter(p => p.offense !== team);
             const rushPlays = gameOppPlays.filter(p =>
-              p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run')
+              isRushPlayType(p.playType)
             );
             return gameOppPlays.length > 0 ? (rushPlays.length / gameOppPlays.length) * 100 : 0;
           }),
@@ -318,7 +319,7 @@ export const useSeasonChartData = (
           data: perGameMetrics.map(g => {
             const gameTeamPlays = (perGamePlays.get(g.gameId) || []).filter(p => p.offense === team);
             const rushPlays = gameTeamPlays.filter(p =>
-              p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run')
+              isRushPlayType(p.playType)
             );
             const rushSuccessful = rushPlays.filter(p => p.success).length;
             return rushPlays.length > 0 ? (rushSuccessful / rushPlays.length) * 100 : 0;
@@ -363,7 +364,7 @@ export const useSeasonChartData = (
           data: perGameMetrics.map(g => {
             const gameOppPlays = (perGamePlays.get(g.gameId) || []).filter(p => p.offense !== team);
             const rushPlays = gameOppPlays.filter(p =>
-              p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run')
+              isRushPlayType(p.playType)
             );
             const rushSuccessful = rushPlays.filter(p => p.success).length;
             return rushPlays.length > 0 ? (rushSuccessful / rushPlays.length) * 100 : 0;

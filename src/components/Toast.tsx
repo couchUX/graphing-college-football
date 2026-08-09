@@ -7,14 +7,21 @@ interface ToastProps {
   isVisible: boolean;
   onClose: () => void;
   duration?: number;
+  /**
+   * Changes on every raise. Without it, a second toast raised while the first
+   * is still up leaves `isVisible` true, the effect never re-runs, and the new
+   * message inherits whatever is left of the old timer — or none at all.
+   */
+  nonce?: number;
 }
 
-const Toast: React.FC<ToastProps> = ({ 
-  message, 
-  type = 'success', 
-  isVisible, 
-  onClose, 
-  duration = 3000 
+const Toast: React.FC<ToastProps> = ({
+  message,
+  type = 'success',
+  isVisible,
+  onClose,
+  duration = 3000,
+  nonce = 0
 }) => {
   const [show, setShow] = useState(false);
 
@@ -28,12 +35,12 @@ const Toast: React.FC<ToastProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [isVisible, duration, onClose]);
+  }, [isVisible, duration, onClose, nonce]);
 
   const typeStyles = {
-    success: 'bg-gray-800 text-white',
+    success: 'bg-ink text-white',
     error: 'bg-red-600 text-white',
-    info: 'bg-gray-800 text-white'
+    info: 'bg-ink text-white'
   };
 
   const icons = {

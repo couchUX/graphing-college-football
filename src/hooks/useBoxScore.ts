@@ -35,7 +35,6 @@ export const useBoxScore = (params: {
     
     // If plays array is provided but empty, clear box score data
     if (plays && plays.length === 0) {
-      console.log('No plays data available, clearing box score');
       setBoxScoreData(null);
       setError(null);
       return;
@@ -78,7 +77,7 @@ export const useBoxScore = (params: {
   return { boxScoreData, loading, error };
 };
 
-const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, plays?: PlayData[], opponentTeam?: string, game?: Game): ProcessedBoxScore => {
+const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, _plays?: PlayData[], opponentTeam?: string, game?: Game): ProcessedBoxScore => {
 
   // Ensure we have at least 2 teams
   if (!rawData || rawData.length < 2) {
@@ -218,66 +217,11 @@ const processBoxScoreData = (rawData: BoxScoreTeam[], selectedTeam: string, play
   };
 
   // Helper function to get stat value with fallback category names
-  const getStatWithFallback = (team: BoxScoreTeam, primaryCategory: string, fallbackCategories: string[] = []): string => {
-    // Try primary category first
-    let stat = team.stats.find(s => s.category === primaryCategory);
-    if (stat) {
-      console.log(`Found stat for primary category "${primaryCategory}":`, stat.stat);
-      return stat.stat;
-    }
-    
-    // Try fallback categories
-    for (const fallback of fallbackCategories) {
-      stat = team.stats.find(s => s.category === fallback);
-      if (stat) {
-        console.log(`Found stat for fallback category "${fallback}":`, stat.stat);
-        return stat.stat;
-      }
-    }
-    
-    console.log(`No stat found for "${primaryCategory}" or fallbacks:`, fallbackCategories);
-    console.log('Available categories:', team.stats.map(s => s.category));
-    return '0';
-  };
-
   // Helper function to safely parse integer
-  const parseIntSafe = (value: string): number => {
-    const parsed = parseInt(value) || 0;
-    return parsed;
-  };
-
   // Helper function to calculate yards per attempt
-  const calculateYardsPerAttempt = (yards: string, attempts: string): string => {
-    const y = parseIntSafe(yards);
-    const a = parseIntSafe(attempts);
-    console.log(`calculateYardsPerAttempt: ${yards} yards, ${attempts} attempts -> ${y}/${a}`);
-    return a > 0 ? (y / a).toFixed(1) : '0.0';
-  };
-
   // Helper function to format completion stats
-  const formatCompletions = (completions: string, attempts: string): string => {
-    const comp = parseIntSafe(completions);
-    const att = parseIntSafe(attempts);
-    console.log(`formatCompletions: ${completions} completions, ${attempts} attempts -> ${comp}-${att}`);
-    return `${comp}-${att}`;
-  };
-
   // Helper function to format down efficiency
-  const formatDownEfficiency = (conversions: string, attempts: string): string => {
-    const conv = parseIntSafe(conversions);
-    const att = parseIntSafe(attempts);
-    console.log(`formatDownEfficiency: ${conversions} conversions, ${attempts} attempts -> ${conv}-${att}`);
-    return `${conv}-${att}`;
-  };
-
   // Helper function to format penalties
-  const formatPenalties = (penalties: string, yards: string): string => {
-    const pen = parseIntSafe(penalties);
-    const yds = parseIntSafe(yards);
-    console.log(`formatPenalties: ${penalties} penalties, ${yards} yards -> ${pen}-${yds}`);
-    return `${pen}-${yds}`;
-  };
-
   // First table stats (up to yards per pass)
   const firstTableStats: BoxScoreStat[] = [
     {

@@ -69,7 +69,7 @@ const GameMultiSelect: React.FC<GameMultiSelectProps> = ({
           type="button"
           onClick={() => setOpen((o) => !o)}
           disabled={disabled || loading || games.length === 0}
-          className="relative w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-neutral-100 disabled:cursor-not-allowed"
+          className="relative w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 pr-10 text-left shadow-sm hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none transition-colors disabled:bg-neutral-100 disabled:cursor-not-allowed"
         >
           <span className="block truncate">{summary}</span>
           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -83,7 +83,7 @@ const GameMultiSelect: React.FC<GameMultiSelectProps> = ({
               <button
                 type="button"
                 onClick={() => onChange(allSelected ? [] : games.map((g) => g.id))}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-accent hover:text-accent font-medium"
               >
                 {allSelected ? 'Deselect All' : 'Select All'}
               </button>
@@ -107,7 +107,7 @@ const GameMultiSelect: React.FC<GameMultiSelectProps> = ({
                             onChange(selectedIds.filter((id) => id !== game.id));
                           }
                         }}
-                        className="h-4 w-4 text-blue-600 rounded border-neutral-300 focus:ring-blue-500 flex-shrink-0"
+                        className="h-4 w-4 text-accent rounded border-neutral-300 focus:ring-accent flex-shrink-0"
                       />
                       <span className="ml-3 text-sm text-neutral-900 truncate">
                         {gameLabel(game, teamName)}
@@ -117,7 +117,7 @@ const GameMultiSelect: React.FC<GameMultiSelectProps> = ({
                     <button
                       type="button"
                       onClick={() => onChange([game.id])}
-                      className="ml-3 flex-shrink-0 text-xs font-medium text-blue-600 hover:text-blue-700"
+                      className="ml-3 flex-shrink-0 text-xs font-medium text-accent hover:text-accent"
                     >
                       Only
                     </button>

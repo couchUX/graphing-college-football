@@ -87,7 +87,7 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
         <div className="relative">
           <Combobox.Input
             id={inputId}
-            className={`w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 ${inputRightPad} shadow-sm hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+            className={`w-full bg-white border border-neutral-300 rounded-lg px-4 py-2.5 ${inputRightPad} shadow-sm hover:border-neutral-400 focus:outline-none focus:border-accent focus:outline-none transition-colors`}
             displayValue={(team: Team | null) => team?.school || ''}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={placeholder}
@@ -144,7 +144,7 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
                   key={team.id}
                   className={({ active }) =>
                     `relative cursor-default select-none py-2 pl-3 pr-9 ${
-                      active ? 'bg-blue-100 text-blue-900' : 'text-neutral-900'
+                      active ? 'bg-accent-soft text-accent' : 'text-neutral-900'
                     }`
                   }
                   value={team}
@@ -155,7 +155,7 @@ const TeamPicker: React.FC<TeamPickerProps> = ({
                         {team.school}
                       </span>
                       {selected ? (
-                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-blue-600">
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-accent">
                           <Check className="h-4 w-4" aria-hidden="true" />
                         </span>
                       ) : null}
