@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Info, X } from 'lucide-react';
 import MainNav, { MainNavId } from './MainNav';
 import Toast from './Toast';
-import { useToast } from '../hooks/useToast';
+import { ToastContext, useToastState } from '../hooks/useToast';
 
 interface AppShellProps {
   current: MainNavId;
@@ -23,7 +23,8 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { message, isVisible, showToast, hideToast } = useToast();
+  const toast = useToastState();
+  const { showToast } = toast;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -83,6 +84,7 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
   );
 
   return (
+    <ToastContext.Provider value={toast}>
     <div className="flex min-h-screen flex-col bg-paper">
       {/* No bottom padding on the header itself — the nav tabs supply it, so
           the active tab's underline meets the masthead rule. */}
@@ -155,7 +157,13 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
         </div>
       </footer>
 
-      <Toast message={message} type="success" isVisible={isVisible} onClose={hideToast} />
+      <Toast
+        message={toast.message}
+        type="success"
+        isVisible={toast.isVisible}
+        nonce={toast.nonce}
+        onClose={toast.hideToast}
+      />
 
       {showInfoModal && (
         <div
@@ -290,6 +298,7 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
         </div>
       )}
     </div>
+    </ToastContext.Provider>
   );
 };
 

@@ -7,7 +7,6 @@ import { useToast } from '../hooks/useToast';
 import { track } from '../utils/analytics';
 import GameWaveChart from './GameWaveChart';
 import ChartCard from './ChartCard';
-import Toast from './Toast';
 import {
   createLineOptionsPlayNumberSRXR,
   createLineOptionsTeamPlay,
@@ -137,10 +136,10 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   rawApiData = [],
 }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
-  const { message: toastMessage, isVisible: showToast, showToast: notify, hideToast } = useToast();
+  const { showToast: notify } = useToast();
 
   // Player chart team filters, seeded from the URL so shared links keep them.
-  const initialTeamFilter =
+  const initialTeamFilter = () =>
     typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('playerTeam') || 'both'
       : 'both';
@@ -223,22 +222,24 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     return `${teams} • ${currentParams.year}`;
   })();
 
-  const gameUrl = (() => {
+  /** "See all charts" target. Player charts pass their own filter so the link
+   *  restores the view the embed shows, not whatever the rushers chart is on. */
+  const gameUrlFor = (teamFilter?: string) => {
     if (!currentParams) return 'https://graphingcollegefootball.com';
     const params = new URLSearchParams({ year: String(currentParams.year), team: currentParams.team });
     if (currentParams.gameId) params.set('gameId', String(currentParams.gameId));
     if (selectedTeamColor !== 'default') params.set('teamColor', selectedTeamColor);
     if (selectedOpponentColor !== 'default') params.set('opponentColor', selectedOpponentColor);
-    if (rushersTeamFilter !== 'both') params.set('playerTeam', rushersTeamFilter);
+    if (teamFilter && teamFilter !== 'both') params.set('playerTeam', teamFilter);
     return `https://graphingcollegefootball.com/?${params}`;
-  })();
+  };
 
   /**
    * Copy an embed for a chart. The generic generator serializes the exact data
    * and options the chart is rendered with, so embeds can't drift from the app
    * the way the old hand-maintained template did.
    */
-  const handleCopyEmbed = async (chart: ChartEntry) => {
+  const handleCopyEmbed = async (chart: ChartEntry & { filterValue?: string }) => {
     try {
       const embedCode = generateChartEmbed({
         chartType: chart.chartType,
@@ -246,9 +247,9 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
         options: chart.options,
         title: chart.title,
         subtitle: gameSubtitle,
-        sourceUrl: gameUrl,
+        sourceUrl: gameUrlFor(chart.filterValue),
         height: chart.height ?? CHART_HEIGHTS.DEFAULT_DESKTOP,
-        mobileHeight: chart.mobileHeight ?? CHART_HEIGHTS.DEFAULT_MOBILE,
+        mobileHeight: chart.mobileHeight ?? chart.height ?? CHART_HEIGHTS.DEFAULT_MOBILE,
         definitions: definitionsFor(chart.id),
       });
 
@@ -280,19 +281,20 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   const winProbabilityChart: ChartEntry = {
     id: 'win-probability',
     title: 'Win probability',
+    mobileHeight: CHART_HEIGHTS.DEFAULT_MOBILE,
     node: <Line data={winProbChartData as any} options={winProbabilityOptions} />,
     data: winProbChartData,
     options: winProbabilityOptions,
     chartType: 'line',
   };
 
-  const barChartData = {
+  const barChartData = useMemo(() => ({
     playType: createTeamVsOpponentBarData('playType'),
     quarter: createTeamVsOpponentBarData('quarter'),
     down: createTeamVsOpponentBarData('down'),
     redZone: createTeamVsOpponentBarData('redZone'),
     distance: createTeamVsOpponentBarData('distance'),
-  };
+  }), [createTeamVsOpponentBarData]);
 
   const teamChartSpecs: Omit<ChartEntry, 'node'>[] = [
     { id: 'overall-team-performance', title: 'Overall team performance', data: overallTeamData, options: barOptions, chartType: 'bar' },
@@ -314,6 +316,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
 
   const teamCharts: ChartEntry[] = teamChartSpecs.map(chart => ({
     ...chart,
+    mobileHeight: CHART_HEIGHTS.DEFAULT_MOBILE,
     node:
       chart.chartType === 'bar' ? (
         <Bar data={chart.data} options={chart.options} />
@@ -333,6 +336,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
       filterValue: rushersTeamFilter,
       onFilterChange: setRushersTeamFilter,
       height: CHART_HEIGHTS.PLAYER_RUSHERS,
+      mobileHeight: CHART_HEIGHTS.PLAYER_RUSHERS,
     },
     {
       id: 'top-passers',
@@ -341,6 +345,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
       filterValue: passersTeamFilter,
       onFilterChange: setPassersTeamFilter,
       height: CHART_HEIGHTS.PLAYER_PASSERS,
+      mobileHeight: CHART_HEIGHTS.PLAYER_PASSERS,
     },
     {
       id: 'top-receivers',
@@ -349,6 +354,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
       filterValue: receiversTeamFilter,
       onFilterChange: setReceiversTeamFilter,
       height: CHART_HEIGHTS.PLAYER_RECEIVERS,
+      mobileHeight: CHART_HEIGHTS.PLAYER_RECEIVERS,
     },
   ].map(chart => ({
     ...chart,
@@ -365,7 +371,6 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
 
   return (
     <>
-      <Toast message={toastMessage} type="success" isVisible={showToast} onClose={hideToast} />
 
       <div>
         <section>
@@ -384,6 +389,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
 
           <ChartCard
             title={winProbabilityChart.title}
+            mobileHeight={winProbabilityChart.mobileHeight}
             onCopyEmbed={hasWinProbability ? () => handleCopyEmbed(winProbabilityChart) : undefined}
             isCopied={copiedChart === winProbabilityChart.id}
           >
@@ -408,6 +414,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
               <ChartCard
                 key={chart.id}
                 title={chart.title}
+                mobileHeight={chart.mobileHeight}
                 onCopyEmbed={() => handleCopyEmbed(chart)}
                 isCopied={copiedChart === chart.id}
               >
@@ -427,6 +434,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
                   key={chart.id}
                   title={chart.title}
                   height={chart.height}
+                  mobileHeight={chart.mobileHeight}
                   onCopyEmbed={() => handleCopyEmbed(chart)}
                   isCopied={copiedChart === chart.id}
                   headerControl={
@@ -449,6 +457,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
                 key={chart.id}
                 title={chart.title}
                 height={chart.height}
+                mobileHeight={chart.mobileHeight}
                 onCopyEmbed={() => handleCopyEmbed(chart)}
                 isCopied={copiedChart === chart.id}
                 headerControl={

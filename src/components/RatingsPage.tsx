@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen, Copy, Check } from 'lucide-react';
-import Toast from './Toast';
 import { MetaTags } from './MetaTags';
 import AppShell from './AppShell';
+import { useToast } from '../hooks/useToast';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
 type SortDirection = 'asc' | 'desc';
@@ -20,8 +20,7 @@ const RatingsPage: React.FC = () => {
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [expandedTop25, setExpandedTop25] = useState<boolean>(false);
   const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState<boolean>(false);
-  const [toastMessage, setToastMessage] = useState<string>('');
+  const { showToast: notify } = useToast();
 
   // Generate year options (2005-2025)
   const yearOptions = Array.from({ length: 21 }, (_, i) => 2025 - i);
@@ -408,17 +407,14 @@ const RatingsPage: React.FC = () => {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(embedHTML);
         setCopiedEmbedKey(embedKey);
-        setToastMessage(`Embed code copied for ${toastLabel}`);
-        setShowToast(true);
+        notify(`Embed code copied for ${toastLabel}`);
       } else {
         console.warn('Clipboard API not available in this browser.');
-        setToastMessage('Clipboard not available in this browser');
-        setShowToast(true);
+        notify('Clipboard not available in this browser');
       }
     } catch (err) {
       console.error('Failed to copy embed code:', err);
-      setToastMessage('Failed to copy embed code. Please try again.');
-      setShowToast(true);
+      notify('Failed to copy embed code. Please try again.');
     }
   };
 
@@ -1130,12 +1126,6 @@ const RatingsPage: React.FC = () => {
           )}
         </div>
 
-        <Toast
-          message={toastMessage}
-          type="success"
-          isVisible={showToast}
-          onClose={() => setShowToast(false)}
-        />
       </AppShell>
     </>
   );

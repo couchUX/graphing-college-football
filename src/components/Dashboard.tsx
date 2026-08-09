@@ -5,7 +5,6 @@ import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
 import AppShell from './AppShell';
 import { MetricRow, Metric } from './MetricCard';
-import Toast from './Toast';
 import { MetaTags } from './MetaTags';
 import { PlayData } from '../types';
 import { fetchPlayByPlayData, fetchWinProbabilityData } from '../services/api';
@@ -40,7 +39,7 @@ const Dashboard: React.FC = () => {
   const [selectedOpponentColor, setSelectedOpponentColor] = useState<string>('default');
   const [currentParams, setCurrentParams] = useState<GameParams | null>(null);
 
-  const { message: toastMessage, isVisible: showToast, showToast: notify, hideToast } = useToast();
+  const { showToast: notify } = useToast();
 
   // Guards against a slower earlier request painting over a newer one when the
   // user switches games quickly.
@@ -57,8 +56,17 @@ const Dashboard: React.FC = () => {
     opponentTeam
   );
 
-  const teamColors = currentParams ? getDisplayTeamColors(currentParams.team, selectedTeamColor) : null;
-  const opponentColors = getDisplayTeamColors(opponentTeam, selectedOpponentColor);
+  // getDisplayTeamColors builds a fresh object for custom colors, so these are
+  // memoized: otherwise the accent effect below re-ran on every render and
+  // rewrote a document-level CSS variable with 16 canvases mounted.
+  const teamColors = useMemo(
+    () => (currentParams ? getDisplayTeamColors(currentParams.team, selectedTeamColor) : null),
+    [currentParams, selectedTeamColor]
+  );
+  const opponentColors = useMemo(
+    () => getDisplayTeamColors(opponentTeam, selectedOpponentColor),
+    [opponentTeam, selectedOpponentColor]
+  );
 
   // The selected team's color becomes the page's editorial accent.
   useEffect(() => {
@@ -313,19 +321,6 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Charts */}
-        {hasGame && (
-          <ChartsGrid
-            plays={plays}
-            team={currentParams.team}
-            selectedTeamColor={selectedTeamColor}
-            selectedOpponentColor={selectedOpponentColor}
-            currentParams={currentParams}
-            winProbabilityData={winProbabilityData}
-            rawApiData={rawApiData}
-          />
-        )}
-
         {/* Box score */}
         {boxScoreData && (
           <div className="mt-8">
@@ -357,6 +352,19 @@ const Dashboard: React.FC = () => {
               {boxScoreError}
             </p>
           </div>
+        )}
+
+        {/* Charts */}
+        {hasGame && (
+          <ChartsGrid
+            plays={plays}
+            team={currentParams.team}
+            selectedTeamColor={selectedTeamColor}
+            selectedOpponentColor={selectedOpponentColor}
+            currentParams={currentParams}
+            winProbabilityData={winProbabilityData}
+            rawApiData={rawApiData}
+          />
         )}
 
         {/* Reference material */}
@@ -688,7 +696,6 @@ const Dashboard: React.FC = () => {
         )}
       </AppShell>
 
-      <Toast message={toastMessage} type="success" isVisible={showToast} onClose={hideToast} />
     </>
   );
 };

@@ -4,9 +4,9 @@ import { MetaTags } from './MetaTags';
 import DiscoverCard from './DiscoverCard';
 import AppShell from './AppShell';
 import SubTabs, { SubTabItem } from './SubTabs';
-import Toast from './Toast';
 import { detectors } from '../detectors/registry';
 import type { DetectorFilters } from '../detectors/types';
+import { useToast } from '../hooks/useToast';
 
 type SubTab = 'season-recap' | 'weekly' | 'multi-season';
 
@@ -35,21 +35,10 @@ const DiscoverPage: React.FC = () => {
   const [tab, setTab] = useState<SubTab>('season-recap');
   const [year, setYear] = useState<number>(defaultRecapYear());
   const [conference, setConference] = useState<string>('all');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean }>({
-    message: '',
-    type: 'success',
-    isVisible: false,
-  });
+  const { showToast } = useToast();
 
-  const handleCopySuccess = useCallback((message: string) => {
-    setToast({ message, type: 'success', isVisible: true });
-  }, []);
-  const handleCopyError = useCallback((message: string) => {
-    setToast({ message, type: 'error', isVisible: true });
-  }, []);
-  const closeToast = useCallback(() => {
-    setToast(t => ({ ...t, isVisible: false }));
-  }, []);
+  const handleCopySuccess = useCallback((message: string) => showToast(message), [showToast]);
+  const handleCopyError = useCallback((message: string) => showToast(message), [showToast]);
 
   const yearOptions = useMemo(
     () => Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i),
@@ -168,12 +157,6 @@ const DiscoverPage: React.FC = () => {
             </p>
           </div>
 
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          isVisible={toast.isVisible}
-          onClose={closeToast}
-        />
       </AppShell>
     </>
   );

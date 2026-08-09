@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { isRushPlayType } from '../utils/playType';
 import { PlayData } from '../types';
 import { getDisplayTeamColors, getDisplayTeamColorsForPlayerChart } from '../utils/displayTeamColors';
 import { calculatePlayerStats } from '../utils/metrics';
@@ -177,14 +178,14 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           label: `${team} Rush SR`,
           borderColor: teamColors.explosive,
           backgroundColor: teamPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+            const isRush = isRushPlayType(play.playType);
             if (!isRush) return 'rgba(255,255,255,0.9)';
             return getPointColors([play], teamColors)[0];
           }),
           borderWidth: 2,
           pointStyle: 'circle',
           pointRadius: teamPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+            const isRush = isRushPlayType(play.playType);
             return isRush ? 4 : 0;
           }),
           pointBorderWidth: 1,
@@ -234,14 +235,14 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           label: `${opponentTeam} Rush SR`,
           borderColor: opponentColors.explosive,
           backgroundColor: opponentPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+            const isRush = isRushPlayType(play.playType);
             if (!isRush) return 'rgba(255,255,255,0.9)';
             return getPointColors([play], opponentColors)[0];
           }),
           borderWidth: 2,
           pointStyle: 'circle',
           pointRadius: opponentPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+            const isRush = isRushPlayType(play.playType);
             return isRush ? 4 : 0;
           }),
           pointBorderWidth: 1,
@@ -296,11 +297,11 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
             return getPointColors([play], teamColors)[0];
           }),
           pointStyle: teamPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+            const isRush = isRushPlayType(play.playType);
             return isRush ? 'circle' : 'triangle';
           }),
           pointRadius: teamPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+            const isRush = isRushPlayType(play.playType);
             return isRush ? 4 : 5.5;
           }),
           pointBorderWidth: 1,
@@ -331,11 +332,11 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
             return getPointColors([play], opponentColors)[0];
           }),
           pointStyle: opponentPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+            const isRush = isRushPlayType(play.playType);
             return isRush ? 'circle' : 'triangle';
           }),
           pointRadius: opponentPlays.map(play => {
-            const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+            const isRush = isRushPlayType(play.playType);
             return isRush ? 4 : 5.5;
           }),
           pointBorderWidth: 1,
@@ -348,9 +349,9 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     };
 
     // 7 & 8. Play Maps - plays are already sorted properly from data processing
-    const teamRushPlays = teamPlays.filter(p => p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run'));
+    const teamRushPlays = teamPlays.filter(p => isRushPlayType(p.playType));
     const teamPassPlays = teamPlays.filter(p => p.playType?.toLowerCase().includes('pass') || p.playType?.toLowerCase().includes('sack') || p.playType?.toLowerCase().includes('interception'));
-    const oppRushPlays = opponentPlays.filter(p => p.playType?.toLowerCase().includes('rush') || p.playType?.toLowerCase().includes('run'));
+    const oppRushPlays = opponentPlays.filter(p => isRushPlayType(p.playType));
     const oppPassPlays = opponentPlays.filter(p => p.playType?.toLowerCase().includes('pass') || p.playType?.toLowerCase().includes('sack') || p.playType?.toLowerCase().includes('interception'));
 
     // Calculate Y-axis bounds with defaults
