@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle } from 'lucide-react';
 import { Line, Bar } from 'react-chartjs-2';
 import type { ChartData } from 'chart.js';
 import { PlayData } from '../types';
@@ -9,6 +8,7 @@ import { useToast } from '../hooks/useToast';
 import { track } from '../utils/analytics';
 import GameWaveChart from './GameWaveChart';
 import ChartCard from './ChartCard';
+import ChartUnavailable from './ChartUnavailable';
 import {
   createLineOptionsPlayNumberSRXR,
   createLineOptionsTeamPlay,
@@ -53,6 +53,9 @@ interface ChartEntry {
   chartType: 'bar' | 'line';
   height?: number;
   mobileHeight?: number;
+  /** When set, the card shows this notice instead of the chart and hides its
+   *  embed button — the data doesn't exist for this game. */
+  unavailable?: { title: string; note: string };
 }
 
 const SP_LINK =
@@ -216,6 +219,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     allReceivers,
     hasPassingDepth,
     passingCoverageNote,
+    passingMissingNote,
     passDepthData,
     passerSplits,
     receiverSplits,
@@ -346,22 +350,31 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     { id: 'down-bars', title: 'SR and XR by down', data: barChartData.down, options: barOptions, chartType: 'bar' },
     { id: 'red-zone-bars', title: 'SR and XR by red zone', data: barChartData.redZone, options: barOptions, chartType: 'bar' },
     { id: 'distance-bars', title: 'SR and XR by distance to go', data: barChartData.distance, options: barOptions, chartType: 'bar' },
-    // Only when enough attempts carry air yards — see the coverage floor in
-    // utils/passing.ts. Older seasons have no charting data to split on.
-    ...(hasPassingDepth && passDepthData
-      ? [{ id: 'pass-depth-bars', title: 'SR and XR by pass depth', data: passDepthData, options: barOptions, chartType: 'bar' as const }]
-      : []),
+    // Kept in the grid either way: when the depth data is missing the card
+    // explains why, the same as win probability above. A card that silently
+    // disappears reads as a bug.
+    {
+      id: 'pass-depth-bars',
+      title: 'SR and XR by pass depth',
+      data: passDepthData ?? { labels: [], datasets: [] },
+      options: barOptions,
+      chartType: 'bar' as const,
+      unavailable: hasPassingDepth
+        ? undefined
+        : { title: 'Pass depth unavailable for this game', note: passingMissingNote },
+    },
   ];
 
   const teamCharts: ChartEntry[] = teamChartSpecs.map(chart => ({
     ...chart,
     mobileHeight: CHART_HEIGHTS.DEFAULT_MOBILE,
-    node:
-      chart.chartType === 'bar' ? (
-        <Bar data={chart.data} options={chart.options} />
-      ) : (
-        <Line data={chart.data} options={chart.options} />
-      ),
+    node: chart.unavailable ? (
+      <ChartUnavailable title={chart.unavailable.title} note={chart.unavailable.note} />
+    ) : chart.chartType === 'bar' ? (
+      <Bar data={chart.data} options={chart.options} />
+    ) : (
+      <Line data={chart.data} options={chart.options} />
+    ),
   }));
 
   const playerCharts: (ChartEntry & {
@@ -403,37 +416,43 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   }));
 
   /** Air yards vs. yards after catch, per passer and per target. Purely from
-   *  the passing endpoint, so they only appear when the coverage floor is met. */
-  const depthCharts: (ChartEntry & { filterValue: string; onFilterChange: (value: string) => void })[] =
-    hasPassingDepth
-      ? [
-          {
-            id: 'passer-depth-yac',
-            title: 'Passer depth and YAC',
-            data: createDepthYacData(filteredPlayers(passerSplits, passersTeamFilter)),
-            filterValue: passersTeamFilter,
-            onFilterChange: setPassersTeamFilter,
-            height: CHART_HEIGHTS.PLAYER_PASSERS,
-            mobileHeight: CHART_HEIGHTS.PLAYER_PASSERS,
-          },
-          {
-            id: 'receiver-depth-yac',
-            title: 'Receiver depth and YAC',
-            data: createDepthYacData(filteredPlayers(receiverSplits, receiversTeamFilter)),
-            filterValue: receiversTeamFilter,
-            onFilterChange: setReceiversTeamFilter,
-            height: CHART_HEIGHTS.PLAYER_RECEIVERS,
-            mobileHeight: CHART_HEIGHTS.PLAYER_RECEIVERS,
-          },
-        ].map(chart => ({
-          ...chart,
-          options: depthYacOptions,
-          chartType: 'bar' as const,
-          // The dataset carries a `meta` array the tooltip reads, which isn't
-          // part of Chart.js's own data shape.
-          node: <Bar data={chart.data as unknown as ChartData<'bar'>} options={depthYacOptions} />,
-        }))
-      : [];
+   *  the passing endpoint, so when the coverage floor isn't met the cards stay
+   *  and explain the gap rather than disappearing. */
+  const depthCharts: (ChartEntry & { filterValue: string; onFilterChange: (value: string) => void })[] = [
+    {
+      id: 'passer-depth-yac',
+      title: 'Passer depth and YAC',
+      data: hasPassingDepth ? createDepthYacData(filteredPlayers(passerSplits, passersTeamFilter)) : null,
+      filterValue: passersTeamFilter,
+      onFilterChange: setPassersTeamFilter,
+      height: CHART_HEIGHTS.PLAYER_PASSERS,
+      mobileHeight: CHART_HEIGHTS.PLAYER_PASSERS,
+    },
+    {
+      id: 'receiver-depth-yac',
+      title: 'Receiver depth and YAC',
+      data: hasPassingDepth ? createDepthYacData(filteredPlayers(receiverSplits, receiversTeamFilter)) : null,
+      filterValue: receiversTeamFilter,
+      onFilterChange: setReceiversTeamFilter,
+      height: CHART_HEIGHTS.PLAYER_RECEIVERS,
+      mobileHeight: CHART_HEIGHTS.PLAYER_RECEIVERS,
+    },
+  ].map(chart => ({
+    ...chart,
+    data: chart.data ?? { labels: [], datasets: [] },
+    options: depthYacOptions,
+    chartType: 'bar' as const,
+    unavailable: hasPassingDepth
+      ? undefined
+      : { title: `${chart.title} unavailable`, note: passingMissingNote },
+    node: hasPassingDepth ? (
+      // The dataset carries a `meta` array the tooltip reads, which isn't part
+      // of Chart.js's own data shape.
+      <Bar data={chart.data as unknown as ChartData<'bar'>} options={depthYacOptions} />
+    ) : (
+      <ChartUnavailable title={`${chart.title} unavailable`} note={passingMissingNote} />
+    ),
+  }));
 
   const sectionHeading = (text: string) => (
     <h2 className="rule-section headline mb-6 text-[22px] text-ink">
@@ -468,13 +487,10 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
             {hasWinProbability ? (
               winProbabilityChart.node
             ) : (
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <AlertCircle className="mb-3 h-8 w-8 text-neutral-400" />
-                <p className="headline text-[18px] font-bold text-ink">
-                  Win probability unavailable for this game
-                </p>
-                <p className="mt-1 text-sm text-byline">This data may not be available for all games</p>
-              </div>
+              <ChartUnavailable
+                title="Win probability unavailable for this game"
+                note="This data may not be available for all games"
+              />
             )}
           </ChartCard>
         </section>
@@ -487,7 +503,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
                 key={chart.id}
                 title={chart.title}
                 mobileHeight={chart.mobileHeight}
-                onCopyEmbed={() => handleCopyEmbed(chart)}
+                onCopyEmbed={chart.unavailable ? undefined : () => handleCopyEmbed(chart)}
                 isCopied={copiedChart === chart.id}
               >
                 {chart.node}
@@ -556,19 +572,21 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
                 <ChartCard
                   key={chart.id}
                   title={chart.title}
-                  subtitle={passingCoverageNote}
+                  subtitle={chart.unavailable ? undefined : passingCoverageNote}
                   height={chart.height}
                   mobileHeight={chart.mobileHeight}
-                  onCopyEmbed={() => handleCopyEmbed(chart)}
+                  onCopyEmbed={chart.unavailable ? undefined : () => handleCopyEmbed(chart)}
                   isCopied={copiedChart === chart.id}
                   headerControl={
-                    <TeamFilterDropdown
-                      value={chart.filterValue}
-                      onChange={chart.onFilterChange}
-                      teamName={selectedTeam}
-                      opponentName={opponentTeam}
-                      label={`Filter ${chart.title.toLowerCase()} by team`}
-                    />
+                    chart.unavailable ? undefined : (
+                      <TeamFilterDropdown
+                        value={chart.filterValue}
+                        onChange={chart.onFilterChange}
+                        teamName={selectedTeam}
+                        opponentName={opponentTeam}
+                        label={`Filter ${chart.title.toLowerCase()} by team`}
+                      />
+                    )
                   }
                 >
                   {chart.node}

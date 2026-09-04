@@ -14,6 +14,7 @@ import {
   aggregateReceivers,
   meetsCoverageFloor,
   describeCoverage,
+  explainMissingCoverage,
   PassPlay,
 } from '../utils/passing';
 import { createDepthBarData, createDepthYacData } from '../utils/passingCharts';
@@ -447,6 +448,7 @@ export const useSeasonChartData = (
     const { rows: passRows, coverage: passingCoverage } = joinPassingToPlays(allSeasonPlays, passingPlays);
     const hasPassingDepth = meetsCoverageFloor(passingCoverage);
     const passingCoverageNote = describeCoverage(passingCoverage);
+    const passingMissingNote = explainMissingCoverage(passingCoverage);
 
     const teamPassRows = passRows.filter((r: PassPlay) => r.offense === team);
     const opponentPassRows = passRows.filter((r: PassPlay) => r.offense !== team);
@@ -475,6 +477,7 @@ export const useSeasonChartData = (
       hasPassingDepth,
       passingCoverage,
       passingCoverageNote,
+      passingMissingNote,
       passDepth,
       passerDepthYac,
       receiverDepthYac,

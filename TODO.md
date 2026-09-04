@@ -8,16 +8,16 @@ sessions (not just in a chat). Also mirrored in the PR description.
 - **Run the passing coverage check.** `node scripts/passing-coverage.mjs` with a
   real `CFB_API_KEY`, then paste the table into the status block at the top of
   [`docs/plan/PASSING_API.md`](./docs/plan/PASSING_API.md). Until that runs we
-  don't know how far back air yards and target location actually go; the charts
-  hide themselves below 60% coverage, so a thin season shows nothing rather than
-  something wrong, but "shows nothing" is worth knowing about in advance.
+  don't know how far back air yards and target location actually go. Below 60%
+  coverage the charts show a notice instead of a chart, so a thin season is
+  never misleading — but knowing which seasons are thin is still worth having.
 
-- **Decide whether `Receiver efficiency` should count targets.** It still counts
-  catches, computed from play text, exactly as `Top receivers` did. The passing
-  endpoint attributes incompletions and interceptions to the intended receiver,
-  which is better football, but it changes the numbers on an existing chart —
-  Alex's call, not a silent migration. Same question for keying the efficiency
-  charts on passer/target IDs instead of the play-text regex.
+- **Decided: the passing data stays in its own charts.** The existing efficiency
+  charts keep computing from play text and keep their current numbers, because
+  depth data won't be there for every game and a chart that changes definition
+  depending on the season is worse than two honest charts. When the data is
+  missing the new charts keep their cards and explain the gap, the same way the
+  win probability chart does.
 
 - **`Top rushers` is now the odd name out** next to `Passer efficiency` and
   `Receiver efficiency`. Renaming it belongs with the `/rushing` endpoints,

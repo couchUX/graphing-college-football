@@ -20,6 +20,8 @@
 >   "Passing depth" section with `Passer depth and YAC` and
 >   `Receiver depth and YAC`. `Top passers` → `Passer efficiency`,
 >   `Top receivers` → `Receiver efficiency`.
+> - `components/ChartUnavailable.tsx` — the "no data for this game" placeholder,
+>   lifted out of the win probability chart so all four charts share it.
 > - **Season trends**: the same three charts, the new ones through `ChartCard`
 >   and the generic embed engine.
 > - `scripts/passing-coverage.mjs` — the coverage check, formerly "Phase 0".
@@ -29,9 +31,10 @@
 > rendering all three charts as standalone embeds in a browser.
 >
 > Deliberately not done: the efficiency charts still compute from play text and
-> show the same numbers as before — only their titles changed. Redefining
-> `Receiver efficiency` around targets is a numbers change and is Alex's call.
-> `Top rushers` keeps its name, since rushing data isn't wired up yet.
+> show the same numbers as before — only their titles changed. Per Alex, the
+> passing data stays in its own discrete charts rather than feeding the existing
+> ones, since it won't be there for every game. `Top rushers` keeps its name,
+> since rushing data isn't wired up yet.
 
 ---
 
@@ -156,6 +159,17 @@ Wrap each in `cachedFetch` with the `games:` precedent: `passing:plays:{year}:{t
 at a 1-hour TTL in season (24 h is fine for completed seasons, but one TTL keeps
 it simple). A full team-season of attempts is on the order of 400–500 rows, so
 localStorage cost is comparable to a cached schedule.
+
+**When the data isn't there.** Every passing chart keeps its card and shows the
+win-probability placeholder (`ChartUnavailable`) explaining the gap, rather than
+vanishing — a card that disappears reads as a bug. The notice distinguishes two
+cases: no charted attempts at all (usually a season predating the charting) from
+partial coverage ("only 12 of 40 pass attempts carry depth data"). The embed
+button, subtitle and team filter are all suppressed in that state, since there
+is nothing to embed or filter. Team vs. Team reuses the trends grid but never
+fetches passing data, so it shows no passing cards at all — an absent coverage
+object means "this view has no passing charts", which is different from "the
+data is missing".
 
 **Join:** a new `src/utils/passing.ts`:
 
