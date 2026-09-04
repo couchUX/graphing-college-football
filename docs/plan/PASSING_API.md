@@ -1,11 +1,37 @@
 # Passing API — Evaluation & Integration Plan
 
-> **Status: proposal** (2026-09-04, on `claude/passing-api-integration-2bqnoq`).
-> Nothing is built yet. The plan has a Phase 0 spike that must run against a
-> live `CFB_API_KEY` before any chart work starts — this session could not reach
-> `api.collegefootballdata.com`, so every schema fact below comes from the
-> published `cfbd` client packages (npm and PyPI `5.26.0`, released 2026-09-03),
-> not from live responses. Coverage by season is the big unknown.
+> **Status: Phase 1 built** (2026-09-04, on `claude/passing-api-integration-2bqnoq`),
+> pending a preview-deploy check against live data. Every schema fact below comes
+> from the published `cfbd` client packages (npm and PyPI `5.26.0`, released
+> 2026-09-03) rather than live responses — this session could not reach
+> `api.collegefootballdata.com`. **Coverage by season is still unverified**: run
+> `node scripts/passing-coverage.mjs` with a real key and record the numbers
+> here. Until then the charts are self-guarding, not proven.
+>
+> What shipped in Phase 1:
+>
+> - `services/passingApi.ts` — typed fetchers for `/passing/plays`,
+>   `/passing/teams/games` and `/passing/players/games`, cached for an hour.
+> - `utils/passing.ts` — the play-ID join, the coverage object and the 60%
+>   floor, dead-ball exclusion, and passer/target aggregation.
+> - `utils/passingCharts.ts` + `passingChartOptions.ts` — chart data and the one
+>   new options factory. No protected chart file was edited.
+> - **Games**: `SR and XR by pass depth` after the distance bars, plus a new
+>   "Passing depth" section with `Passer depth and YAC` and
+>   `Receiver depth and YAC`. `Top passers` → `Passer efficiency`,
+>   `Top receivers` → `Receiver efficiency`.
+> - **Season trends**: the same three charts, the new ones through `ChartCard`
+>   and the generic embed engine.
+> - `scripts/passing-coverage.mjs` — the coverage check, formerly "Phase 0".
+>
+> Verified by 23 assertions over fixture plays and attempts (join, dead-ball
+> exclusion, depth split, per-player splits, the coverage floor) and by
+> rendering all three charts as standalone embeds in a browser.
+>
+> Deliberately not done: the efficiency charts still compute from play text and
+> show the same numbers as before — only their titles changed. Redefining
+> `Receiver efficiency` around targets is a numbers change and is Alex's call.
+> `Top rushers` keeps its name, since rushing data isn't wired up yet.
 
 ---
 
@@ -319,14 +345,19 @@ Deliberately not proposed: any dual-axis chart (aDOT + completion rate), a QB
 
 ## Phasing
 
-**Phase 0 — Spike (half a day, needs a live key).** A script under
-`scripts/` that pulls `/passing/plays?year=&team=` for three seasons and two
-teams (say 2023–2025, Alabama and a Group of Five team) and reports, per season:
-attempts, `parseStatus` split, share with `airYards`, `passLocation`,
-`yardsAfterCatch`; whether sacks appear; whether `passer` names line up with
-what `extractPlayerNames` produces; FCS behaviour with and without
-`classification=fcs`; response bytes. **Gate:** ≥ 80% air-yards coverage for
-2024 and 2025. Record the numbers at the top of this doc.
+**Phase 0 — Coverage check (shipped as `scripts/passing-coverage.mjs`).** Run
+`node scripts/passing-coverage.mjs` with a real key — it reads `CFB_API_KEY`
+from the environment or `.env` and prints, per season and team: real attempts
+(spikes, throwaways and grounding excluded), the share carrying `airYards`,
+`passLocation` and `yardsAfterCatch`, the `parseStatus` split, distinct passer
+and target IDs, and response size. **Gate:** ≥ 80% air-yards coverage for 2024
+and 2025 for the charts to be worth trusting; below the 60% floor in
+`utils/passing.ts` they hide themselves automatically. Record the numbers at
+the top of this doc.
+
+This was scoped as a blocking half-day spike. It isn't one: the coverage floor
+means a thin season degrades to no chart rather than a wrong chart, so the
+build went ahead and the check is a thirty-second run on a machine with a key.
 
 **Phase 1 — Plumbing + Games (A, B, C).** `passingApi.ts`, types, `passing.ts`
 join, cache keys, `definitionsFor` entries, embeds through the generic engine,

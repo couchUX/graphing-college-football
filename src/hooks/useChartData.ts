@@ -3,6 +3,16 @@ import { isRushPlayType } from '../utils/playType';
 import { PlayData } from '../types';
 import { getDisplayTeamColors, getDisplayTeamColorsForPlayerChart } from '../utils/displayTeamColors';
 import { calculatePlayerStats } from '../utils/metrics';
+import { PassingPlay } from '../services/passingApi';
+import {
+  joinPassingToPlays,
+  aggregatePassers,
+  aggregateReceivers,
+  combineSides,
+  meetsCoverageFloor,
+  describeCoverage,
+} from '../utils/passing';
+import { createDepthBarData, createDepthYacData } from '../utils/passingCharts';
 import {
   getPointColors,
   createQuarterGridlines,
@@ -17,7 +27,7 @@ import {
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
 
-export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default', realWinProbabilityData: any[] = [], rawApiData: any[] = []) => {
+export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default', realWinProbabilityData: any[] = [], rawApiData: any[] = [], passingPlays: PassingPlay[] = []) => {
   return useMemo(() => {
     // Get opponent team
     const opponentTeam = plays.find(p => p.offense !== team && p.defense !== team)?.offense || 
@@ -577,6 +587,38 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
       return b.total - a.total;
     });
 
+    // Passing charts. The endpoint carries depth and yards-after-catch but no
+    // success or explosiveness, so the join hands each attempt its play's
+    // verdict; charts stay hidden when too few attempts are charted.
+    const { rows: passRows, coverage: passingCoverage } = joinPassingToPlays(plays, passingPlays);
+    const hasPassingDepth = meetsCoverageFloor(passingCoverage);
+    const passingCoverageNote = describeCoverage(passingCoverage);
+
+    const teamPassRows = passRows.filter(r => r.offense === team);
+    const opponentPassRows = passRows.filter(r => r.offense === opponentTeam);
+
+    const passDepthData = hasPassingDepth
+      ? createDepthBarData(teamPassRows, opponentPassRows, team, opponentTeam, teamColors, opponentColors)
+      : null;
+
+    const withColors = <T,>(rows: T[], colors: unknown) => rows.map(row => ({ ...row, teamColors: colors }));
+
+    const passerSplits = hasPassingDepth
+      ? combineSides(
+          withColors(aggregatePassers(passRows, team), teamPlayerColors),
+          withColors(aggregatePassers(passRows, opponentTeam), opponentPlayerColors),
+          team
+        )
+      : [];
+
+    const receiverSplits = hasPassingDepth
+      ? combineSides(
+          withColors(aggregateReceivers(passRows, team), teamPlayerColors),
+          withColors(aggregateReceivers(passRows, opponentTeam), opponentPlayerColors),
+          team
+        )
+      : [];
+
     return {
       team,
       opponentTeam,
@@ -584,7 +626,16 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
       opponentColors,
       teamPlays,
       opponentPlays,
-      
+
+      // Passing (depth / YAC)
+      hasPassingDepth,
+      passingCoverage,
+      passingCoverageNote,
+      passDepthData,
+      passerSplits,
+      receiverSplits,
+      createDepthYacData,
+
       // Chart data
       overallTeamData,
       teamLinesData,
@@ -629,5 +680,5 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         rawApiData // Pass raw API data with playId and quarter info for quarter gridlines
       )
     };
-  }, [plays, team, selectedTeamColor, selectedOpponentColor, realWinProbabilityData, rawApiData]);
+  }, [plays, team, selectedTeamColor, selectedOpponentColor, realWinProbabilityData, rawApiData, passingPlays]);
 };

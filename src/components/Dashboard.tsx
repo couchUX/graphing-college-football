@@ -8,6 +8,7 @@ import { MetricRow, Metric } from './MetricCard';
 import { MetaTags } from './MetaTags';
 import { PlayData } from '../types';
 import { fetchPlayByPlayData, fetchWinProbabilityData } from '../services/api';
+import { fetchPassingPlays, PassingPlay } from '../services/passingApi';
 import { processPlayData } from '../utils/metrics';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { applyAccent } from '../utils/accent';
@@ -30,6 +31,7 @@ const Dashboard: React.FC = () => {
   const [plays, setPlays] = useState<PlayData[]>([]);
   const [rawApiData, setRawApiData] = useState<Record<string, any>[]>([]);
   const [winProbabilityData, setWinProbabilityData] = useState<Record<string, any>[]>([]);
+  const [passingPlays, setPassingPlays] = useState<PassingPlay[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showAllPlays, setShowAllPlays] = useState<boolean>(false);
@@ -165,14 +167,23 @@ const Dashboard: React.FC = () => {
     setPlays([]);
     setRawApiData([]);
     setWinProbabilityData([]);
+    setPassingPlays([]);
 
     const gameId = new URLSearchParams(window.location.search).get('gameId');
     setCurrentParams({ ...params, gameId: gameId || undefined });
 
     try {
-      const [apiPlays, winProbData] = await Promise.all([
+      // Passing data is a bonus, not a dependency: an older season may have no
+      // charted attempts at all, and the rest of the page must still render.
+      const [apiPlays, winProbData, passes] = await Promise.all([
         fetchPlayByPlayData({ ...params, gameId: gameId || undefined }),
         gameId ? fetchWinProbabilityData(gameId) : Promise.resolve([]),
+        fetchPassingPlays({ year: params.year, team: params.team, gameId: gameId || undefined }).catch(
+          (err) => {
+            console.warn('Passing data unavailable for this game:', err);
+            return [] as PassingPlay[];
+          }
+        ),
       ]);
 
       // A newer request started while this one was in flight — drop the result.
@@ -180,6 +191,7 @@ const Dashboard: React.FC = () => {
 
       setRawApiData(apiPlays);
       setWinProbabilityData(winProbData);
+      setPassingPlays(passes);
       setPlays(processPlayData(apiPlays));
     } catch (err) {
       if (requestId !== requestRef.current) return;
@@ -187,6 +199,7 @@ const Dashboard: React.FC = () => {
       setPlays([]);
       setRawApiData([]);
       setWinProbabilityData([]);
+      setPassingPlays([]);
       console.error('Error loading data:', err);
     } finally {
       if (requestId === requestRef.current) setIsLoading(false);
@@ -364,6 +377,7 @@ const Dashboard: React.FC = () => {
             currentParams={currentParams}
             winProbabilityData={winProbabilityData}
             rawApiData={rawApiData}
+            passingPlays={passingPlays}
           />
         )}
 

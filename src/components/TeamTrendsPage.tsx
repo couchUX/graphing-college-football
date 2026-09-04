@@ -9,6 +9,7 @@ import { PlayData } from '../types';
 import { TeamGame, ApiPlayData } from '../services/api';
 import { Game as BoxScoreGame } from '../services/boxScoreApi';
 import { fetchSeasonPlayByPlayData, fetchSeasonBoxScores } from '../services/seasonApi';
+import { fetchPassingPlays, PassingPlay } from '../services/passingApi';
 import { processPlayData } from '../utils/metrics';
 import { useSeasonChartData } from '../hooks/useSeasonChartData';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
@@ -61,6 +62,7 @@ const TeamTrendsPage: React.FC = () => {
     selectedGameIds: number[];
   } | null>(null);
   const [copiedPlayerChart, setCopiedPlayerChart] = useState<string | null>(null);
+  const [passingPlays, setPassingPlays] = useState<PassingPlay[]>([]);
 
   const handleFetchSeasonData = async (params: {
     year: number;
@@ -72,6 +74,7 @@ const TeamTrendsPage: React.FC = () => {
     setLoadingProgress({ current: 0, total: 0 });
     setBoxScoreProgress({ current: 0, total: 0 });
     setCurrentParams(params);
+    setPassingPlays([]);
 
     try {
       // Fetch season data with progress tracking
@@ -94,6 +97,18 @@ const TeamTrendsPage: React.FC = () => {
       setAllSeasonPlays(processedPlays);
       setPerGamePlays(processedPerGamePlays);
       setFailedGames(result.failedGames);
+
+      // The passing endpoint returns a whole team-season in one request, so
+      // this needs no fan-out — filter to the games actually selected instead.
+      // It's supplementary: a failure here leaves every other chart intact.
+      try {
+        const selectedIds = new Set(result.games.map(g => g.id));
+        const seasonPasses = await fetchPassingPlays({ year: params.year, team: params.team });
+        setPassingPlays(seasonPasses.filter(pass => selectedIds.has(pass.gameId)));
+      } catch (passErr) {
+        console.warn('Passing data unavailable for this season:', passErr);
+        setPassingPlays([]);
+      }
 
       // Fetch box scores for all games
       setLoadingBoxScores(true);
@@ -170,7 +185,8 @@ const TeamTrendsPage: React.FC = () => {
     perGamePlays,
     seasonGames,
     currentParams?.team || '',
-    selectedTeamColor
+    selectedTeamColor,
+    passingPlays
   );
 
   // Get team colors for summary cards

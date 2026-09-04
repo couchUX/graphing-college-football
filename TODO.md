@@ -3,6 +3,26 @@
 Durable, branch-local notes so follow-up work is remembered across machines and
 sessions (not just in a chat). Also mirrored in the PR description.
 
+### Queued after the passing API PR
+
+- **Run the passing coverage check.** `node scripts/passing-coverage.mjs` with a
+  real `CFB_API_KEY`, then paste the table into the status block at the top of
+  [`docs/plan/PASSING_API.md`](./docs/plan/PASSING_API.md). Until that runs we
+  don't know how far back air yards and target location actually go; the charts
+  hide themselves below 60% coverage, so a thin season shows nothing rather than
+  something wrong, but "shows nothing" is worth knowing about in advance.
+
+- **Decide whether `Receiver efficiency` should count targets.** It still counts
+  catches, computed from play text, exactly as `Top receivers` did. The passing
+  endpoint attributes incompletions and interceptions to the intended receiver,
+  which is better football, but it changes the numbers on an existing chart —
+  Alex's call, not a silent migration. Same question for keying the efficiency
+  charts on passer/target IDs instead of the play-text regex.
+
+- **`Top rushers` is now the odd name out** next to `Passer efficiency` and
+  `Receiver efficiency`. Renaming it belongs with the `/rushing` endpoints,
+  which carry PPA and success and would give it the same treatment.
+
 ### Queued after the Press Box styling PR
 
 - **Pages should retain their state across tab switches.** Loading the 2025

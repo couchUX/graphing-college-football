@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Line, Bar } from 'react-chartjs-2';
+import type { ChartData } from 'chart.js';
 import { PlayData } from '../types';
+import { PassingPlay } from '../services/passingApi';
 import { useChartData } from '../hooks/useChartData';
 import { useToast } from '../hooks/useToast';
 import { track } from '../utils/analytics';
@@ -16,6 +18,7 @@ import {
   createPlayerOptions,
   createWinProbabilityOptions
 } from '../utils/chartOptions';
+import { createDepthYacOptions } from '../utils/passingChartOptions';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
@@ -37,6 +40,7 @@ interface ChartsGridProps {
   } | null;
   winProbabilityData?: Record<string, any>[];
   rawApiData?: Record<string, any>[];
+  passingPlays?: PassingPlay[];
 }
 
 /** A chart as both a rendered node and everything its embed needs. */
@@ -59,6 +63,11 @@ const BASE_DEFINITIONS = [
   '<strong>Successful play:</strong> Gains enough needed yards (50% 1st down, 70% on 2nd, 100% on 3rd/4th)',
   '<strong>Success Rate (SR):</strong> Percentage of plays that were successful',
   '<strong>Explosiveness Rate (XR):</strong> Percentage of plays gaining 15+ yards',
+];
+
+const PASSING_DEFINITIONS = [
+  '<strong>Pass attempt:</strong> A throw at a receiver. Sacks are not attempts, though the site counts them as pass plays elsewhere',
+  '<strong>Charted attempts:</strong> Depth data is not available on every throw; the subtitle says how many attempts carried it',
 ];
 
 /** Chart-specific bullets for the embed's "Data definitions" accordion. */
@@ -90,6 +99,23 @@ const definitionsFor = (chartId: string): string[] => {
       ...BASE_DEFINITIONS,
       '<strong>Rush Rate:</strong> Percentage of offensive plays that are rushing attempts',
       '<strong>Gray area:</strong> Represents 50/50 balanced offense',
+    ];
+  }
+  if (chartId === 'pass-depth-bars') {
+    return [
+      ...BASE_DEFINITIONS,
+      ...PASSING_DEFINITIONS,
+      '<strong>Short / Deep:</strong> Split at 15 air yards, the same line the site uses for explosiveness',
+      '<strong># Plays:</strong> Numbers shown in bars are pass attempts, not pass plays — sacks are excluded',
+    ];
+  }
+  if (chartId.endsWith('-depth-yac')) {
+    return [
+      ...PASSING_DEFINITIONS,
+      '<strong>Air yards:</strong> Distance the ball travelled past the line of scrimmage',
+      '<strong>Yards after catch (YAC):</strong> Yards the receiver added once the ball arrived',
+      '<strong>Air yards (incomplete):</strong> Depth attempted on passes that fell incomplete or were intercepted',
+      '<strong>aDOT:</strong> Average depth of target across every charted attempt',
     ];
   }
   if (chartId.startsWith('top-')) {
@@ -134,6 +160,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   currentParams = null,
   winProbabilityData = [],
   rawApiData = [],
+  passingPlays = [],
 }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
   const { showToast: notify } = useToast();
@@ -163,7 +190,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
   }, [rushersTeamFilter, passersTeamFilter, receiversTeamFilter]);
 
-  const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor, winProbabilityData, rawApiData);
+  const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor, winProbabilityData, rawApiData, passingPlays);
 
   const {
     team: selectedTeam,
@@ -187,6 +214,12 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     allRushers,
     allPassers,
     allReceivers,
+    hasPassingDepth,
+    passingCoverageNote,
+    passDepthData,
+    passerSplits,
+    receiverSplits,
+    createDepthYacData,
     createTeamVsOpponentBarData,
     createPlayerData,
     winProbabilityData: winProbChartData,
@@ -198,6 +231,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   const lineOptionsTeamPlay = useMemo(() => createLineOptionsTeamPlay(), []);
   const barOptions = useMemo(() => createBarOptions(), []);
   const playerOptions = useMemo(() => createPlayerOptions(), []);
+  const depthYacOptions = useMemo(() => createDepthYacOptions(), []);
   const winProbabilityOptions = useMemo(() => createWinProbabilityOptions(), []);
   const teamPlayMapOptions = useMemo(() => createPlayMapOptions(teamMinY, teamMaxY), [teamMinY, teamMaxY]);
   const opponentPlayMapOptions = useMemo(() => createPlayMapOptions(oppMinY, oppMaxY), [oppMinY, oppMaxY]);
@@ -312,6 +346,11 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     { id: 'down-bars', title: 'SR and XR by down', data: barChartData.down, options: barOptions, chartType: 'bar' },
     { id: 'red-zone-bars', title: 'SR and XR by red zone', data: barChartData.redZone, options: barOptions, chartType: 'bar' },
     { id: 'distance-bars', title: 'SR and XR by distance to go', data: barChartData.distance, options: barOptions, chartType: 'bar' },
+    // Only when enough attempts carry air yards — see the coverage floor in
+    // utils/passing.ts. Older seasons have no charting data to split on.
+    ...(hasPassingDepth && passDepthData
+      ? [{ id: 'pass-depth-bars', title: 'SR and XR by pass depth', data: passDepthData, options: barOptions, chartType: 'bar' as const }]
+      : []),
   ];
 
   const teamCharts: ChartEntry[] = teamChartSpecs.map(chart => ({
@@ -340,7 +379,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     },
     {
       id: 'top-passers',
-      title: 'Top passers',
+      title: 'Passer efficiency',
       data: createPlayerData(filteredPlayers(allPassers, passersTeamFilter), 'pass'),
       filterValue: passersTeamFilter,
       onFilterChange: setPassersTeamFilter,
@@ -349,7 +388,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     },
     {
       id: 'top-receivers',
-      title: 'Top receivers',
+      title: 'Receiver efficiency',
       data: createPlayerData(filteredPlayers(allReceivers, receiversTeamFilter), 'receive'),
       filterValue: receiversTeamFilter,
       onFilterChange: setReceiversTeamFilter,
@@ -362,6 +401,39 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     chartType: 'bar' as const,
     node: <Bar data={chart.data as any} options={playerOptions} />,
   }));
+
+  /** Air yards vs. yards after catch, per passer and per target. Purely from
+   *  the passing endpoint, so they only appear when the coverage floor is met. */
+  const depthCharts: (ChartEntry & { filterValue: string; onFilterChange: (value: string) => void })[] =
+    hasPassingDepth
+      ? [
+          {
+            id: 'passer-depth-yac',
+            title: 'Passer depth and YAC',
+            data: createDepthYacData(filteredPlayers(passerSplits, passersTeamFilter)),
+            filterValue: passersTeamFilter,
+            onFilterChange: setPassersTeamFilter,
+            height: CHART_HEIGHTS.PLAYER_PASSERS,
+            mobileHeight: CHART_HEIGHTS.PLAYER_PASSERS,
+          },
+          {
+            id: 'receiver-depth-yac',
+            title: 'Receiver depth and YAC',
+            data: createDepthYacData(filteredPlayers(receiverSplits, receiversTeamFilter)),
+            filterValue: receiversTeamFilter,
+            onFilterChange: setReceiversTeamFilter,
+            height: CHART_HEIGHTS.PLAYER_RECEIVERS,
+            mobileHeight: CHART_HEIGHTS.PLAYER_RECEIVERS,
+          },
+        ].map(chart => ({
+          ...chart,
+          options: depthYacOptions,
+          chartType: 'bar' as const,
+          // The dataset carries a `meta` array the tooltip reads, which isn't
+          // part of Chart.js's own data shape.
+          node: <Bar data={chart.data as unknown as ChartData<'bar'>} options={depthYacOptions} />,
+        }))
+      : [];
 
   const sectionHeading = (text: string) => (
     <h2 className="rule-section headline mb-6 text-[22px] text-ink">
@@ -475,6 +547,36 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
             ))}
           </div>
         </section>
+
+        {depthCharts.length > 0 && (
+          <section>
+            {sectionHeading('Passing depth')}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {depthCharts.map(chart => (
+                <ChartCard
+                  key={chart.id}
+                  title={chart.title}
+                  subtitle={passingCoverageNote}
+                  height={chart.height}
+                  mobileHeight={chart.mobileHeight}
+                  onCopyEmbed={() => handleCopyEmbed(chart)}
+                  isCopied={copiedChart === chart.id}
+                  headerControl={
+                    <TeamFilterDropdown
+                      value={chart.filterValue}
+                      onChange={chart.onFilterChange}
+                      teamName={selectedTeam}
+                      opponentName={opponentTeam}
+                      label={`Filter ${chart.title.toLowerCase()} by team`}
+                    />
+                  }
+                >
+                  {chart.node}
+                </ChartCard>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </>
   );

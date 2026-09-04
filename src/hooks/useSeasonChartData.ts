@@ -7,13 +7,24 @@ import { calculateSeasonMetrics, calculatePerGameMetrics, calculateAggregateOppo
 import { createTeamVsOpponentBarData } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR } from '../utils/chartConfig';
 import { aggregateSeasonPlayerStats } from '../utils/seasonPlayerStats';
+import { PassingPlay } from '../services/passingApi';
+import {
+  joinPassingToPlays,
+  aggregatePassers,
+  aggregateReceivers,
+  meetsCoverageFloor,
+  describeCoverage,
+  PassPlay,
+} from '../utils/passing';
+import { createDepthBarData, createDepthYacData } from '../utils/passingCharts';
 
 export const useSeasonChartData = (
   allSeasonPlays: PlayData[],
   perGamePlays: Map<number, PlayData[]>,
   games: TeamGame[],
   team: string,
-  selectedTeamColor: string = 'default'
+  selectedTeamColor: string = 'default',
+  passingPlays: PassingPlay[] = []
 ) => {
   return useMemo(() => {
     if (!allSeasonPlays.length || !games.length) {
@@ -430,7 +441,43 @@ export const useSeasonChartData = (
       teamColors: teamPlayerColors
     }));
 
+    // ===== PASSING DEPTH =====
+    // One /passing/plays call covers the season, so there's no per-game fan-out
+    // here. Charts stay hidden unless enough attempts carry air yards.
+    const { rows: passRows, coverage: passingCoverage } = joinPassingToPlays(allSeasonPlays, passingPlays);
+    const hasPassingDepth = meetsCoverageFloor(passingCoverage);
+    const passingCoverageNote = describeCoverage(passingCoverage);
+
+    const teamPassRows = passRows.filter((r: PassPlay) => r.offense === team);
+    const opponentPassRows = passRows.filter((r: PassPlay) => r.offense !== team);
+
+    const passDepth = hasPassingDepth
+      ? createDepthBarData(teamPassRows, opponentPassRows, team, 'All Opponents', teamColors, grayColors)
+      : null;
+
+    const passerDepthYac = hasPassingDepth
+      ? createDepthYacData(
+          aggregatePassers(passRows, team)
+            .slice(0, 10)
+            .map(p => ({ ...p, teamColors: teamPlayerColors }))
+        )
+      : null;
+
+    const receiverDepthYac = hasPassingDepth
+      ? createDepthYacData(
+          aggregateReceivers(passRows, team)
+            .slice(0, 10)
+            .map(p => ({ ...p, teamColors: teamPlayerColors }))
+        )
+      : null;
+
     return {
+      hasPassingDepth,
+      passingCoverage,
+      passingCoverageNote,
+      passDepth,
+      passerDepthYac,
+      receiverDepthYac,
       seasonMetrics,
       aggregateOppMetrics,
       perGameMetrics,
@@ -447,5 +494,5 @@ export const useSeasonChartData = (
       topPassers,
       topReceivers
     };
-  }, [allSeasonPlays, perGamePlays, games, team, selectedTeamColor]);
+  }, [allSeasonPlays, perGamePlays, games, team, selectedTeamColor, passingPlays]);
 };
