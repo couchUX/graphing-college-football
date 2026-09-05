@@ -80,22 +80,6 @@ export const describeCoverage = (coverage: PassingCoverage | undefined): string 
 };
 
 /**
- * Why a passing chart has nothing to draw, for the placeholder that replaces
- * it. Worth distinguishing: no data at all usually means the season predates
- * the charting, while partial data means the throws are there but too few carry
- * a depth to average honestly.
- */
-export const explainMissingCoverage = (coverage: PassingCoverage | undefined): string => {
-  if (!coverage || coverage.attempts === 0) {
-    return 'Depth and yards-after-catch data is not available for every season or game';
-  }
-  return (
-    `Only ${coverage.withAirYards} of ${coverage.attempts} pass attempts carry depth data — ` +
-    `too few to chart without misleading (${Math.round(COVERAGE_FLOOR * 100)}% needed)`
-  );
-};
-
-/**
  * Join attempts to plays on the play ID.
  *
  * Unparseable rows are dropped outright. Spikes, throwaways and intentional

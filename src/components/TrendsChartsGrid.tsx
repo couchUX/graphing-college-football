@@ -6,10 +6,6 @@ import { percentCallback } from '../utils/chartConfig';
 import { generateTrendsEmbedCode, TrendsEmbedOptions } from '../utils/trendsEmbedGenerator';
 import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
-import ChartCard from './ChartCard';
-import ChartUnavailable from './ChartUnavailable';
-import { createDepthYacOptions } from '../utils/passingChartOptions';
-import type { ChartData } from 'chart.js';
 
 interface TrendsChartsGridProps {
   chartData: any; // Type from useSeasonChartData hook
@@ -157,55 +153,6 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
       setCopiedChart(null);
     }
   };
-
-  /** The passing charts are new, so they go through the generic embed engine
-   *  rather than the older bespoke trends template. */
-  const handleCopyPassingEmbed = async (
-    chartId: string,
-    title: string,
-    data: unknown,
-    options: unknown,
-    definitions: string[],
-    height: number
-  ) => {
-    setCopiedChart(chartId);
-    try {
-      const embedCode = generateChartEmbed({
-        chartType: 'bar',
-        data,
-        options,
-        title,
-        subtitle: embedOptions?.subtitle ?? `${team} - ${year} Season (${gamesCount} games)`,
-        sourceUrl:
-          embedOptions?.url ??
-          `https://graphingcollegefootball.com/trends?year=${year}&team=${encodeURIComponent(team)}`,
-        height,
-        mobileHeight: height,
-        definitions,
-      });
-      await navigator.clipboard.writeText(embedCode);
-      setTimeout(() => setCopiedChart(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-      setCopiedChart(null);
-    }
-  };
-
-  const depthYacOptions = createDepthYacOptions();
-  // Team vs. Team reuses this grid through useCompareChartData, which doesn't
-  // fetch passing data at all. An absent coverage object means "this view has
-  // no passing charts"; a present one with no usable attempts means "it does,
-  // but the data isn't there" — only the second earns a placeholder.
-  const supportsPassing = chartData.passingCoverage !== undefined;
-  const hasDepth = Boolean(chartData.hasPassingDepth && chartData.passDepth);
-  const missingNote =
-    chartData.passingMissingNote ??
-    'Depth and yards-after-catch data is not available for every season or game';
-
-  const PASSING_DEFINITIONS = [
-    '<strong>Pass attempt:</strong> A throw at a receiver. Sacks are not attempts, though the site counts them as pass plays elsewhere',
-    '<strong>Charted attempts:</strong> Depth data is not available on every throw; the subtitle says how many attempts carried it',
-  ];
 
   return (
     <div className="space-y-8">
@@ -513,108 +460,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
           </div>
         </div>
 
-        {/* Pass depth. When the season has too little charted data the card
-            stays and explains why, matching the win probability chart on Games
-            — a card that silently disappears reads as a bug. New charts use the
-            shared ChartCard rather than the hand-built markup above. */}
-        {supportsPassing && (
-        <ChartCard
-          title="SR and XR by pass depth"
-          subtitle={hasDepth ? chartData.passingCoverageNote : undefined}
-          height={400}
-          mobileHeight={CHART_HEIGHTS.DEFAULT_MOBILE}
-          isCopied={copiedChart === 'pass-depth'}
-          onCopyEmbed={
-            hasDepth
-              ? () =>
-                  handleCopyPassingEmbed(
-                    'pass-depth',
-                    'SR and XR by pass depth',
-                    chartData.passDepth,
-                    barChartOptions,
-                    [
-                      ...PASSING_DEFINITIONS,
-                      '<strong>Short / Deep:</strong> Split at 15 air yards, the same line the site uses for explosiveness',
-                    ],
-                    400
-                  )
-              : undefined
-          }
-        >
-          {hasDepth ? (
-            <Bar data={chartData.passDepth} options={barChartOptions} />
-          ) : (
-            <ChartUnavailable title="Pass depth unavailable" note={missingNote} />
-          )}
-        </ChartCard>
-        )}
       </div>
-
-      {supportsPassing && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard
-          title="Passer depth and YAC"
-          subtitle={hasDepth ? chartData.passingCoverageNote : undefined}
-          height={CHART_HEIGHTS.PLAYER_PASSERS}
-          mobileHeight={CHART_HEIGHTS.PLAYER_PASSERS}
-          isCopied={copiedChart === 'passer-depth-yac'}
-          onCopyEmbed={
-            hasDepth
-              ? () =>
-                  handleCopyPassingEmbed(
-                    'passer-depth-yac',
-                    'Passer depth and YAC',
-                    chartData.passerDepthYac,
-                    depthYacOptions,
-                    [
-                      ...PASSING_DEFINITIONS,
-                      '<strong>Air yards:</strong> Distance the ball travelled past the line of scrimmage',
-                      '<strong>Yards after catch (YAC):</strong> Yards the receiver added once the ball arrived',
-                    ],
-                    CHART_HEIGHTS.PLAYER_PASSERS
-                  )
-              : undefined
-          }
-        >
-          {hasDepth ? (
-            <Bar data={chartData.passerDepthYac as ChartData<'bar'>} options={depthYacOptions} />
-          ) : (
-            <ChartUnavailable title="Passer depth and YAC unavailable" note={missingNote} />
-          )}
-        </ChartCard>
-
-        <ChartCard
-          title="Receiver depth and YAC"
-          subtitle={hasDepth ? chartData.passingCoverageNote : undefined}
-          height={CHART_HEIGHTS.PLAYER_RECEIVERS}
-          mobileHeight={CHART_HEIGHTS.PLAYER_RECEIVERS}
-          isCopied={copiedChart === 'receiver-depth-yac'}
-          onCopyEmbed={
-            hasDepth
-              ? () =>
-                  handleCopyPassingEmbed(
-                    'receiver-depth-yac',
-                    'Receiver depth and YAC',
-                    chartData.receiverDepthYac,
-                    depthYacOptions,
-                    [
-                      ...PASSING_DEFINITIONS,
-                      '<strong>Targets:</strong> Every throw aimed at the receiver, whether or not it was caught',
-                      '<strong>Yards after catch (YAC):</strong> Yards the receiver added once the ball arrived',
-                    ],
-                    CHART_HEIGHTS.PLAYER_RECEIVERS
-                  )
-              : undefined
-          }
-        >
-          {hasDepth ? (
-            <Bar data={chartData.receiverDepthYac as ChartData<'bar'>} options={depthYacOptions} />
-          ) : (
-            <ChartUnavailable title="Receiver depth and YAC unavailable" note={missingNote} />
-          )}
-        </ChartCard>
-      </div>
-      )}
     </div>
   );
 };

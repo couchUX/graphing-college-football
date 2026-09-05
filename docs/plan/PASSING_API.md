@@ -1,14 +1,18 @@
 # Passing API — Evaluation & Integration Plan
 
-> **Status: Phase 1 built** (2026-09-04, on `claude/passing-api-integration-2bqnoq`),
-> pending a preview-deploy check against live data. Every schema fact below comes
-> from the published `cfbd` client packages (npm and PyPI `5.26.0`, released
-> 2026-09-03) rather than live responses — this session could not reach
-> `api.collegefootballdata.com`. **Coverage by season is still unverified**: run
-> `node scripts/passing-coverage.mjs` with a real key and record the numbers
-> here. Until then the charts are self-guarding, not proven.
+> **Status: Phase 1 built, not for merge yet** (2026-09-05, on
+> `claude/passing-api-integration-2bqnoq`).
 >
-> What shipped in Phase 1:
+> **Coverage is the blocker.** Checking a preview build against Alabama's 2025
+> season, only a handful of games carried depth data at all. That's far short of
+> what these charts need to be worth shipping, so the branch waits until the
+> upstream charting fills in. Run `node scripts/passing-coverage.mjs` with a real
+> key to get the numbers season by season and record them here.
+>
+> Schema facts below come from the published `cfbd` client packages (npm and
+> PyPI `5.26.0`, released 2026-09-03) rather than live responses.
+>
+> What's built:
 >
 > - `services/passingApi.ts` — typed fetchers for `/passing/plays`,
 >   `/passing/teams/games` and `/passing/players/games`, cached for an hour.
@@ -16,25 +20,22 @@
 >   floor, dead-ball exclusion, and passer/target aggregation.
 > - `utils/passingCharts.ts` + `passingChartOptions.ts` — chart data and the one
 >   new options factory. No protected chart file was edited.
-> - **Games**: `SR and XR by pass depth` after the distance bars, plus a new
->   "Passing depth" section with `Passer depth and YAC` and
->   `Receiver depth and YAC`. `Top passers` → `Passer efficiency`,
->   `Top receivers` → `Receiver efficiency`.
-> - `components/ChartUnavailable.tsx` — the "no data for this game" placeholder,
->   lifted out of the win probability chart so all four charts share it.
-> - **Season trends**: the same three charts, the new ones through `ChartCard`
->   and the generic embed engine.
-> - `scripts/passing-coverage.mjs` — the coverage check, formerly "Phase 0".
+> - **Games and Season trends** both get a **Passing depth** section at the
+>   bottom, holding all three charts: `SR and XR by pass depth`,
+>   `Passer depth and YAC`, `Receiver depth and YAC`. `Top passers` →
+>   `Passer efficiency`, `Top receivers` → `Receiver efficiency` (titles only —
+>   the numbers are unchanged).
+> - `scripts/passing-coverage.mjs` — the coverage check.
 >
-> Verified by 23 assertions over fixture plays and attempts (join, dead-ball
-> exclusion, depth split, per-player splits, the coverage floor) and by
-> rendering all three charts as standalone embeds in a browser.
+> Verified by 22 assertions over fixture plays and attempts (join, dead-ball
+> exclusion, depth split, per-player splits, the coverage floor), by rendering
+> all three charts as standalone embeds, and by rendering the real Games grid to
+> confirm the section appears with data and is absent without it.
 >
-> Deliberately not done: the efficiency charts still compute from play text and
-> show the same numbers as before — only their titles changed. Per Alex, the
-> passing data stays in its own discrete charts rather than feeding the existing
-> ones, since it won't be there for every game. `Top rushers` keeps its name,
-> since rushing data isn't wired up yet.
+> Deliberately not done: the existing efficiency charts still compute from play
+> text and keep their current numbers. Per Alex, the passing data stays in its
+> own discrete charts, since it won't be there for every game. `Top rushers`
+> keeps its name, since rushing data isn't wired up yet.
 
 ---
 
@@ -160,16 +161,11 @@ at a 1-hour TTL in season (24 h is fine for completed seasons, but one TTL keeps
 it simple). A full team-season of attempts is on the order of 400–500 rows, so
 localStorage cost is comparable to a cached schedule.
 
-**When the data isn't there.** Every passing chart keeps its card and shows the
-win-probability placeholder (`ChartUnavailable`) explaining the gap, rather than
-vanishing — a card that disappears reads as a bug. The notice distinguishes two
-cases: no charted attempts at all (usually a season predating the charting) from
-partial coverage ("only 12 of 40 pass attempts carry depth data"). The embed
-button, subtitle and team filter are all suppressed in that state, since there
-is nothing to embed or filter. Team vs. Team reuses the trends grid but never
-fetches passing data, so it shows no passing cards at all — an absent coverage
-object means "this view has no passing charts", which is different from "the
-data is missing".
+**When the data isn't there.** The whole Passing depth section is absent —
+heading and all — rather than showing empty cards or an explanatory placeholder.
+Below the 60% coverage floor there is nothing honest to draw, and a section of
+apologies is worse than no section. The same guard covers Team vs. Team, which
+reuses the trends grid but never fetches passing data.
 
 **Join:** a new `src/utils/passing.ts`:
 

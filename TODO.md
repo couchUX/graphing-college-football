@@ -5,19 +5,19 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ### Queued after the passing API PR
 
-- **Run the passing coverage check.** `node scripts/passing-coverage.mjs` with a
-  real `CFB_API_KEY`, then paste the table into the status block at the top of
-  [`docs/plan/PASSING_API.md`](./docs/plan/PASSING_API.md). Until that runs we
-  don't know how far back air yards and target location actually go. Below 60%
-  coverage the charts show a notice instead of a chart, so a thin season is
-  never misleading — but knowing which seasons are thin is still worth having.
+- **Blocked on upstream coverage.** Spot-checking Alabama's 2025 season, only a
+  few games carried depth data. The charts hide themselves below 60% coverage,
+  so nothing misleading ships — but there's little to show either, which is why
+  this branch isn't merging yet. `node scripts/passing-coverage.mjs` with a real
+  `CFB_API_KEY` prints coverage season by season; paste the table into the
+  status block at the top of [`docs/plan/PASSING_API.md`](./docs/plan/PASSING_API.md).
 
 - **Decided: the passing data stays in its own charts.** The existing efficiency
   charts keep computing from play text and keep their current numbers, because
   depth data won't be there for every game and a chart that changes definition
   depending on the season is worse than two honest charts. When the data is
-  missing the new charts keep their cards and explain the gap, the same way the
-  win probability chart does.
+  missing, the whole Passing depth section is absent rather than showing empty
+  cards.
 
 - **`Top rushers` is now the odd name out** next to `Passer efficiency` and
   `Receiver efficiency`. Renaming it belongs with the `/rushing` endpoints,

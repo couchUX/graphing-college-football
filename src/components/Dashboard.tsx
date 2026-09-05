@@ -34,7 +34,8 @@ const Dashboard: React.FC = () => {
   const [passingPlays, setPassingPlays] = useState<PassingPlay[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAllPlays, setShowAllPlays] = useState<boolean>(false);
+  // Open by default — it's the thing people scroll down for. Still collapsible.
+  const [showAllPlays, setShowAllPlays] = useState<boolean>(true);
   const [showRawPlays, setShowRawPlays] = useState<boolean>(false);
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [selectedTeamColor, setSelectedTeamColor] = useState<string>('default');
@@ -383,7 +384,7 @@ const Dashboard: React.FC = () => {
 
         {/* Reference material */}
         {hasGame && (
-          <div className="mt-8 space-y-4">
+          <div className="rule-section space-y-4">
             <section className="plate">
               <button
                 onClick={() => setShowDataDefinitions(!showDataDefinitions)}

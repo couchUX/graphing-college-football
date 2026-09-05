@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { BarChart3, TrendingUp, AlertCircle, Flame, Ruler, Copy, Check, Download } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
+import type { ChartData } from 'chart.js';
 import SeasonSelector from './SeasonSelector';
 import TrendsChartsGrid from './TrendsChartsGrid';
 import SeasonAdvancedBoxScore from './SeasonAdvancedBoxScore';
@@ -15,7 +16,11 @@ import { useSeasonChartData } from '../hooks/useSeasonChartData';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { createPlayerData } from '../utils/chartHelpers';
 import { generateTrendsEmbedCode } from '../utils/trendsEmbedGenerator';
-import { createPlayerOptions } from '../utils/chartOptions';
+import { createPlayerOptions, createBarOptions } from '../utils/chartOptions';
+import { createDepthYacOptions } from '../utils/passingChartOptions';
+import { generateChartEmbed } from '../utils/chartEmbedGenerator';
+import ChartCard from './ChartCard';
+import { CHART_HEIGHTS } from '../constants/chartDimensions';
 import { calculateAveragedBoxScore, BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
 import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
 import MultiYearSpTrends from './MultiYearSpTrends';
@@ -62,6 +67,7 @@ const TeamTrendsPage: React.FC = () => {
     selectedGameIds: number[];
   } | null>(null);
   const [copiedPlayerChart, setCopiedPlayerChart] = useState<string | null>(null);
+  const [copiedPassingChart, setCopiedPassingChart] = useState<string | null>(null);
   const [passingPlays, setPassingPlays] = useState<PassingPlay[]>([]);
 
   const handleFetchSeasonData = async (params: {
@@ -137,6 +143,46 @@ const TeamTrendsPage: React.FC = () => {
       setLoadingBoxScores(false);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const passDepthBarOptions = useMemo(() => createBarOptions(), []);
+  const depthYacOptions = useMemo(() => createDepthYacOptions(), []);
+
+  const PASSING_DEFINITIONS = [
+    '<strong>Pass attempt:</strong> A throw at a receiver. Sacks are not attempts, though the site counts them as pass plays elsewhere',
+    '<strong>Charted attempts:</strong> Depth data is not available on every throw; the subtitle says how many attempts carried it',
+  ];
+
+  /** The passing charts are new, so they use the generic embed engine rather
+   *  than the older bespoke trends template. */
+  const handleCopyPassingEmbed = async (
+    chartId: string,
+    title: string,
+    data: unknown,
+    options: unknown,
+    definitions: string[],
+    height: number
+  ) => {
+    if (!currentParams) return;
+    setCopiedPassingChart(chartId);
+    try {
+      const embedCode = generateChartEmbed({
+        chartType: 'bar',
+        data,
+        options,
+        title,
+        subtitle: `${currentParams.team} - ${currentParams.year} Season (${seasonGames.length} games)`,
+        sourceUrl: `https://graphingcollegefootball.com/trends?year=${currentParams.year}&team=${encodeURIComponent(currentParams.team)}`,
+        height,
+        mobileHeight: height,
+        definitions,
+      });
+      await navigator.clipboard.writeText(embedCode);
+      setTimeout(() => setCopiedPassingChart(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy embed code:', err);
+      setCopiedPassingChart(null);
     }
   };
 
@@ -482,6 +528,70 @@ const TeamTrendsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Passing depth. Its own section at the bottom, and absent entirely
+              when the season has too few charted attempts — depth and YAC come
+              from upstream charting that isn't there for every game. */}
+          {chartData?.hasPassingDepth && chartData.passDepth && (
+            <div>
+              <h2 className="rule-section headline mb-6 text-[22px] text-ink">Passing depth</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  <ChartCard
+                    title="SR and XR by pass depth"
+                    subtitle={chartData.passingCoverageNote}
+                    height={CHART_HEIGHTS.DEFAULT_DESKTOP}
+                    mobileHeight={CHART_HEIGHTS.DEFAULT_MOBILE}
+                    isCopied={copiedPassingChart === 'pass-depth'}
+                    onCopyEmbed={() =>
+                      handleCopyPassingEmbed('pass-depth', 'SR and XR by pass depth', chartData.passDepth, passDepthBarOptions, [
+                        ...PASSING_DEFINITIONS,
+                        '<strong>Short / Deep:</strong> Split at 15 air yards, the same line the site uses for explosiveness',
+                      ], CHART_HEIGHTS.DEFAULT_DESKTOP)
+                    }
+                  >
+                    {/* Mixed bar + line datasets (the NCAA reference line), same
+                        as the other by-category bars on this page. */}
+                    <Bar data={chartData.passDepth as unknown as ChartData<'bar'>} options={passDepthBarOptions} />
+                  </ChartCard>
+
+                  <ChartCard
+                    title="Passer depth and YAC"
+                    subtitle={chartData.passingCoverageNote}
+                    height={CHART_HEIGHTS.PLAYER_PASSERS}
+                    mobileHeight={CHART_HEIGHTS.PLAYER_PASSERS}
+                    isCopied={copiedPassingChart === 'passer-depth-yac'}
+                    onCopyEmbed={() =>
+                      handleCopyPassingEmbed('passer-depth-yac', 'Passer depth and YAC', chartData.passerDepthYac, depthYacOptions, [
+                        ...PASSING_DEFINITIONS,
+                        '<strong>Air yards:</strong> Distance the ball travelled past the line of scrimmage',
+                        '<strong>Yards after catch (YAC):</strong> Yards the receiver added once the ball arrived',
+                      ], CHART_HEIGHTS.PLAYER_PASSERS)
+                    }
+                  >
+                    <Bar data={chartData.passerDepthYac as unknown as ChartData<'bar'>} options={depthYacOptions} />
+                  </ChartCard>
+                </div>
+
+                <ChartCard
+                  title="Receiver depth and YAC"
+                  subtitle={chartData.passingCoverageNote}
+                  height={CHART_HEIGHTS.PLAYER_RECEIVERS}
+                  mobileHeight={CHART_HEIGHTS.PLAYER_RECEIVERS}
+                  isCopied={copiedPassingChart === 'receiver-depth-yac'}
+                  onCopyEmbed={() =>
+                    handleCopyPassingEmbed('receiver-depth-yac', 'Receiver depth and YAC', chartData.receiverDepthYac, depthYacOptions, [
+                      ...PASSING_DEFINITIONS,
+                      '<strong>Targets:</strong> Every throw aimed at the receiver, whether or not it was caught',
+                      '<strong>Yards after catch (YAC):</strong> Yards the receiver added once the ball arrived',
+                    ], CHART_HEIGHTS.PLAYER_RECEIVERS)
+                  }
+                >
+                  <Bar data={chartData.receiverDepthYac as unknown as ChartData<'bar'>} options={depthYacOptions} />
+                </ChartCard>
               </div>
             </div>
           )}

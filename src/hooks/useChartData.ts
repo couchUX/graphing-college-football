@@ -11,7 +11,6 @@ import {
   combineSides,
   meetsCoverageFloor,
   describeCoverage,
-  explainMissingCoverage,
 } from '../utils/passing';
 import { createDepthBarData, createDepthYacData } from '../utils/passingCharts';
 import {
@@ -594,7 +593,6 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     const { rows: passRows, coverage: passingCoverage } = joinPassingToPlays(plays, passingPlays);
     const hasPassingDepth = meetsCoverageFloor(passingCoverage);
     const passingCoverageNote = describeCoverage(passingCoverage);
-    const passingMissingNote = explainMissingCoverage(passingCoverage);
 
     const teamPassRows = passRows.filter(r => r.offense === team);
     const opponentPassRows = passRows.filter(r => r.offense === opponentTeam);
@@ -631,9 +629,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
 
       // Passing (depth / YAC)
       hasPassingDepth,
-      passingCoverage,
       passingCoverageNote,
-      passingMissingNote,
       passDepthData,
       passerSplits,
       receiverSplits,
