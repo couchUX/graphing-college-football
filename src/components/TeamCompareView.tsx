@@ -12,6 +12,7 @@ import { createPlayerData } from '../utils/chartHelpers';
 import { createPlayerOptions } from '../utils/chartOptions';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import { useTeams } from '../hooks/useTeams';
+import { CURRENT_SEASON, SEASON_YEARS } from '../constants/seasons';
 import { useCompareChartData, type CompareSide } from '../hooks/useCompareChartData';
 import { readParams, writeParams, encodeGameSelection, decodeGameSelection } from '../utils/trendsUrl';
 import { generateTrendsEmbedCode } from '../utils/trendsEmbedGenerator';
@@ -21,8 +22,6 @@ import CompareBoxScore from './CompareBoxScore';
 import TrendsChartsGrid from './TrendsChartsGrid';
 
 initializeChartDefaults();
-
-const YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014];
 
 const sortGames = (a: TeamGame, b: TeamGame) => {
   if (a.seasonType !== b.seasonType) return a.seasonType === 'regular' ? -1 : 1;
@@ -148,7 +147,7 @@ const TeamCompareView: React.FC = () => {
   const [teamB, setTeamB] = useState<Team | null>(null);
   const [colorA, setColorA] = useState<string>('default');
   const [colorB, setColorB] = useState<string>('default');
-  const [year, setYear] = useState<number>(2025);
+  const [year, setYear] = useState<number>(CURRENT_SEASON);
 
   const [gamesA, setGamesA] = useState<TeamGame[]>([]);
   const [gamesB, setGamesB] = useState<TeamGame[]>([]);
@@ -497,7 +496,7 @@ const TeamCompareView: React.FC = () => {
                 onChange={(e) => setYear(Number(e.target.value))}
                 className="select-field w-full sm:w-auto"
               >
-                {YEARS.map((y) => (
+                {SEASON_YEARS.map((y) => (
                   <option key={y} value={y}>
                     {y}
                   </option>

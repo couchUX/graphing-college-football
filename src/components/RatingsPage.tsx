@@ -5,12 +5,13 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen, Copy, Check } from 'l
 import { MetaTags } from './MetaTags';
 import AppShell from './AppShell';
 import { useToast } from '../hooks/useToast';
+import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
 type SortDirection = 'asc' | 'desc';
 
 const RatingsPage: React.FC = () => {
-  const [year, setYear] = useState<number>(2025);
+  const [year, setYear] = useState<number>(CURRENT_SEASON);
   const [ratings, setRatings] = useState<SPRating[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,8 +23,7 @@ const RatingsPage: React.FC = () => {
   const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
   const { showToast: notify } = useToast();
 
-  // Generate year options (2005-2025)
-  const yearOptions = Array.from({ length: 21 }, (_, i) => 2025 - i);
+  const yearOptions = RATINGS_YEARS;
 
   // Get unique conferences from ratings
   const conferences = useMemo(() => {

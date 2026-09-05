@@ -13,6 +13,15 @@ sessions (not just in a chat). Also mirrored in the PR description.
   Games already writes `year`/`team`/`gameId` to the canonical link, so the
   missing piece is reading it back on mount and re-fetching.
 
+- **Postseason labels still assume the four-team playoff.** With the 12-team
+  bracket a team can play four postseason games, but `getPostseasonLabel` (in
+  both `GameSelector.tsx` and `SeasonSelector.tsx`) only knows semifinal and
+  title game: its `PLAYOFF`/`CFP` fallback labels the first postseason game
+  "CFP Semifinal" and everything after it "National Championship". First-round
+  and quarterfinal games need their own cases. Not urgent until December —
+  and worth checking CFBD's actual `notes` strings for 2025 before writing the
+  matches.
+
 - **Carry the selected team into Team vs. Team.** When someone is looking at a
   team on Season trends and switches to Team vs. Team, pre-fill that team as
   Team A — they're almost certainly about to compare it against someone. Per

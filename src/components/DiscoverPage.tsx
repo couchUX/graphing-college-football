@@ -7,6 +7,7 @@ import SubTabs, { SubTabItem } from './SubTabs';
 import { detectors } from '../detectors/registry';
 import type { DetectorFilters } from '../detectors/types';
 import { useToast } from '../hooks/useToast';
+import { LATEST_COMPLETED_SEASON, RATINGS_YEARS } from '../constants/seasons';
 
 type SubTab = 'season-recap' | 'weekly' | 'multi-season';
 
@@ -22,28 +23,19 @@ const CONFERENCES = [
   'Mid-American',
   'Conference USA',
   'Sun Belt',
+  'Pac-12',
 ];
-
-// Default to the most recent fully completed season (one year prior to now).
-const defaultRecapYear = (): number => {
-  const now = new Date();
-  // CFB seasons end in early January. If we're before August, the previous calendar year's season is "last complete season".
-  return now.getMonth() < 7 ? now.getFullYear() - 1 : now.getFullYear() - 1;
-};
 
 const DiscoverPage: React.FC = () => {
   const [tab, setTab] = useState<SubTab>('season-recap');
-  const [year, setYear] = useState<number>(defaultRecapYear());
+  const [year, setYear] = useState<number>(LATEST_COMPLETED_SEASON);
   const [conference, setConference] = useState<string>('all');
   const { showToast } = useToast();
 
   const handleCopySuccess = useCallback((message: string) => showToast(message), [showToast]);
   const handleCopyError = useCallback((message: string) => showToast(message), [showToast]);
 
-  const yearOptions = useMemo(
-    () => Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - i),
-    []
-  );
+  const yearOptions = RATINGS_YEARS;
 
   const filters: DetectorFilters = useMemo(
     () => ({ year, conference }),

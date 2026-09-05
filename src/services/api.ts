@@ -165,6 +165,20 @@ export const fetchGamesForTeam = async (params: {
   );
 };
 
+/**
+ * Whether a game can be charted yet. During a season in progress the schedule
+ * endpoint returns the whole slate, most of it unplayed, so anything that
+ * hasn't kicked off would load an empty chart. Kickoff rather than `completed`
+ * is the test here: CFBD serves plays while a game is still going, and a game
+ * in progress charts fine. Season-level views stick to `completed`, since a
+ * half-finished game would skew per-game averages.
+ */
+export const hasKickedOff = (game: TeamGame, now: number = Date.now()): boolean => {
+  if (game.completed) return true;
+  const kickoff = new Date(game.startDate).getTime();
+  return Number.isFinite(kickoff) && kickoff <= now;
+};
+
 export interface WinProbabilityData {
   gameId: number;
   homeId: number;

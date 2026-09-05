@@ -52,11 +52,14 @@ const GameMultiSelect: React.FC<GameMultiSelectProps> = ({
 
   const summary = loading
     ? 'Loading games...'
-    : selectedIds.length === 0
-      ? 'No games selected'
-      : allSelected
-        ? 'All games'
-        : `${selectedIds.length} game${selectedIds.length === 1 ? '' : 's'}`;
+    : // A team mid-season may have picked no games because it has none to pick.
+      teamName && games.length === 0
+      ? 'No completed games yet'
+      : selectedIds.length === 0
+        ? 'No games selected'
+        : allSelected
+          ? 'All games'
+          : `${selectedIds.length} game${selectedIds.length === 1 ? '' : 's'}`;
 
   return (
     <div className="flex-1 min-w-0">

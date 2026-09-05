@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, ChevronDown, Check } from 'lucide-react';
 import { Listbox, Combobox } from '@headlessui/react';
-import { fetchTeams, fetchGamesForTeam, Team, TeamGame } from '../services/api';
+import { fetchTeams, fetchGamesForTeam, hasKickedOff, Team, TeamGame } from '../services/api';
 import { getTeamColors } from '../utils/teamColors';
 import { colorPalette } from '../utils/colorPalette';
+import { CURRENT_SEASON, SEASON_YEARS } from '../constants/seasons';
 
 interface GameSelectorProps {
   onFetchData: (params: {
@@ -39,7 +40,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
   opponentTeam,
   hasDataBeenFetched
 }) => {
-  const [year, setYear] = useState<number>(2025);
+  const [year, setYear] = useState<number>(CURRENT_SEASON);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamQuery, setTeamQuery] = useState<string>('');
   const [showTeamColorPicker, setShowTeamColorPicker] = useState<boolean>(false);
@@ -48,6 +49,9 @@ const GameSelector: React.FC<GameSelectorProps> = ({
   const [loadingTeams, setLoadingTeams] = useState<boolean>(false);
   const [selectedGame, setSelectedGame] = useState<TeamGame | null>(null);
   const [games, setGames] = useState<TeamGame[]>([]);
+  // The team's full slate for the year, played or not — only used to tell
+  // "nothing scheduled" apart from "scheduled but not played yet".
+  const [scheduledGameCount, setScheduledGameCount] = useState<number>(0);
   const [loadingGames, setLoadingGames] = useState<boolean>(false);
   const [isLoadingFromURL, setIsLoadingFromURL] = useState<boolean>(true); // Start as true to prevent initial URL updates
   
@@ -160,6 +164,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
     const loadGames = async () => {
       if (!selectedTeam) {
         setGames([]);
+        setScheduledGameCount(0);
         setSelectedGame(null);
         return;
       }
@@ -171,9 +176,15 @@ const GameSelector: React.FC<GameSelectorProps> = ({
           team: selectedTeam.school
         });
         
+        setScheduledGameCount(gamesData.length);
+
+        // Drop games that haven't kicked off — mid-season the schedule endpoint
+        // returns the rest of the slate, and those charts would come back empty.
+        const playedGames = gamesData.filter(game => hasKickedOff(game));
+
         // Separate regular season and postseason games
-        const regularGames = gamesData.filter(game => game.seasonType === 'regular').sort((a, b) => a.week - b.week);
-        const postseasonGames = gamesData.filter(game => game.seasonType === 'postseason').sort((a, b) => a.week - b.week);
+        const regularGames = playedGames.filter(game => game.seasonType === 'regular').sort((a, b) => a.week - b.week);
+        const postseasonGames = playedGames.filter(game => game.seasonType === 'postseason').sort((a, b) => a.week - b.week);
         
         // Combine them with regular season first
         const allGames = [...regularGames, ...postseasonGames];
@@ -234,6 +245,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
       } catch (error) {
         console.error('Error loading games:', error);
         setGames([]);
+        setScheduledGameCount(0);
       } finally {
         setLoadingGames(false);
       }
@@ -406,8 +418,6 @@ const GameSelector: React.FC<GameSelectorProps> = ({
         team.school.toLowerCase().includes(teamQuery.toLowerCase())
       ).slice(0, 10); // Show top 10 matches
 
-  const years = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014];
-
   return (
     <div className="flex flex-wrap items-end gap-4">
       {/* Year and Team Row on Mobile */}
@@ -427,7 +437,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                   </span>
                 </Listbox.Button>
                 <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                  {years.map((yearOption) => (
+                  {SEASON_YEARS.map((yearOption) => (
                     <Listbox.Option
                       key={yearOption}
                       className={({ active }) =>
@@ -602,7 +612,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 {!selectedTeam ? 'Select a team first' : 
                  loadingGames ? 'Loading games...' : 
                  selectedGame ? formatGameDisplay(selectedGame) : 
-                 games.length === 0 ? 'No games found' : 'Select a game'}
+                 games.length === 0 ? (scheduledGameCount > 0 ? 'No games played yet' : 'No games found') : 'Select a game'}
               </span>
               {/* Color Picker inside input for opponent team */}
               {selectedGame && opponentTeam && hasDataBeenFetched && currentParams && 

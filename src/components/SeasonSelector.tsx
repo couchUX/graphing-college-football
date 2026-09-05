@@ -8,6 +8,7 @@ import {
 	type Team,
 	type TeamGame,
 } from "../services/api";
+import { CURRENT_SEASON, SEASON_YEARS } from "../constants/seasons";
 import { colorPalette } from "../utils/colorPalette";
 import { getTeamColors } from "../utils/teamColors";
 
@@ -30,7 +31,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 	selectedTeamColor,
 	setSelectedTeamColor,
 }) => {
-	const [year, setYear] = useState<number>(2025);
+	const [year, setYear] = useState<number>(CURRENT_SEASON);
 	const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 	const [teamQuery, setTeamQuery] = useState<string>("");
 	const [showTeamColorPicker, setShowTeamColorPicker] =
@@ -277,10 +278,6 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 					)
 					.slice(0, 10); // Show top 10 matches
 
-	const years = [
-		2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014,
-	];
-
 	// Get postseason game label (matching Games page logic)
 	const getPostseasonLabel = (game: TeamGame, allGames: TeamGame[]) => {
 		if (!game.notes) {
@@ -451,7 +448,7 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 									</span>
 								</Listbox.Button>
 								<Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-									{years.map((yearOption) => (
+									{SEASON_YEARS.map((yearOption) => (
 										<Listbox.Option
 											key={yearOption}
 											className={({ active }) =>
@@ -654,11 +651,14 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 							<span className="block truncate">
 								{loadingGames
 									? "Loading games..."
-									: selectedGameIds.length === 0
-										? "No games selected"
-										: selectedGameIds.length === availableGames.length
-											? "All games"
-											: `${selectedGameIds.length} game${selectedGameIds.length === 1 ? "" : "s"}`}
+									: // Mid-season a team can have a schedule but nothing finished yet.
+										selectedTeam && availableGames.length === 0
+										? "No completed games yet"
+										: selectedGameIds.length === 0
+											? "No games selected"
+											: selectedGameIds.length === availableGames.length
+												? "All games"
+												: `${selectedGameIds.length} game${selectedGameIds.length === 1 ? "" : "s"}`}
 							</span>
 							<span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
 								<ChevronDown
