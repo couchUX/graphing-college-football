@@ -1,4 +1,5 @@
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
+import { chartLibLoaderScript } from './embedChartLoader';
 
 // Optional overrides so views that reuse the trends charts (e.g. Team vs. Team)
 // can point the embed footer at the right page and adjust the copy.
@@ -270,9 +271,6 @@ export const generateTrendsEmbedCode = (
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\u002fscript>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"><\u002fscript>
-
     <script>
         // Toggle data definitions accordion
         function toggleDefinitions_${uniqueId.replace(/-/g, '_')}() {
@@ -302,30 +300,15 @@ export const generateTrendsEmbedCode = (
                 }
             }
 
+${chartLibLoaderScript()}
             function initChart() {
-                retryCount++;
-
-                if (typeof Chart === 'undefined') {
-                    if (retryCount >= maxRetries) {
-                        showError('Chart library failed to load. Please refresh the page.');
-                        return;
-                    }
-                    setTimeout(initChart, 100);
-                    return;
-                }
-
-                if (typeof ChartDataLabels === 'undefined') {
-                    if (retryCount >= maxRetries) {
-                        showError('Chart plugin failed to load. Please refresh the page.');
-                        return;
-                    }
-                    setTimeout(initChart, 100);
-                    return;
-                }
-
                 const canvas = document.getElementById('${uniqueId}');
                 if (!canvas) {
-                    console.warn('Canvas element not found yet, retrying...');
+                    retryCount++;
+                    if (retryCount >= maxRetries) {
+                        showError('Chart failed to load. Please refresh the page.');
+                        return;
+                    }
                     setTimeout(initChart, 100);
                     return;
                 }
@@ -505,10 +488,16 @@ export const generateTrendsEmbedCode = (
                 }
             }
 
+            function start() {
+                ensureChartLibs(initChart, function () {
+                    showError('Chart library failed to load. Please refresh the page.');
+                });
+            }
+
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initChart);
+                document.addEventListener('DOMContentLoaded', start);
             } else {
-                initChart();
+                start();
             }
         })();
     <\u002fscript>

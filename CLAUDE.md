@@ -69,6 +69,15 @@ chart data/options must be closure-free** (arguments and globals only) or it
 won't survive serialization. `trendsEmbedGenerator.ts` and `boxScoreEmbed.ts`
 are older bespoke templates still used by the season-trends and box-score paths.
 
+**Never load Chart.js from a static `<script src>` tag in an embed.** Both
+generators inject it from inline JS via `embedChartLoader.ts`, sequentially,
+because WordPress performance plugins rewrite script tags — adding `async`, or
+parking the URL on a `data-*` attribute. The datalabels UMD bundle reads
+`window.Chart` the moment it executes, so any reordering leaves it undefined
+and every chart on the page dies with "Chart library failed to load." Embeds
+still render in Gutenberg's sandboxed block preview when this is broken, so it
+only shows up once published.
+
 ## Commands
 
 ```bash
