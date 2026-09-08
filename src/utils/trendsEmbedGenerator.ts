@@ -10,6 +10,8 @@ export interface TrendsEmbedOptions {
   subtitle?: string;
   /** 'compare' swaps season-trends wording in the data definitions for Team vs. Team wording. */
   mode?: 'season' | 'compare';
+  /** Extra query params for the default footer link, e.g. an active chart filter. */
+  urlParams?: Record<string, string>;
 }
 
 export const generateTrendsEmbedCode = (
@@ -35,6 +37,9 @@ export const generateTrendsEmbedCode = (
     params.set('team', team);
     if (selectedTeamColor !== 'default') {
       params.set('teamColor', selectedTeamColor);
+    }
+    if (embedOptions.urlParams) {
+      Object.entries(embedOptions.urlParams).forEach(([key, value]) => params.set(key, value));
     }
     return `https://graphingcollegefootball.com/trends?${params.toString()}`;
   })();
@@ -124,13 +129,21 @@ export const generateTrendsEmbedCode = (
   const dataDefinitions = getDataDefinitions();
 
   // Determine chart height based on chart ID
+  // Line charts plot every opponent in the season, so their rotated x-axis
+  // labels need noticeably more vertical room than the bar charts
   const chartHeight = chartId === 'top-receivers'
     ? CHART_HEIGHTS.PLAYER_RECEIVERS
     : chartId === 'top-passers'
     ? CHART_HEIGHTS.PLAYER_PASSERS
     : chartId === 'top-rushers'
     ? CHART_HEIGHTS.PLAYER_RUSHERS
+    : chartType === 'line'
+    ? CHART_HEIGHTS.TRENDS_LINE_DESKTOP
     : CHART_HEIGHTS.DEFAULT_DESKTOP;
+
+  const mobileChartHeight = chartType === 'line' && !isPlayerChart
+    ? CHART_HEIGHTS.TRENDS_LINE_MOBILE
+    : CHART_HEIGHTS.DEFAULT_MOBILE;
 
   return `<!-- CFB Analytics Season Trends Chart Embed: ${title} -->
 <div class="cfb-chart-embed-${uniqueId}">
@@ -172,7 +185,7 @@ export const generateTrendsEmbedCode = (
         @media (max-width: 640px) {
             .cfb-chart-embed-${uniqueId} .chart-content {
                 padding: 12px 16px 20px !important;
-                height: ${CHART_HEIGHTS.DEFAULT_MOBILE}px !important;
+                height: ${mobileChartHeight}px !important;
             }
             .cfb-chart-embed-${uniqueId} .chart-header {
                 padding: 12px 16px 12px !important;

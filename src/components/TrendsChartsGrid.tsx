@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { Bar, Line } from 'react-chartjs-2';
 import { createBaseOptions } from '../utils/chartOptions';
@@ -87,6 +87,49 @@ const lineChartOptionsWithRotatedLabels = {
   }
 };
 
+type PlayTypeFilter = 'all' | 'rush' | 'pass';
+
+const PLAY_TYPE_OPTIONS: { value: PlayTypeFilter; label: string }[] = [
+  { value: 'all', label: 'Rush & Pass' },
+  { value: 'rush', label: 'Rush only' },
+  { value: 'pass', label: 'Pass only' }
+];
+
+// Keep only the datasets for the selected play type. Reference series
+// (NCAA average, etc.) aren't play-type specific, so they always stay.
+const filterDatasetsByPlayType = (data: any, playType: PlayTypeFilter) => {
+  if (!data || playType === 'all') return data;
+
+  return {
+    ...data,
+    datasets: data.datasets.filter((dataset: any) => {
+      const label = (dataset.label || '').toLowerCase();
+      const isRush = label.endsWith('rush sr');
+      const isPass = label.endsWith('pass sr');
+      if (!isRush && !isPass) return true;
+      return playType === 'rush' ? isRush : isPass;
+    })
+  };
+};
+
+// Play type filter dropdown, styled to match the team filter on the Games page
+const PlayTypeDropdown: React.FC<{
+  value: PlayTypeFilter;
+  onChange: (value: PlayTypeFilter) => void;
+}> = ({ value, onChange }) => (
+  <select
+    value={value}
+    onChange={(e) => onChange(e.target.value as PlayTypeFilter)}
+    aria-label="Filter by play type"
+    className="text-sm px-2.5 py-1 bg-white border border-neutral-300 rounded-md text-neutral-700 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-[length:1.2em_1.2em] bg-[position:calc(100%-0.6rem)_center] bg-no-repeat"
+    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, paddingRight: '2rem' }}
+  >
+    {PLAY_TYPE_OPTIONS.map(option => (
+      <option key={option.value} value={option.value}>{option.label}</option>
+    ))}
+  </select>
+);
+
 const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
   chartData,
   team,
@@ -99,13 +142,45 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
 }) => {
   const [copiedChart, setCopiedChart] = useState<string | null>(null);
 
+  // Play type filter for the per-game SR line chart, seeded from the URL so the
+  // selection survives a reload and can be carried into an embed
+  const getInitialPlayTypeFilter = (): PlayTypeFilter => {
+    if (typeof window !== 'undefined') {
+      const playType = new URLSearchParams(window.location.search).get('playType');
+      if (playType === 'rush' || playType === 'pass') return playType;
+    }
+    return 'all';
+  };
+
+  const [playTypeFilter, setPlayTypeFilter] = useState<PlayTypeFilter>(getInitialPlayTypeFilter());
+
+  // Keep the URL in sync with the play type filter. Views that hide the
+  // per-game line charts (Team vs. Team) never show the dropdown, so they
+  // shouldn't touch the URL.
+  useEffect(() => {
+    if (hidePerGameLines) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (playTypeFilter === 'all') {
+      urlParams.delete('playType');
+    } else {
+      urlParams.set('playType', playTypeFilter);
+    }
+    const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`;
+    window.history.replaceState({}, '', newUrl);
+  }, [playTypeFilter, hidePerGameLines]);
+
   if (!chartData) return null;
+
+  // The embed serializes whatever datasets are on screen, so filtering here
+  // makes the current play type selection the embed's default view too
+  const rushPassByGameFiltered = filterDatasetsByPlayType(chartData.rushPassByGame, playTypeFilter);
 
   const handleCopyEmbed = async (
     chartId: string,
     title: string,
     data: any,
-    chartType: 'bar' | 'line'
+    chartType: 'bar' | 'line',
+    extraUrlParams?: Record<string, string>
   ) => {
     setCopiedChart(chartId);
 
@@ -140,7 +215,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
               year,
               gamesCount,
               selectedTeamColor,
-              embedOptions
+              extraUrlParams ? { ...embedOptions, urlParams: extraUrlParams } : embedOptions
             );
 
       await navigator.clipboard.writeText(embedCode);
@@ -238,24 +313,33 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Play type effectiveness trends throughout the season
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('rush-pass-by-game', 'SR and XR by Play Type (each game)', chartData.rushPassByGame, 'line')}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'rush-pass-by-game'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'rush-pass-by-game' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'rush-pass-by-game' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <PlayTypeDropdown value={playTypeFilter} onChange={setPlayTypeFilter} />
+              <button
+                onClick={() => handleCopyEmbed(
+                  'rush-pass-by-game',
+                  'SR and XR by Play Type (each game)',
+                  rushPassByGameFiltered,
+                  'line',
+                  playTypeFilter !== 'all' ? { playType: playTypeFilter } : undefined
+                )}
+                className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
+                  copiedChart === 'rush-pass-by-game'
+                    ? 'border-green-300 bg-green-50'
+                    : 'border-neutral-300 hover:bg-neutral-50'
+                }`}
+                title={copiedChart === 'rush-pass-by-game' ? "Copied!" : "Copy embed code"}
+              >
+                {copiedChart === 'rush-pass-by-game' ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4 text-neutral-600" />
+                )}
+              </button>
+            </div>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
-            <Line data={chartData.rushPassByGame} options={lineChartOptionsWithRotatedLabels} />
+            <Line data={rushPassByGameFiltered} options={lineChartOptionsWithRotatedLabels} />
           </div>
         </div>
         )}
