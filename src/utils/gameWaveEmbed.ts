@@ -145,18 +145,24 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
   const fnSuffix = uniqueId.replace(/-/g, '_');
   const { svg, minWidthPx } = renderWaveSvg(spec);
 
+  // The drawer carries the "plays are binned by game clock" idea the legend
+  // used to spend a line on, so it leads: how to read the chart first, what
+  // the metrics mean after.
   const definitions = [
-    `Based roughly on ${SP_LINK}`,
-    SUCCESSFUL_PLAY_DEF,
-    '<strong>Explosive play:</strong> Gains 15+ yards',
-    `<strong>Each dot:</strong> One play, stacked inside the ${binLength(
+    `<strong>Each dot is one play</strong>, dropped into the ${binLength(
       model.segmentsPerQuarter,
-    )}-minute stretch of game clock it ran in — taller stacks mean more snaps`,
-    `<strong>Sides:</strong> ${escapeHtml(team)}'s offensive plays sit above the clock, ${escapeHtml(
+    )}-minute stretch of game clock it ran in — so a tall column is a busy stretch of clock, not a long drive`,
+    `<strong>Down the middle:</strong> minutes left in the quarter, counting down through each quarter in turn${
+      model.hasOvertime ? '; overtime gets a column of its own at the end' : ''
+    }`,
+    `<strong>Sides:</strong> ${escapeHtml(team)}'s offensive plays stack above the clock, ${escapeHtml(
       opponent,
     )}'s below`,
+    '<strong>Shading:</strong> darkest dots are explosive plays, mid are successful, palest are unsuccessful',
     '<strong>Dot labels:</strong> 6 = touchdown, 3 = field goal, i = interception, f = fumble lost',
-    '<strong>Center numbers:</strong> Minutes left in the quarter',
+    SUCCESSFUL_PLAY_DEF,
+    '<strong>Explosive play:</strong> Gains 15+ yards',
+    `Based roughly on ${SP_LINK}`,
   ];
 
   return `<!-- CFB Analytics Chart Embed: ${escapeHtml(title)} -->
@@ -203,9 +209,6 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
             margin: 0 0 12px 0;
             font-size: 12px;
             color: #78716C;
-        }
-        .cfb-wave-embed-${uniqueId} .wave-legend-note {
-            color: #A8A29B;
         }
         .cfb-wave-embed-${uniqueId} .wave-sep {
             color: #D6D1C8;
@@ -340,8 +343,6 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
         </div>
         <div class="chart-content">
             <div class="wave-legend">
-                <span class="wave-legend-note">Plays binned by game clock</span>
-                <span class="wave-sep">&middot;</span>
                 <span class="wave-team">${arrowIcon('up', topColors.explosive)}${escapeHtml(team)}</span>
                 <span class="wave-team">${arrowIcon('down', bottomColors.explosive)}${escapeHtml(opponent)}</span>
                 <span class="wave-keys"><span class="wave-sep">&middot;</span>${keySwatch(
