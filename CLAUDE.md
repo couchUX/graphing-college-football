@@ -75,7 +75,8 @@ canvas. It ships the game's events plus **`createWaveRuntime`'s own source**
 container using the same code the page runs. That closure must stay
 self-contained — no imports, no module constants, no syntax the build might
 turn into a helper call (spread, async) — or the copy throws. The rule is
-spelled out at the top of `gameWaveRuntime.ts`.
+spelled out at the top of `gameWaveRuntime.ts`, and `npm run check:embed`
+enforces it: `tsc` and `vite build` both pass happily when it's broken.
 
 **Never load Chart.js from a static `<script src>` tag in an embed.** Both
 generators inject it from inline JS via `embedChartLoader.ts`, sequentially,
@@ -93,6 +94,7 @@ npm run dev      # vite dev server (proxies /api/cfbd with CFB_API_KEY from .env
 npm run build    # production build
 npm run lint     # eslint
 npx tsc --noEmit -p tsconfig.app.json   # typecheck (build does not typecheck)
+npm run check:embed   # prove the Game Wave embed's serialized runtime stands alone
 ```
 
 A `CFB_API_KEY` in `.env` is required for live data; it stays server-side via
