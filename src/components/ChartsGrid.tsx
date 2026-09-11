@@ -5,7 +5,7 @@ import { PlayData } from '../types';
 import { useChartData } from '../hooks/useChartData';
 import { useToast } from '../hooks/useToast';
 import { track } from '../utils/analytics';
-import GameWaveChart from './GameWaveChart';
+import GameWaveChart, { GAME_WAVE_TITLE } from './GameWaveChart';
 import ChartCard from './ChartCard';
 import {
   createLineOptionsPlayNumberSRXR,
@@ -18,6 +18,7 @@ import {
 } from '../utils/chartOptions';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import { generateChartEmbed } from '../utils/chartEmbedGenerator';
+import { BASE_DEFINITIONS } from '../utils/embedDefinitions';
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
 
 // Initialize Chart.js defaults
@@ -51,15 +52,9 @@ interface ChartEntry {
   mobileHeight?: number;
 }
 
-const SP_LINK =
-  '<a href="https://www.sbnation.com/college-football/2017/10/13/16457830/college-football-advanced-stats-analytics-rankings" target="_blank" style="color: #525252; text-decoration: underline;">the SP+ analytic system</a>';
-
-const BASE_DEFINITIONS = [
-  `Based roughly on ${SP_LINK}`,
-  '<strong>Successful play:</strong> Gains enough needed yards (50% 1st down, 70% on 2nd, 100% on 3rd/4th)',
-  '<strong>Success Rate (SR):</strong> Percentage of plays that were successful',
-  '<strong>Explosiveness Rate (XR):</strong> Percentage of plays gaining 15+ yards',
-];
+/** The Game Wave isn't a Chart.js chart, so it carries its own id for the
+ *  copy-button state and the embed analytics event. */
+const GAME_WAVE_ID = 'game-wave';
 
 /** Chart-specific bullets for the embed's "Data definitions" accordion. */
 const definitionsFor = (chartId: string): string[] => {
@@ -234,25 +229,12 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     return `https://graphingcollegefootball.com/?${params}`;
   };
 
-  /**
-   * Copy an embed for a chart. The generic generator serializes the exact data
-   * and options the chart is rendered with, so embeds can't drift from the app
-   * the way the old hand-maintained template did.
-   */
-  const handleCopyEmbed = async (chart: ChartEntry & { filterValue?: string }) => {
+  /** Put a finished embed on the clipboard and flash that chart's button. */
+  const copyEmbedCode = async (
+    chart: { id: string; title: string; chartType: string },
+    embedCode: string
+  ) => {
     try {
-      const embedCode = generateChartEmbed({
-        chartType: chart.chartType,
-        data: chart.data,
-        options: chart.options,
-        title: chart.title,
-        subtitle: gameSubtitle,
-        sourceUrl: gameUrlFor(chart.filterValue),
-        height: chart.height ?? CHART_HEIGHTS.DEFAULT_DESKTOP,
-        mobileHeight: chart.mobileHeight ?? chart.height ?? CHART_HEIGHTS.DEFAULT_MOBILE,
-        definitions: definitionsFor(chart.id),
-      });
-
       await navigator.clipboard.writeText(embedCode);
       setCopiedChart(chart.id);
       notify(`Embed code copied for ${chart.title}`);
@@ -275,6 +257,27 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
       notify('Failed to copy embed code. Please try again.');
     }
   };
+
+  /**
+   * Copy an embed for a chart. The generic generator serializes the exact data
+   * and options the chart is rendered with, so embeds can't drift from the app
+   * the way the old hand-maintained template did.
+   */
+  const handleCopyEmbed = (chart: ChartEntry & { filterValue?: string }) =>
+    copyEmbedCode(
+      chart,
+      generateChartEmbed({
+        chartType: chart.chartType,
+        data: chart.data,
+        options: chart.options,
+        title: chart.title,
+        subtitle: gameSubtitle,
+        sourceUrl: gameUrlFor(chart.filterValue),
+        height: chart.height ?? CHART_HEIGHTS.DEFAULT_DESKTOP,
+        mobileHeight: chart.mobileHeight ?? chart.height ?? CHART_HEIGHTS.DEFAULT_MOBILE,
+        definitions: definitionsFor(chart.id),
+      })
+    );
 
   const hasWinProbability = Boolean(winProbChartData?.datasets?.length);
 
@@ -384,6 +387,12 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
               teamColorId={selectedTeamColor}
               opponentColorId={selectedOpponentColor}
               rawPlays={rawApiData}
+              subtitle={gameSubtitle}
+              sourceUrl={gameUrlFor()}
+              isCopied={copiedChart === GAME_WAVE_ID}
+              onCopyEmbed={embedCode =>
+                copyEmbedCode({ id: GAME_WAVE_ID, title: GAME_WAVE_TITLE, chartType: 'svg' }, embedCode)
+              }
             />
           </div>
 

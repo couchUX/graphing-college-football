@@ -34,11 +34,11 @@ export interface GameWaveModel {
   hasOvertime: boolean;
 }
 
-const QUARTER_MINUTES = 15;
+export const QUARTER_MINUTES = 15;
 // Default clock tranches per quarter (~2.1 min each). The chart picks a finer
 // or coarser value at render time based on how wide its container is.
 export const DEFAULT_SEGMENTS_PER_QUARTER = 7;
-const REGULATION_QUARTERS = 4;
+export const REGULATION_QUARTERS = 4;
 
 const segmentIndex = (minutes: number, seconds: number, segmentsPerQuarter: number): number => {
   const segmentMinutes = QUARTER_MINUTES / segmentsPerQuarter;
