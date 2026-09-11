@@ -69,6 +69,14 @@ chart data/options must be closure-free** (arguments and globals only) or it
 won't survive serialization. `trendsEmbedGenerator.ts` and `boxScoreEmbed.ts`
 are older bespoke templates still used by the season-trends and box-score paths.
 
+The Game Wave embed is its own thing (`gameWaveEmbed.ts`): no Chart.js, no
+canvas. It ships the game's events plus **`createWaveRuntime`'s own source**
+(`Function.prototype.toString`) so the copied chart re-bins itself to its
+container using the same code the page runs. That closure must stay
+self-contained — no imports, no module constants, no syntax the build might
+turn into a helper call (spread, async) — or the copy throws. The rule is
+spelled out at the top of `gameWaveRuntime.ts`.
+
 **Never load Chart.js from a static `<script src>` tag in an embed.** Both
 generators inject it from inline JS via `embedChartLoader.ts`, sequentially,
 because WordPress performance plugins rewrite script tags — adding `async`, or

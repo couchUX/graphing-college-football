@@ -1,36 +1,28 @@
-import { QUARTER_MINUTES, type GameWaveModel } from './gameWave';
-import {
-  DOT_LABEL_COLOR,
-  DOT_R,
-  GRID_COLOR,
-  LABEL_BAND,
-  MINUTE_LABEL_COLOR,
-  QUARTER_LABEL_COLOR,
-  buildWaveGeometry,
-  waveDotColor,
-  waveDotTooltip,
-  type WaveShadeColors,
-} from './gameWaveGeometry';
+import { createWaveRuntime, waveRuntime, type WaveEvent, type WaveShadeColors } from './gameWaveRuntime';
 import { SP_LINK, SUCCESSFUL_PLAY_DEF } from './embedDefinitions';
 
 /**
  * "Copy embed code" for the Game Wave.
  *
  * The wave is hand-drawn SVG rather than a Chart.js canvas, so it can't ride
- * the generic `chartEmbedGenerator`. It doesn't need to: the same geometry the
- * page renders with (`gameWaveGeometry`) is serialized straight to static SVG
- * markup here, which means no chart library, no inline init script, and nothing
- * a CMS performance plugin can reorder and break.
+ * the generic `chartEmbedGenerator` — and it needs something that generator
+ * never had to do: re-bin itself. On the page the wave subdivides each quarter
+ * into finer clock slices as it gets more room; an embed lands in a column of
+ * unknown width, so a picture baked at copy time would be wrong as often as
+ * right.
  *
- * The embed drops the on-screen resize handles — it simply fills whatever
- * container it lands in. Binning is baked at copy time (the granularity showing
- * when the button was pressed), and a min-width keeps the dots legible in a
- * narrow column by letting the chart scroll sideways instead of shrinking into
- * illegibility.
+ * So the embed ships the game's events and `createWaveRuntime`'s own source
+ * (`Function.prototype.toString`, the same trick `chartEmbedGenerator` uses for
+ * chart callbacks). The copied chart measures its container and bins, stacks
+ * and draws with the very code this page runs — no chart library, no CDN, and
+ * no way for the two to drift apart.
  */
 
 export interface GameWaveEmbedSpec {
-  model: GameWaveModel;
+  /** The game's plays, already classified — the embed bins them itself. */
+  events: WaveEvent[];
+  /** Granularity showing on screen; the embed starts here, then measures. */
+  segmentsPerQuarter: number;
   /** Team stacked above the clock. */
   team: string;
   /** Team stacked below it. */
@@ -43,11 +35,6 @@ export interface GameWaveEmbedSpec {
   sourceUrl: string;
   sourceLabel?: string;
 }
-
-// Narrowest a single dot cell may render before the chart scrolls instead.
-// A touch under the on-screen minimum (18px), so the common case — an embed
-// column narrower than the app's — still fits without a scrollbar.
-const MIN_EMBED_CELL_PX = 16;
 
 // Legend swatches read as a neutral ramp on screen (they describe the shading,
 // not either team), so the embed keeps the app's warm neutrals here.
@@ -66,12 +53,14 @@ const escapeHtml = (value: string | number | null | undefined): string => {
     .replace(/'/g, '&#39;');
 };
 
-/** Trim the float noise out of coordinates so the markup stays readable. */
-const n = (value: number): string => String(Math.round(value * 1000) / 1000);
+/** Nothing inside the embed's inline script may close its <script> tag. */
+const scriptSafe = (source: string): string => source.replace(/<\/script/gi, '<\\u002fscript');
 
-/** "2.1-minute" / "1-minute", for the definition of a clock bin. */
+const json = (value: unknown): string => scriptSafe(JSON.stringify(value).replace(/</g, '\\u003c'));
+
+/** "2.1" / "1", for the length of a clock bin. */
 const binLength = (segmentsPerQuarter: number): string => {
-  const minutes = QUARTER_MINUTES / segmentsPerQuarter;
+  const minutes = waveRuntime.QUARTER_MINUTES / segmentsPerQuarter;
   return Number.isInteger(minutes) ? `${minutes}` : minutes.toFixed(1);
 };
 
@@ -88,72 +77,34 @@ const keySwatch = (color: string, ring: string | null, label: string): string =>
     ring ? `;box-shadow:inset 0 0 0 1px ${escapeHtml(ring)}` : ''
   }"></span>${escapeHtml(label)}</span>`;
 
-/** The wave itself, as static SVG — the same shapes the page draws. */
-const renderWaveSvg = (spec: GameWaveEmbedSpec): { svg: string; minWidthPx: number } => {
-  const { model, team, opponent, topColors, bottomColors } = spec;
-  const geom = buildWaveGeometry(model);
-  const parts: string[] = [];
-
-  // Quarter dividers
-  for (const x of geom.dividers) {
-    parts.push(
-      `<line x1="${n(x)}" x2="${n(x)}" y1="0.2" y2="${n(geom.vbHeight - LABEL_BAND + 0.4)}" stroke="${GRID_COLOR}" stroke-width="0.05"/>`,
-    );
-  }
-
-  // Dots, each carrying its play description as a native SVG tooltip
-  for (const point of model.points) {
-    const cx = geom.xOf(point.column);
-    const cy = geom.yOf(point);
-    const fill = waveDotColor(point, topColors, bottomColors);
-    parts.push(
-      `<g><circle cx="${n(cx)}" cy="${n(cy)}" r="${DOT_R}" fill="${escapeHtml(fill)}" stroke="#ffffff" stroke-width="0.05"><title>${escapeHtml(waveDotTooltip(point))}</title></circle>` +
-        (point.label
-          ? `<text x="${n(cx)}" y="${n(cy)}" dy="0.35em" font-size="0.5" font-weight="bold" fill="${point.isScore ? '#ffffff' : DOT_LABEL_COLOR}" text-anchor="middle" pointer-events="none">${escapeHtml(point.label)}</text>`
-          : '') +
-        `</g>`,
-    );
-  }
-
-  // Game-clock minute ticks in the reserved central axis lane
-  for (const mark of geom.minuteMarks) {
-    parts.push(
-      `<text x="${n(mark.x)}" y="${n(geom.minuteLabelY)}" font-size="0.55" fill="${MINUTE_LABEL_COLOR}" text-anchor="middle" dominant-baseline="central">${escapeHtml(mark.label)}</text>`,
-    );
-  }
-
-  // Quarter marks
-  for (const mark of geom.quarterMarks) {
-    parts.push(
-      `<text x="${n(mark.x)}" y="${n(geom.labelY)}" font-size="0.62" font-weight="bold" fill="${QUARTER_LABEL_COLOR}" text-anchor="middle" dominant-baseline="central">${escapeHtml(mark.label)}</text>`,
-    );
-  }
-
-  const svg =
-    `<svg class="wave-svg" viewBox="0 0 ${n(geom.vbWidth)} ${n(geom.vbHeight)}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escapeHtml(`Game wave: ${team} versus ${opponent}`)}">` +
-    parts.join('') +
-    `</svg>`;
-
-  return { svg, minWidthPx: Math.round(geom.vbWidth * MIN_EMBED_CELL_PX) };
-};
-
 export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
-  const { model, team, opponent, topColors, bottomColors, title, subtitle, sourceUrl, sourceLabel = 'See all charts' } =
-    spec;
+  const {
+    events,
+    segmentsPerQuarter,
+    team,
+    opponent,
+    topColors,
+    bottomColors,
+    title,
+    subtitle,
+    sourceUrl,
+    sourceLabel = 'See all charts',
+  } = spec;
 
   const uniqueId = `cfb-wave-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   const fnSuffix = uniqueId.replace(/-/g, '_');
-  const { svg, minWidthPx } = renderWaveSvg(spec);
+  const hasOvertime = events.some(event => event.quarter > waveRuntime.REGULATION_QUARTERS);
 
   // The drawer carries the "plays are binned by game clock" idea the legend
   // used to spend a line on, so it leads: how to read the chart first, what
-  // the metrics mean after.
+  // the metrics mean after. The bin length is live — the script rewrites it
+  // whenever the chart re-bins itself.
   const definitions = [
-    `<strong>Each dot is one play</strong>, dropped into the ${binLength(
-      model.segmentsPerQuarter,
-    )}-minute stretch of game clock it ran in — so a tall column is a busy stretch of clock, not a long drive`,
+    `<strong>Each dot is one play</strong>, dropped into the <span id="binLength_${uniqueId}">${binLength(
+      segmentsPerQuarter,
+    )}</span>-minute stretch of game clock it ran in — so a tall column is a busy stretch of clock, not a long drive`,
     `<strong>Down the middle:</strong> minutes left in the quarter, counting down through each quarter in turn${
-      model.hasOvertime ? '; overtime gets a column of its own at the end' : ''
+      hasOvertime ? '; overtime gets a column of its own at the end' : ''
     }`,
     `<strong>Sides:</strong> ${escapeHtml(team)}'s offensive plays stack above the clock, ${escapeHtml(
       opponent,
@@ -245,17 +196,14 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
             display: inline-block;
             flex: none;
         }
-        /* The wave fills its container. When that container is too narrow for
-           the dots to stay readable, it scrolls sideways rather than shrinking. */
-        .cfb-wave-embed-${uniqueId} .wave-scroll {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+        /* The wave is redrawn to fit this box, never scrolled inside it. */
+        .cfb-wave-embed-${uniqueId} .wave-frame {
+            width: 100%;
         }
         .cfb-wave-embed-${uniqueId} .wave-svg {
             display: block;
             width: 100%;
             height: auto;
-            min-width: ${minWidthPx}px;
             font-family: inherit;
         }
         .cfb-wave-embed-${uniqueId} .embed-footer {
@@ -355,9 +303,7 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
                   'Unsuccessful',
                 )}</span>
             </div>
-            <div class="wave-scroll">
-                ${svg}
-            </div>
+            <div class="wave-frame" id="waveFrame_${uniqueId}"></div>
         </div>
         <div class="embed-footer">
             <div class="embed-footer-top">
@@ -387,6 +333,62 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
                 caret.classList.add('expanded');
             }
         }
-    <\u002fscript>
+
+        // Draw the wave, and redraw it whenever the container width would put
+        // it in a different clock binning. This is graphingcollegefootball.com's
+        // own wave code, shipped verbatim — see gameWaveRuntime.ts.
+        (function () {
+            'use strict';
+
+            var runtime = (${scriptSafe(String(createWaveRuntime))})();
+            var events = ${json(events)};
+            var team = ${json(team)};
+            var opponent = ${json(opponent)};
+            var topColors = ${json(topColors)};
+            var bottomColors = ${json(bottomColors)};
+            var hasOvertime = ${hasOvertime};
+            var segments = 0;
+
+            function start() {
+                var frame = document.getElementById('waveFrame_${uniqueId}');
+                if (!frame) return false;
+
+                var binLabel = document.getElementById('binLength_${uniqueId}');
+
+                function draw() {
+                    var chosen = runtime.chooseSegments(frame.clientWidth, hasOvertime, events.length);
+                    if (chosen === segments) return;
+                    segments = chosen;
+
+                    var model = runtime.buildModel(events, chosen);
+                    frame.innerHTML = runtime.renderSvg({
+                        model: model,
+                        geometry: runtime.buildGeometry(model),
+                        team: team,
+                        opponent: opponent,
+                        topColors: topColors,
+                        bottomColors: bottomColors
+                    });
+
+                    if (binLabel) {
+                        var minutes = ${waveRuntime.QUARTER_MINUTES} / chosen;
+                        binLabel.textContent = minutes % 1 === 0 ? String(minutes) : minutes.toFixed(1);
+                    }
+                }
+
+                draw();
+                if (typeof ResizeObserver === 'function') {
+                    new ResizeObserver(draw).observe(frame);
+                } else {
+                    window.addEventListener('resize', draw);
+                }
+                return true;
+            }
+
+            if (!start() && document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', start);
+            }
+        })();
+    </script>
 </div>`;
 };
