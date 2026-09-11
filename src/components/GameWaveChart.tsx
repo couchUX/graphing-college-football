@@ -1,15 +1,13 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, Copy } from 'lucide-react';
 import type { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import {
-  buildGameWave,
-  DEFAULT_SEGMENTS_PER_QUARTER,
-  extractFieldGoals,
-  extractFumbles,
-  type RawPlayLike,
-  type WavePoint,
-} from '../utils/gameWave';
+import { extractFieldGoals, extractFumbles, toWaveEvents, type RawPlayLike } from '../utils/gameWave';
+import { waveRuntime, type WaveShadeColors } from '../utils/gameWaveRuntime';
+import { buildGameWaveEmbedHtml } from '../utils/gameWaveEmbed';
+
+/** Card title, shared with the embed and the "copied" toast. */
+export const GAME_WAVE_TITLE = 'Game Wave';
 
 interface GameWaveChartProps {
   plays: PlayData[];
@@ -18,66 +16,21 @@ interface GameWaveChartProps {
   teamColorId: string;
   opponentColorId: string;
   rawPlays?: RawPlayLike[];
+  /** Line under the title in the embed (game context). */
+  subtitle?: string;
+  /** Embed footer link target ("See all charts"). */
+  sourceUrl?: string;
+  /** Omit to hide the embed button. Receives the ready-to-paste HTML. */
+  onCopyEmbed?: (embedCode: string) => void;
+  isCopied?: boolean;
 }
-
-interface ShadeColors {
-  explosive: string;
-  success: string;
-  light: string;
-}
-
-// Geometry, in viewBox units where 1 unit = one dot cell.
-const DOT_R = 0.4;
-const QUARTER_GAP = 0.7;
-const LABEL_BAND = 1.9;
-const RIGHT_PAD = 0.6;
-const REGULATION_QUARTERS = 4;
-const QUARTER_MINUTES = 15;
-// Half-height of the central axis lane reserved for the minute labels; the two
-// teams' dots stack above and below it (never into it).
-const AXIS_HALF = 0.625;
-// Quarter dividers, matching the warm hairline used by card borders.
-const GRID_COLOR = '#E5E1DB';
 
 // Smallest the (centered) chart area can be dragged to.
 const MIN_CHART_WIDTH = 240;
 // Keyboard nudge step for the resize handles, in px of margin per arrow press.
 const RESIZE_STEP = 24;
 
-// Responsive time-binning. As the chart area gets wider we subdivide each
-// quarter into more (finer) clock tranches so the wave fills the horizontal
-// space and the stacks flatten out, rather than blowing the dots up huge.
-// Candidates run from 3/quarter (~5 min bins) to 15/quarter (~1 min bins).
-const SEGMENT_CANDIDATES = [3, 4, 5, 6, 7, 8, 9, 10, 12, 15];
-const MIN_CELL_PX = 18; // don't let a single dot cell render narrower than this
-const MIN_PLAYS_PER_CELL = 0.9; // and don't subdivide so far the wave goes sparse/flat
-
-// Width of the viewBox (in dot-cell units) for a given granularity. Mirrors the
-// xOf math in `geom` so the px-per-cell estimate used for selection is accurate.
-const vbWidthUnits = (segmentsPerQuarter: number, hasOvertime: boolean): number => {
-  if (!hasOvertime) {
-    const lastRegColumn = REGULATION_QUARTERS * segmentsPerQuarter - 1;
-    return lastRegColumn + 0.5 + (REGULATION_QUARTERS - 1) * QUARTER_GAP + RIGHT_PAD;
-  }
-  const otColumn = REGULATION_QUARTERS * segmentsPerQuarter;
-  return otColumn + 0.5 + REGULATION_QUARTERS * QUARTER_GAP + RIGHT_PAD;
-};
-
-// Pick the finest granularity whose dots stay legible and whose bins stay dense
-// enough. Candidates are ascending and px-per-cell is monotonically decreasing,
-// so the first candidate that fails either guard ends the search.
-const chooseSegmentsPerQuarter = (width: number, hasOvertime: boolean, totalPlays: number): number => {
-  if (!width) return DEFAULT_SEGMENTS_PER_QUARTER;
-  let chosen = SEGMENT_CANDIDATES[0];
-  for (const n of SEGMENT_CANDIDATES) {
-    const cellPx = width / vbWidthUnits(n, hasOvertime);
-    if (cellPx < MIN_CELL_PX) break;
-    const columns = REGULATION_QUARTERS * n + (hasOvertime ? 1 : 0);
-    if (totalPlays > 0 && totalPlays / (2 * columns) < MIN_PLAYS_PER_CELL) break;
-    chosen = n;
-  }
-  return chosen;
-};
+const { palette, DOT_R, LABEL_BAND, REGULATION_QUARTERS } = waveRuntime;
 
 const LegendSwatch = ({ dotClass, label }: { dotClass: string; label: string }) => (
   <span className="inline-flex items-center gap-1.5">
@@ -99,7 +52,18 @@ const Grip = () => (
   </span>
 );
 
-const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, rawPlays = [] }: GameWaveChartProps) => {
+const GameWaveChart = ({
+  plays,
+  team,
+  opponent,
+  teamColorId,
+  opponentColorId,
+  rawPlays = [],
+  subtitle,
+  sourceUrl = 'https://graphingcollegefootball.com',
+  onCopyEmbed,
+  isCopied = false,
+}: GameWaveChartProps) => {
   // Measure the available width so the wave can re-bin as it grows/shrinks.
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -125,93 +89,48 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
   const fieldGoals = useMemo(() => extractFieldGoals(rawPlays), [rawPlays]);
   const fumbles = useMemo(() => extractFumbles(rawPlays), [rawPlays]);
 
-  const hasOvertime = useMemo(
-    () =>
-      plays.some((p) => p.quarter > REGULATION_QUARTERS) ||
-      fieldGoals.some((fg) => fg.quarter > REGULATION_QUARTERS) ||
-      fumbles.some((f) => f.quarter > REGULATION_QUARTERS),
-    [plays, fieldGoals, fumbles],
+  // Plays classified once; binning is what changes as the chart is resized.
+  const events = useMemo(
+    () => toWaveEvents(plays, team, fieldGoals, fumbles),
+    [plays, team, fieldGoals, fumbles],
   );
 
+  const hasOvertime = useMemo(() => events.some((e) => e.quarter > REGULATION_QUARTERS), [events]);
+
   const segmentsPerQuarter = useMemo(
-    () => chooseSegmentsPerQuarter(chartWidth, hasOvertime, plays.length + fieldGoals.length + fumbles.length),
-    [chartWidth, hasOvertime, plays.length, fieldGoals.length, fumbles.length],
+    () => waveRuntime.chooseSegments(chartWidth, hasOvertime, events.length),
+    [chartWidth, hasOvertime, events.length],
   );
 
   const model = useMemo(
-    () => buildGameWave(plays, team, fieldGoals, segmentsPerQuarter, fumbles),
-    [plays, team, fieldGoals, segmentsPerQuarter, fumbles],
+    () => waveRuntime.buildModel(events, segmentsPerQuarter),
+    [events, segmentsPerQuarter],
   );
 
-  const topColors = useMemo<ShadeColors>(() => getDisplayTeamColors(team, teamColorId), [team, teamColorId]);
-  const bottomColors = useMemo<ShadeColors>(
+  const topColors = useMemo<WaveShadeColors>(() => getDisplayTeamColors(team, teamColorId), [team, teamColorId]);
+  const bottomColors = useMemo<WaveShadeColors>(
     () => getDisplayTeamColors(opponent, opponentColorId),
     [opponent, opponentColorId],
   );
 
-  const geom = useMemo(() => {
-    const { segmentsPerQuarter: spq, regulationQuarters: reg, columnCount, hasOvertime } = model;
-    const otColumn = reg * spq;
+  const geom = useMemo(() => waveRuntime.buildGeometry(model), [model]);
 
-    const xOf = (column: number) => {
-      const qi = column >= otColumn ? reg : Math.floor(column / spq);
-      return column + 0.5 + qi * QUARTER_GAP;
-    };
-
-    const displayTop = Math.max(model.topMax, 1);
-    const displayBottom = Math.max(model.bottomMax, 1);
-    // Center of the reserved axis lane; top dots stack above it, bottom below.
-    const centerY = displayTop + AXIS_HALF;
-
-    const yOf = (point: WavePoint) =>
-      point.side === 'top'
-        ? centerY - AXIS_HALF - point.position + 0.5
-        : centerY + AXIS_HALF + point.position - 0.5;
-
-    const vbWidth = xOf(columnCount - 1) + RIGHT_PAD;
-    const contentBottom = displayTop + displayBottom + 2 * AXIS_HALF;
-    const vbHeight = contentBottom + LABEL_BAND;
-    const labelY = contentBottom + 1.05;
-    // Minute ticks sit in the reserved central lane between the two stacks,
-    // nudged below the exact center to sit optically right.
-    const minuteLabelY = centerY + 0.2;
-
-    // Quarter labels centered under each quarter's columns.
-    const quarterMarks: { x: number; label: string }[] = [];
-    for (let qi = 0; qi < reg; qi += 1) {
-      const first = qi * spq;
-      const last = first + spq - 1;
-      quarterMarks.push({ x: (xOf(first) + xOf(last)) / 2, label: `Q${qi + 1}` });
-    }
-    if (hasOvertime) quarterMarks.push({ x: xOf(otColumn), label: 'OT' });
-
-    // Game-clock ticks down the center lane: one per bin (segment start),
-    // including each quarter's 15:00. Rounded to whole minutes; shown without a
-    // colon so 3-char labels can't crowd adjacent ticks at the finest binning.
-    const minuteMarks: { x: number; label: string }[] = [];
-    for (let qi = 0; qi < reg; qi += 1) {
-      for (let s = 0; s < spq; s += 1) {
-        const remaining = Math.round((QUARTER_MINUTES * (spq - s)) / spq);
-        minuteMarks.push({ x: xOf(qi * spq + s), label: `${remaining}` });
-      }
-    }
-
-    // Faint dividers between quarters (and before OT).
-    const dividers: number[] = [];
-    for (let qi = 1; qi < reg; qi += 1) {
-      dividers.push((xOf(qi * spq - 1) + xOf(qi * spq)) / 2);
-    }
-    if (hasOvertime) dividers.push((xOf(otColumn - 1) + xOf(otColumn)) / 2);
-
-    return { xOf, yOf, vbWidth, vbHeight, centerY, labelY, minuteLabelY, quarterMarks, minuteMarks, dividers };
-  }, [model]);
-
-  const colorOf = (point: WavePoint): string => {
-    const colors = point.side === 'top' ? topColors : bottomColors;
-    if (point.isScore) return colors.explosive;
-    if (point.outcome === 'explosive') return colors.explosive;
-    if (point.outcome === 'success') return colors.success;
-    return colors.light;
+  // The embed carries the events, not a fixed picture: it re-bins itself to
+  // whatever container it lands in, the way this chart re-bins as it's dragged.
+  const handleCopyEmbed = () => {
+    onCopyEmbed?.(
+      buildGameWaveEmbedHtml({
+        events,
+        segmentsPerQuarter,
+        team,
+        opponent,
+        topColors,
+        bottomColors,
+        title: GAME_WAVE_TITLE,
+        subtitle,
+        sourceUrl,
+      }),
+    );
   };
 
   // Resize handles: dragging either side adjusts the symmetric margin so the
@@ -250,8 +169,23 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
 
   return (
     <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
-      <div className="px-6 py-4 border-b border-neutral-200">
-        <h3 className="headline relative top-px text-[17px] font-bold text-ink">Game Wave</h3>
+      <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-neutral-200">
+        <h3 className="headline relative top-px text-[17px] font-bold text-ink">{GAME_WAVE_TITLE}</h3>
+
+        {onCopyEmbed && (
+          <button
+            onClick={handleCopyEmbed}
+            className={`flex h-8 w-8 flex-none items-center justify-center rounded-lg border transition-colors ${
+              isCopied
+                ? 'border-accent text-accent'
+                : 'border-neutral-300 text-byline hover:border-neutral-400 hover:text-ink'
+            }`}
+            title={isCopied ? 'Copied' : 'Copy embed code'}
+            aria-label={isCopied ? 'Embed code copied' : `Copy embed code for ${GAME_WAVE_TITLE}`}
+          >
+            {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          </button>
+        )}
       </div>
 
       <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -302,7 +236,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 x2={x}
                 y1={0.2}
                 y2={geom.vbHeight - LABEL_BAND + 0.4}
-                stroke={GRID_COLOR}
+                stroke={palette.grid}
                 strokeWidth={0.05}
               />
             ))}
@@ -313,20 +247,15 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
               const cy = geom.yOf(point);
               return (
                 <g key={`pt-${i}`}>
-                  <circle cx={cx} cy={cy} r={DOT_R} fill={colorOf(point)} stroke="#ffffff" strokeWidth={0.05}>
-                    <title>
-                      {`${point.team} — ${
-                        point.outcome === 'explosive'
-                          ? 'Explosive'
-                          : point.outcome === 'fieldGoal'
-                            ? 'Field goal'
-                            : point.outcome === 'fumble'
-                              ? 'Fumble lost'
-                              : point.outcome === 'success'
-                                ? 'Successful'
-                                : 'Unsuccessful'
-                      }${point.down ? ` (${point.yardsGained} yds on ${point.down} & ${point.distance})` : ''}\n${point.playText}`}
-                    </title>
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={DOT_R}
+                    fill={waveRuntime.dotColor(point, topColors, bottomColors)}
+                    stroke={palette.dotStroke}
+                    strokeWidth={0.05}
+                  >
+                    <title>{waveRuntime.dotTooltip(point, team, opponent)}</title>
                   </circle>
                   {point.label && (
                     <text
@@ -335,7 +264,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                       dy="0.35em"
                       fontSize={0.5}
                       fontWeight="bold"
-                      fill={point.isScore ? '#ffffff' : '#374151'}
+                      fill={point.isScore ? palette.scoreLabel : palette.dotLabel}
                       textAnchor="middle"
                       pointerEvents="none"
                     >
@@ -353,7 +282,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 x={mark.x}
                 y={geom.minuteLabelY}
                 fontSize={0.55}
-                fill="#A8A29B"
+                fill={palette.minuteLabel}
                 textAnchor="middle"
                 dominantBaseline="central"
               >
@@ -369,7 +298,7 @@ const GameWaveChart = ({ plays, team, opponent, teamColorId, opponentColorId, ra
                 y={geom.labelY}
                 fontSize={0.62}
                 fontWeight="bold"
-                fill="#737373"
+                fill={palette.quarterLabel}
                 textAnchor="middle"
                 dominantBaseline="central"
               >
