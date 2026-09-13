@@ -115,6 +115,71 @@ const draw = (api, width, label) => {
   }
 };
 
+/**
+ * The dot tooltip is DOM code inside the same shipped closure, and it only runs
+ * on hover — so a reference out of the closure would pass every drawing check
+ * above and still throw on a reader's page. Bind it to a stand-in DOM, hover a
+ * dot, tap, leave, and make sure it shows the app's text in the right place.
+ */
+const checkTooltip = (api, appApi, label) => {
+  const model = api.buildModel(events, 7);
+  const index = model.points.findIndex(p => p.label === '6');
+  const point = model.points[index];
+  const listeners = { host: {}, doc: {} };
+  const on = bag => (type, fn) => { (bag[type] = bag[type] || []).push(fn); };
+  const off = bag => (type, fn) => { bag[type] = (bag[type] || []).filter(g => g !== fn); };
+  const fire = (bag, type, event) => (bag[type] || []).forEach(fn => fn(event));
+  const created = [];
+  const node = () => ({ style: {}, textContent: '', appendChild: child => child });
+  const doc = {
+    createElement: () => { const n = node(); created.push(n); return n; },
+    addEventListener: on(listeners.doc),
+    removeEventListener: off(listeners.doc),
+    defaultView: { getComputedStyle: () => ({ position: 'static' }) },
+  };
+  // A 10px dot near the top-left of a 400×200 host with a 1px border.
+  const dot = { getAttribute: () => String(index), getBoundingClientRect: () => ({ left: 101, right: 111, top: 21, bottom: 31 }) };
+  dot.closest = () => dot;
+  const elsewhere = { closest: () => null };
+  const host = {
+    ownerDocument: doc, style: {}, clientLeft: 1, clientTop: 1, clientWidth: 400, clientHeight: 200,
+    getBoundingClientRect: () => ({ left: 0, top: 0 }),
+    addEventListener: on(listeners.host), removeEventListener: off(listeners.host),
+    contains: n => n === dot || n === elsewhere,
+  };
+  const tip = Object.assign(node(), { offsetWidth: 180, offsetHeight: 40 });
+
+  let binding;
+  try {
+    binding = api.bindTooltip({ host, tooltip: tip, pointAt: i => model.points[i], team: TEAM, opponent: OPPONENT });
+    fire(listeners.host, 'pointermove', { target: dot, pointerType: 'mouse' });
+  } catch (error) {
+    fail(`${label}: the serialized runtime's dot tooltip threw on hover`, String(error));
+  }
+  const [title, body, caret] = created;
+  const want = appApi.tooltipParts(point, TEAM, OPPONENT);
+  if (tip.style.display !== 'block') fail(`${label}: hovering a dot didn't show its tooltip`);
+  if (title.textContent !== want.title || body.textContent !== want.body) {
+    fail(`${label}: the tooltip text differs from the app's`, `got "${title.textContent}" / "${body.textContent}"`);
+  }
+  if (host.style.position !== 'relative') fail(`${label}: the tooltip host wasn't made a positioning context`);
+  // No room above a dot 20px from the top, so it flips under: 30 + 5 caret + 2 gap.
+  if (tip.style.top !== '37px' || tip.style.left !== '15px' || caret.style.left !== '85px' || caret.style.top !== '-5px') {
+    fail(`${label}: tooltip placed wrong`, JSON.stringify({ top: tip.style.top, left: tip.style.left, caretLeft: caret.style.left, caretTop: caret.style.top }));
+  }
+  fire(listeners.host, 'pointerleave', { target: dot, pointerType: 'mouse' });
+  if (tip.style.display !== 'none') fail(`${label}: the tooltip stayed up after the mouse left`);
+  fire(listeners.host, 'pointerdown', { target: dot, pointerType: 'touch' });
+  fire(listeners.host, 'pointerleave', { target: dot, pointerType: 'touch' });
+  if (tip.style.display !== 'block') fail(`${label}: a tap didn't keep the tooltip up after the finger lifted`);
+  fire(listeners.doc, 'pointerdown', { target: {}, pointerType: 'touch' });
+  if (tip.style.display !== 'none') fail(`${label}: tapping outside the wave didn't close the tooltip`);
+  fire(listeners.host, 'pointermove', { target: elsewhere, pointerType: 'mouse' });
+  binding.destroy();
+  const left = Object.values(listeners.host).concat(Object.values(listeners.doc)).reduce((n, fns) => n + fns.length, 0);
+  if (left !== 0) fail(`${label}: destroy left ${left} listeners attached`);
+};
+
 for (const minify of [true, false]) {
   const label = minify ? 'minified' : 'unminified';
   console.log(`building the embed generator (${label})…`);
@@ -154,6 +219,11 @@ for (const minify of [true, false]) {
   for (const [where, drawn] of [['wide', wide], ['narrow', narrow]]) {
     const dots = (drawn.svg.match(/<circle/g) ?? []).length;
     if (dots !== events.length) fail(`${label} ${where}: drew ${dots} dots for ${events.length} events`);
+    const tagged = (drawn.svg.match(/<circle data-point="\d+"/g) ?? []).length;
+    if (tagged !== events.length) {
+      fail(`${label} ${where}: only ${tagged} of ${events.length} dots carry a data-point index for their tooltip`);
+    }
+    if (drawn.svg.includes('<title')) fail(`${label} ${where}: dots still carry a native <title> tooltip`);
     if (!/^<svg class="wave-svg" viewBox="0 0 [\d.]+ [\d.]+"/.test(drawn.svg)) {
       fail(`${label} ${where}: the SVG has no sized viewBox, so it can't scale to its container`);
     }
@@ -172,8 +242,13 @@ for (const minify of [true, false]) {
     );
   }
 
+  if (!html.includes('runtime.bindTooltip(') || !html.includes('waveTip_')) {
+    fail(`${label}: the embed HTML doesn't wire up the dot tooltips`);
+  }
+  checkTooltip(runtime, built.runtime, label);
+
   console.log(
-    `  ✓ ${label}: stands alone, matches the app, re-bins ${wide.segments} → ${narrow.segments} ` +
+    `  ✓ ${label}: stands alone, matches the app, tooltips work, re-bins ${wide.segments} → ${narrow.segments} ` +
       `bins/quarter from 1200px to 320px (${events.length} dots either way)`,
   );
 }

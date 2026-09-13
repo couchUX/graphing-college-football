@@ -1,8 +1,8 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Check, Copy } from 'lucide-react';
 import type { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { extractFieldGoals, extractFumbles, toWaveEvents, type RawPlayLike } from '../utils/gameWave';
+import { extractFieldGoals, extractFumbles, extractScoreChanges, toWaveEvents, type RawPlayLike } from '../utils/gameWave';
 import { waveRuntime, type WaveShadeColors } from '../utils/gameWaveRuntime';
 import { buildGameWaveEmbedHtml } from '../utils/gameWaveEmbed';
 
@@ -88,11 +88,12 @@ const GameWaveChart = ({
 
   const fieldGoals = useMemo(() => extractFieldGoals(rawPlays), [rawPlays]);
   const fumbles = useMemo(() => extractFumbles(rawPlays), [rawPlays]);
+  const scoreChanges = useMemo(() => extractScoreChanges(rawPlays), [rawPlays]);
 
   // Plays classified once; binning is what changes as the chart is resized.
   const events = useMemo(
-    () => toWaveEvents(plays, team, fieldGoals, fumbles),
-    [plays, team, fieldGoals, fumbles],
+    () => toWaveEvents(plays, team, fieldGoals, fumbles, scoreChanges),
+    [plays, team, fieldGoals, fumbles, scoreChanges],
   );
 
   const hasOvertime = useMemo(() => events.some((e) => e.quarter > REGULATION_QUARTERS), [events]);
@@ -114,6 +115,25 @@ const GameWaveChart = ({
   );
 
   const geom = useMemo(() => waveRuntime.buildGeometry(model), [model]);
+
+  // Instant dot tooltips, drawn by the runtime code the embed ships, so a hover
+  // here and in a pasted chart look and behave the same. Rebound per model: a
+  // re-bin moves every dot, so an open tooltip closes with it.
+  const plotRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const host = plotRef.current;
+    const tooltip = tooltipRef.current;
+    if (!host || !tooltip) return;
+    const binding = waveRuntime.bindTooltip({
+      host,
+      tooltip,
+      pointAt: (index) => model.points[index],
+      team,
+      opponent,
+    });
+    return binding.destroy;
+  }, [model, team, opponent]);
 
   // The embed carries the events, not a fixed picture: it re-bins itself to
   // whatever container it lands in, the way this chart re-bins as it's dragged.
@@ -218,7 +238,8 @@ const GameWaveChart = ({
         }}
       >
         <div
-          className="mx-auto rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
+          ref={plotRef}
+          className="relative mx-auto rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
           style={{ width: chartWidth ? `${chartWidth}px` : '100%' }}
         >
           <svg
@@ -248,15 +269,14 @@ const GameWaveChart = ({
               return (
                 <g key={`pt-${i}`}>
                   <circle
+                    data-point={i}
                     cx={cx}
                     cy={cy}
                     r={DOT_R}
                     fill={waveRuntime.dotColor(point, topColors, bottomColors)}
                     stroke={palette.dotStroke}
                     strokeWidth={0.05}
-                  >
-                    <title>{waveRuntime.dotTooltip(point, team, opponent)}</title>
-                  </circle>
+                  />
                   {point.label && (
                     <text
                       x={cx}
@@ -306,6 +326,7 @@ const GameWaveChart = ({
               </text>
             ))}
           </svg>
+          <div ref={tooltipRef} />
         </div>
 
         {/* Drag handles, centered on each edge of the chart area. */}

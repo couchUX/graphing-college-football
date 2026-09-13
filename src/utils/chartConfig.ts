@@ -77,14 +77,18 @@ export const tooltipFilter = (tooltipItem: any) => {
 export const baseTooltipCallback = (context: any) => 
   `${context.dataset.label}: ${Math.round(context.parsed.y * 100)}%`;
 
-// Tooltip with play text
+// Tooltip with down & distance and play text.
+// Points carry `dd` (e.g. "2nd & 7") and `text` (the play description); each
+// gets its own line so a long play text never wraps around the situation.
 export const tooltipWithPlayText = {
   filter: tooltipFilter,
   callbacks: {
     label: (context: any) => {
-      const label = `${context.dataset.label}: ${Math.round(context.parsed.y * 100)}%`;
-      const text = context.raw.text;
-      return text ? [label, text] : label;
+      const lines = [`${context.dataset.label}: ${Math.round(context.parsed.y * 100)}%`];
+      const point = context.raw || {};
+      if (point.dd) lines.push(point.dd);
+      if (point.text) lines.push(point.text);
+      return lines;
     }
   }
 };

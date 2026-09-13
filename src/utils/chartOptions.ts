@@ -239,9 +239,11 @@ export const createPlayMapOptions = (minY: number, maxY: number): ChartOptions<'
           const yValue = context.dataset.label === 'Avg Extra Yards'
             ? context.parsed.y.toFixed(2)
             : context.parsed.y;
-          const label = `${context.dataset.label}: ${yValue} yards`;
-          const text = context.raw.text;
-          return text ? [label, text] : label;
+          const lines = [`${context.dataset.label}: ${yValue} yards`];
+          const point = context.raw || {};
+          if (point.dd) lines.push(point.dd);
+          if (point.text) lines.push(point.text);
+          return lines;
         }
       }
     },
@@ -415,6 +417,14 @@ export const createWinProbabilityOptions = (): ChartOptions<'line'> => ({
     tooltip: {
       mode: 'index',
       intersect: false,
+      // The 50% marker and the quarter lines are scenery, not readings. In
+      // index mode they would otherwise contribute a stray "undefined: 50.0%"
+      // line at the couple of indexes where they happen to have points.
+      // Deliberately closure-free — embeds serialize this filter verbatim.
+      filter: function (tooltipItem) {
+        const label = (tooltipItem.dataset && tooltipItem.dataset.label) || '';
+        return label !== '50% Line' && label !== 'Quarters';
+      },
       callbacks: {
         title: (tooltipItems: any[]) => {
           if (tooltipItems && tooltipItems[0]) {
@@ -430,11 +440,19 @@ export const createWinProbabilityOptions = (): ChartOptions<'line'> => ({
             `${context.dataset.opponentTeam}: ${opponentWinProb.toFixed(1)}%`
           ];
         },
+        // Down & distance, then the play text, under a blank spacer line.
+        // Both are parallel arrays on the dataset rather than per-point fields,
+        // so this stays closure-free and survives embed serialization; keep it
+        // free of spread/optional chaining for the same reason.
         afterLabel: (context: any) => {
-          if (context.dataset.playTexts && context.dataset.playTexts[context.dataIndex]) {
-            return `\n${context.dataset.playTexts[context.dataIndex]}`;
-          }
-          return '';
+          const dataset = context.dataset;
+          const dd = dataset.downDistances && dataset.downDistances[context.dataIndex];
+          const text = dataset.playTexts && dataset.playTexts[context.dataIndex];
+          if (!dd && !text) return '';
+          const lines: string[] = [''];
+          if (dd) lines.push(dd);
+          if (text) lines.push(text);
+          return lines;
         }
       }
     }
