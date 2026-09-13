@@ -15,13 +15,14 @@
  *      and to the pre-snap down/distance of the NEXT play. Whichever matches is
  *      the situation the row describes.
  *
- *   2. Scoring plays. On a touchdown, does the row's own score already include
- *      the points, or does the score only move on the following row?
+ *   2. Scoring plays (per the play-by-play feed's own `scoring` flag). Does the
+ *      row's own score already include the points, or does the score only move
+ *      on the following row?
  *
  * Needs CFB_API_KEY in .env (the same key `npm run dev` uses).
  *
  *   node scripts/check-wp-alignment.mjs <gameId>
- *   node scripts/check-wp-alignment.mjs 401628455
+ *   node scripts/check-wp-alignment.mjs 401628319   # 2024 Western Kentucky at Alabama
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -47,7 +48,18 @@ if (!gameId) {
   process.exit(1);
 }
 if (!apiKey) {
-  console.error('No CFB_API_KEY found in the environment or .env');
+  // An older setup named it VITE_CFB_API_KEY; the dev proxy won't read that either.
+  const legacyName = (() => {
+    try {
+      return /^VITE_CFB_API_KEY=/m.test(readFileSync(resolve(root, '.env'), 'utf8'));
+    } catch {
+      return false;
+    }
+  })();
+  console.error(
+    'No CFB_API_KEY found in the environment or .env' +
+      (legacyName ? '\n.env names it VITE_CFB_API_KEY — rename it to CFB_API_KEY (the dev proxy reads that name too).' : '')
+  );
   process.exit(1);
 }
 
@@ -62,10 +74,22 @@ const get = async path => {
   return res.json();
 };
 
-const [wp, plays] = await Promise.all([
+// /plays rejects a bare gameId (HTTP 400), so look the game up first, fetch
+// that week's plays for its home team, and keep only this game's.
+const [game] = await get(`/games?id=${gameId}`);
+if (!game) {
+  console.error(`No game found for id ${gameId}`);
+  process.exit(1);
+}
+
+const [wp, weekPlays] = await Promise.all([
   get(`/metrics/wp?gameId=${gameId}`),
-  get(`/plays?gameId=${gameId}`),
+  get(
+    `/plays?year=${game.season}&week=${game.week}&seasonType=${game.seasonType}` +
+      `&team=${encodeURIComponent(game.homeTeam)}`
+  ),
 ]);
+const plays = weekPlays.filter(p => String(p.gameId ?? p.game_id) === String(gameId));
 
 if (!wp.length) {
   console.error(`No win probability rows for game ${gameId}`);
@@ -93,12 +117,16 @@ for (let i = 0; i < wp.length - 1; i += 1) {
   else if (wp[i].down === next.down && wp[i].distance === next.distance) matchesNext += 1;
 }
 
-// --- Test 2: on a touchdown, has the row's score already moved? ------------
+// --- Test 2: on a scoring play, has the row's score already moved? ---------
+// Keyed off the play-by-play `scoring` flag: win probability play text rarely
+// spells out "touchdown" ("for a TD", "Yd Field Goal"), so text matching finds
+// next to nothing.
 let scoredOnOwnRow = 0;
 let scoredOnNextRow = 0;
 
 for (let i = 1; i < wp.length - 1; i += 1) {
-  if (!/touchdown/i.test(wp[i].playText || '')) continue;
+  const play = pre(wp[i]);
+  if (!play || !play.scoring) continue;
   const before = wp[i - 1].homeScore + wp[i - 1].awayScore;
   const own = wp[i].homeScore + wp[i].awayScore;
   const next = wp[i + 1].homeScore + wp[i + 1].awayScore;
@@ -115,7 +143,7 @@ console.log('Down & distance on the row describes…');
 console.log(`  the play the row names (pre-snap):  ${matchesOwn}/${compared}  ${pct(matchesOwn, compared)}`);
 console.log(`  the NEXT play (i.e. post-play):     ${matchesNext}/${compared}  ${pct(matchesNext, compared)}`);
 
-console.log('\nOn touchdowns, the score on the row…');
+console.log('\nOn scoring plays, the score on the row…');
 console.log(`  already includes the points:        ${scoredOnOwnRow}`);
 console.log(`  only moves on the following row:    ${scoredOnNextRow}`);
 
@@ -124,7 +152,11 @@ console.log(
   `\nVerdict: the probability describes the state ${beforePlay ? 'BEFORE' : 'AFTER'} the play it names.` +
     (beforePlay
       ? '\n  → the play text is what happens next; its result lands on the following row.'
-      : '\n  → the play text is what just happened; the probability already contains its result.')
+      : '\n  → the play text is what just happened; the probability already contains its result.') +
+    (beforePlay && scoredOnOwnRow > scoredOnNextRow
+      ? '\n  Except scoring plays: their row already carries the new score, so the probability on a' +
+        '\n  touchdown or field goal row already reflects those points.'
+      : '')
 );
 
 console.log('\nFirst 12 rows:\n');
