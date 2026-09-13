@@ -110,7 +110,7 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
       opponent,
     )}'s below`,
     '<strong>Shading:</strong> darkest dots are explosive plays, mid are successful, palest are unsuccessful',
-    '<strong>Dot labels:</strong> 6 = touchdown, 3 = field goal, i = interception, f = fumble lost',
+    '<strong>Dot labels:</strong> points scored — 7 for a touchdown and extra point, 8 with a two-point conversion, 6 when the try failed, 3 for a field goal; i = interception, f = fumble lost',
     SUCCESSFUL_PLAY_DEF,
     '<strong>Explosive play:</strong> Gains 15+ yards',
     `Based roughly on ${SP_LINK}`,

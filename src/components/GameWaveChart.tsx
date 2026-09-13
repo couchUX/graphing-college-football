@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Check, Copy } from 'lucide-react';
 import type { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { extractFieldGoals, extractFumbles, toWaveEvents, type RawPlayLike } from '../utils/gameWave';
+import { extractFieldGoals, extractFumbles, extractScoreChanges, toWaveEvents, type RawPlayLike } from '../utils/gameWave';
 import { waveRuntime, type WaveShadeColors } from '../utils/gameWaveRuntime';
 import { buildGameWaveEmbedHtml } from '../utils/gameWaveEmbed';
 
@@ -88,11 +88,12 @@ const GameWaveChart = ({
 
   const fieldGoals = useMemo(() => extractFieldGoals(rawPlays), [rawPlays]);
   const fumbles = useMemo(() => extractFumbles(rawPlays), [rawPlays]);
+  const scoreChanges = useMemo(() => extractScoreChanges(rawPlays), [rawPlays]);
 
   // Plays classified once; binning is what changes as the chart is resized.
   const events = useMemo(
-    () => toWaveEvents(plays, team, fieldGoals, fumbles),
-    [plays, team, fieldGoals, fumbles],
+    () => toWaveEvents(plays, team, fieldGoals, fumbles, scoreChanges),
+    [plays, team, fieldGoals, fumbles, scoreChanges],
   );
 
   const hasOvertime = useMemo(() => events.some((e) => e.quarter > REGULATION_QUARTERS), [events]);

@@ -8,7 +8,7 @@ export interface WaveEvent {
   minutes: number;
   seconds: number;
   outcome: WaveOutcome;
-  label: string | null; // text drawn inside the dot ('6', '3', 'i', 'f')
+  label: string | null; // text drawn inside the dot: points ('6'–'8', '3'), or 'i' / 'f'
   isScore: boolean;
   playText: string;
   yardsGained: number;
@@ -302,10 +302,11 @@ export const createWaveRuntime = () => {
     return { xOf, yOf, vbWidth, vbHeight, centerY, labelY, minuteLabelY, quarterMarks, minuteMarks, dividers };
   };
 
+  // A touchdown is shaded by how the play went — a 3-yard score is successful,
+  // not explosive — and its label carries the points.
   const dotColor = (point: WavePoint, topColors: WaveShadeColors, bottomColors: WaveShadeColors): string => {
     const colors = point.side === 'top' ? topColors : bottomColors;
-    if (point.isScore) return colors.explosive;
-    if (point.outcome === 'explosive') return colors.explosive;
+    if (point.outcome === 'explosive' || point.outcome === 'fieldGoal') return colors.explosive;
     if (point.outcome === 'success') return colors.success;
     return colors.light;
   };
