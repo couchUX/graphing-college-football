@@ -66,12 +66,24 @@ export interface WaveSvgSpec {
   bottomColors: WaveShadeColors;
 }
 
+/** What `bindTooltip` needs: where the dots live, where to draw, and how to look a dot up. */
+export interface WaveTooltipSpec {
+  /** Element containing the wave's SVG; the tooltip is positioned inside it. */
+  host: HTMLElement;
+  /** Empty element the tooltip draws into, a child of `host`. */
+  tooltip: HTMLElement;
+  /** The point a dot's `data-point` index refers to in the current model. */
+  pointAt: (index: number) => WavePoint | undefined;
+  team: string;
+  opponent: string;
+}
+
 export type WaveRuntime = ReturnType<typeof createWaveRuntime>;
 
 /**
  * Everything the Game Wave needs at render time: how wide a bin should be, how
  * plays stack inside it, where each dot lands, and how to draw the whole thing
- * as SVG.
+ * as SVG with a tooltip on every dot.
  *
  * It is one self-contained closure on purpose. The embed generator ships this
  * function's OWN SOURCE (`Function.prototype.toString`) inside the copied HTML,
@@ -121,6 +133,23 @@ export const createWaveRuntime = () => {
     dotLabel: '#374151',
     scoreLabel: '#ffffff',
     dotStroke: '#ffffff',
+  };
+
+  // Dot tooltips wear Chart.js 4's default tooltip look, so hovering the wave
+  // reads like hovering any other chart on the site: translucent black, the
+  // 12px Helvetica stack, a bold title, and a caret pointing at the dot.
+  const TOOLTIP = {
+    background: 'rgba(0,0,0,0.8)',
+    color: '#fff',
+    fontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif",
+    fontSize: 12,
+    lineHeight: 1.2,
+    padding: 6,
+    radius: 6,
+    caret: 5,
+    caretPadding: 2,
+    titleMarginBottom: 6,
+    maxWidth: 280,
   };
 
   const OUTCOME_LABELS: Record<WaveOutcome, string> = {
@@ -318,6 +347,162 @@ export const createWaveRuntime = () => {
     return who + ' — ' + OUTCOME_LABELS[point.outcome] + situation + '\n' + point.playText;
   };
 
+  /** A dot's hover text split for display: its first line is the title, the play text the body. */
+  const tooltipParts = (point: WavePoint, team: string, opponent: string): { title: string; body: string } => {
+    const text = dotTooltip(point, team, opponent);
+    const at = text.indexOf('\n');
+    return at === -1 ? { title: text, body: '' } : { title: text.slice(0, at), body: text.slice(at + 1) };
+  };
+
+  /**
+   * Where a tooltip goes, in px inside its host: centered over the dot with the
+   * caret pointing down at it, or under the dot when it won't fit above and
+   * there's more room below. Held inside the host horizontally; `caretX` is
+   * the caret's center, measured from the tooltip's left edge.
+   */
+  const placeTooltip = (
+    anchor: { x: number; top: number; bottom: number },
+    size: { width: number; height: number },
+    bounds: { width: number; height: number },
+  ): { left: number; top: number; below: boolean; caretX: number } => {
+    const gap = TOOLTIP.caret + TOOLTIP.caretPadding;
+    const above = anchor.top - gap - size.height;
+    const below = above < 0 && bounds.height - (anchor.bottom + gap) > anchor.top - gap;
+    const left = Math.max(0, Math.min(anchor.x - size.width / 2, bounds.width - size.width));
+    const edge = TOOLTIP.radius + TOOLTIP.caret;
+    return {
+      left,
+      top: below ? anchor.bottom + gap : above,
+      below,
+      caretX: Math.max(edge, Math.min(anchor.x - left, size.width - edge)),
+    };
+  };
+
+  /**
+   * Show a tooltip for whichever dot is under the pointer, the moment it's
+   * there — the SVG carries no <title>, so no slow native tooltip competes.
+   * Dots are found by their data-point index through listeners on `host`, so
+   * the SVG underneath can be redrawn freely. On touch screens a tap shows a
+   * dot's tooltip and a tap anywhere else hides it. Text is set as text, never
+   * markup. Returns `hide` (call it when the wave redraws) and `destroy`.
+   */
+  const bindTooltip = (spec: WaveTooltipSpec): { hide: () => void; destroy: () => void } => {
+    const host = spec.host;
+    const tip = spec.tooltip;
+    const doc = host.ownerDocument;
+    const title = doc.createElement('div');
+    const body = doc.createElement('div');
+    const caret = doc.createElement('div');
+    tip.textContent = '';
+    tip.appendChild(title);
+    tip.appendChild(body);
+    tip.appendChild(caret);
+    Object.assign(tip.style, {
+      position: 'absolute',
+      left: '0px',
+      top: '0px',
+      zIndex: '20',
+      display: 'none',
+      pointerEvents: 'none',
+      boxSizing: 'border-box',
+      padding: TOOLTIP.padding + 'px',
+      borderRadius: TOOLTIP.radius + 'px',
+      background: TOOLTIP.background,
+      color: TOOLTIP.color,
+      fontFamily: TOOLTIP.fontFamily,
+      fontSize: TOOLTIP.fontSize + 'px',
+      fontWeight: 'normal',
+      lineHeight: String(TOOLTIP.lineHeight),
+      textAlign: 'left',
+      whiteSpace: 'normal',
+      overflowWrap: 'break-word',
+    });
+    title.style.fontWeight = 'bold';
+    Object.assign(caret.style, {
+      position: 'absolute',
+      width: '0px',
+      height: '0px',
+      borderLeft: TOOLTIP.caret + 'px solid transparent',
+      borderRight: TOOLTIP.caret + 'px solid transparent',
+    });
+    const view = doc.defaultView;
+    if (view && view.getComputedStyle(host).position === 'static') host.style.position = 'relative';
+
+    let shown: Element | null = null;
+
+    const hide = () => {
+      shown = null;
+      tip.style.display = 'none';
+    };
+
+    const show = (dot: Element) => {
+      const point = spec.pointAt(Number(dot.getAttribute('data-point')));
+      if (!point) {
+        hide();
+        return;
+      }
+      if (dot !== shown) {
+        const parts = tooltipParts(point, spec.team, spec.opponent);
+        title.textContent = parts.title;
+        body.textContent = parts.body;
+        title.style.marginBottom = parts.body ? TOOLTIP.titleMarginBottom + 'px' : '0px';
+        tip.style.maxWidth = Math.min(TOOLTIP.maxWidth, host.clientWidth) + 'px';
+        tip.style.display = 'block';
+        shown = dot;
+      }
+      const hostBox = host.getBoundingClientRect();
+      const dotBox = dot.getBoundingClientRect();
+      const originX = hostBox.left + host.clientLeft;
+      const originY = hostBox.top + host.clientTop;
+      const spot = placeTooltip(
+        { x: (dotBox.left + dotBox.right) / 2 - originX, top: dotBox.top - originY, bottom: dotBox.bottom - originY },
+        { width: tip.offsetWidth, height: tip.offsetHeight },
+        { width: host.clientWidth, height: host.clientHeight },
+      );
+      tip.style.left = spot.left + 'px';
+      tip.style.top = spot.top + 'px';
+      caret.style.left = spot.caretX - TOOLTIP.caret + 'px';
+      caret.style.top = spot.below ? -TOOLTIP.caret + 'px' : '100%';
+      caret.style.borderTop = spot.below ? '0px' : TOOLTIP.caret + 'px solid ' + TOOLTIP.background;
+      caret.style.borderBottom = spot.below ? TOOLTIP.caret + 'px solid ' + TOOLTIP.background : '0px';
+    };
+
+    const dotAt = (target: EventTarget | null): Element | null => {
+      const el = target as Element | null;
+      if (!el || typeof el.closest !== 'function') return null;
+      const dot = el.closest('[data-point]');
+      return dot && host.contains(dot) ? dot : null;
+    };
+    const onPointer = (event: PointerEvent) => {
+      const dot = dotAt(event.target);
+      if (dot) show(dot);
+      else hide();
+    };
+    // A lifting finger also "leaves" the host; on touch the tooltip stays up
+    // until the next tap.
+    const onLeave = (event: PointerEvent) => {
+      if (event.pointerType !== 'touch') hide();
+    };
+    const onPageDown = (event: PointerEvent) => {
+      if (!host.contains(event.target as Node)) hide();
+    };
+    host.addEventListener('pointermove', onPointer);
+    host.addEventListener('pointerdown', onPointer);
+    host.addEventListener('pointerleave', onLeave);
+    doc.addEventListener('pointerdown', onPageDown);
+
+    return {
+      hide,
+      destroy: () => {
+        host.removeEventListener('pointermove', onPointer);
+        host.removeEventListener('pointerdown', onPointer);
+        host.removeEventListener('pointerleave', onLeave);
+        doc.removeEventListener('pointerdown', onPageDown);
+        hide();
+      },
+    };
+  };
+
   const escapeXml = (value: string): string =>
     String(value)
       .replace(/&/g, '&amp;')
@@ -348,10 +533,9 @@ export const createWaveRuntime = () => {
       const cx = n(geom.xOf(point.column));
       const cy = n(geom.yOf(point));
       parts.push(
-        '<g><circle cx="' + cx + '" cy="' + cy + '" r="' + DOT_R + '" fill="' +
+        '<g><circle data-point="' + i + '" cx="' + cx + '" cy="' + cy + '" r="' + DOT_R + '" fill="' +
           escapeXml(dotColor(point, spec.topColors, spec.bottomColors)) + '" stroke="' + palette.dotStroke +
-          '" stroke-width="0.05"><title>' + escapeXml(dotTooltip(point, spec.team, spec.opponent)) +
-          '</title></circle>' +
+          '" stroke-width="0.05"/>' +
           (point.label
             ? '<text x="' + cx + '" y="' + cy + '" dy="0.35em" font-size="0.5" font-weight="bold" fill="' +
               (point.isScore ? palette.scoreLabel : palette.dotLabel) +
@@ -400,6 +584,9 @@ export const createWaveRuntime = () => {
     chooseSegments,
     dotColor,
     dotTooltip,
+    tooltipParts,
+    placeTooltip,
+    bindTooltip,
     renderSvg,
   };
 };

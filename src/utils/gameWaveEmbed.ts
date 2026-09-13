@@ -196,6 +196,10 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
             display: inline-block;
             flex: none;
         }
+        /* Dot tooltips position themselves inside this box (runtime.bindTooltip). */
+        .cfb-wave-embed-${uniqueId} .wave-plot {
+            position: relative;
+        }
         /* The wave is redrawn to fit this box, never scrolled inside it. */
         .cfb-wave-embed-${uniqueId} .wave-frame {
             width: 100%;
@@ -303,7 +307,10 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
                   'Unsuccessful',
                 )}</span>
             </div>
-            <div class="wave-frame" id="waveFrame_${uniqueId}"></div>
+            <div class="wave-plot" id="wavePlot_${uniqueId}">
+                <div class="wave-frame" id="waveFrame_${uniqueId}"></div>
+                <div id="waveTip_${uniqueId}"></div>
+            </div>
         </div>
         <div class="embed-footer">
             <div class="embed-footer-top">
@@ -348,6 +355,7 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
             var bottomColors = ${json(bottomColors)};
             var hasOvertime = ${hasOvertime};
             var segments = 0;
+            var model = null;
 
             function start() {
                 var frame = document.getElementById('waveFrame_${uniqueId}');
@@ -355,12 +363,22 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
 
                 var binLabel = document.getElementById('binLength_${uniqueId}');
 
+                // The page's own dot tooltips, reading whatever the wave last drew.
+                var tooltip = runtime.bindTooltip({
+                    host: document.getElementById('wavePlot_${uniqueId}'),
+                    tooltip: document.getElementById('waveTip_${uniqueId}'),
+                    pointAt: function (index) { return model ? model.points[index] : undefined; },
+                    team: team,
+                    opponent: opponent
+                });
+
                 function draw() {
                     var chosen = runtime.chooseSegments(frame.clientWidth, hasOvertime, events.length);
                     if (chosen === segments) return;
                     segments = chosen;
 
-                    var model = runtime.buildModel(events, chosen);
+                    model = runtime.buildModel(events, chosen);
+                    tooltip.hide();
                     frame.innerHTML = runtime.renderSvg({
                         model: model,
                         geometry: runtime.buildGeometry(model),

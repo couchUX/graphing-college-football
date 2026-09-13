@@ -72,7 +72,8 @@ are older bespoke templates still used by the season-trends and box-score paths.
 The Game Wave embed is its own thing (`gameWaveEmbed.ts`): no Chart.js, no
 canvas. It ships the game's events plus **`createWaveRuntime`'s own source**
 (`Function.prototype.toString`) so the copied chart re-bins itself to its
-container using the same code the page runs. That closure must stay
+container using the same code the page runs — dot tooltips included
+(`bindTooltip`), so the copy hovers the way the page does. That closure must stay
 self-contained — no imports, no module constants, no syntax the build might
 turn into a helper call (spread, async) — or the copy throws. The rule is
 spelled out at the top of `gameWaveRuntime.ts`, and `npm run check:embed`
