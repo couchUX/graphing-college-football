@@ -17,6 +17,7 @@ import { useBoxScore } from '../hooks/useBoxScore';
 import { useToast } from '../hooks/useToast';
 import { createShareableUrl, copyToClipboard } from '../services/urlShortener';
 import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
+import { matchupSeparator } from '../utils/matchup';
 
 interface GameParams {
   year: number;
@@ -24,6 +25,9 @@ interface GameParams {
   seasonType: string;
   team: string;
   gameId?: string;
+  // From the schedule, so the matchup reads "at" for a road game.
+  awayTeam?: string;
+  neutralSite?: boolean;
 }
 
 const Dashboard: React.FC = () => {
@@ -273,7 +277,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h2 className="headline text-[30px] leading-tight text-ink sm:text-[34px]">
                   {currentParams.team}
-                  <span className="text-neutral-400"> vs. </span>
+                  <span className="mx-[0.1em] text-neutral-400"> {matchupSeparator(currentParams.team, currentParams)} </span>
                   {opponentTeam}
                 </h2>
                 <p className="mt-1 text-sm text-byline">

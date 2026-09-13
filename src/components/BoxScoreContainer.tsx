@@ -4,6 +4,7 @@ import BoxScoreTable from './BoxScoreTable';
 import { BoxScoreStat } from '../hooks/useBoxScore';
 import { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
+import { matchupSeparator } from '../utils/matchup';
 
 // Generate box score embed HTML
 const generateBoxScoreEmbed = (
@@ -17,13 +18,17 @@ const generateBoxScoreEmbed = (
 ): string => {
   const team1Colors = getDisplayTeamColors(team1Name, selectedTeamColor);
   const team2Colors = getDisplayTeamColors(team2Name, selectedOpponentColor);
+  // team1 is the selected team (see useBoxScore). The venue is judged from
+  // currentParams.team — the name the schedule uses — since the box score's
+  // own team name can be spelled differently.
+  const separator = currentParams ? matchupSeparator(currentParams.team, currentParams) : 'vs.';
 
   // Generate game context string for subtitle
   const gameContext = (() => {
     if (!currentParams) return '';
 
     const { year } = currentParams;
-    const teams = `${team1Name} vs. ${team2Name}`;
+    const teams = `${team1Name} ${separator} ${team2Name}`;
 
     // Try to get date from plays data
     if (plays && plays.length > 0 && plays[0].wallclock) {
@@ -76,7 +81,7 @@ const generateBoxScoreEmbed = (
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Box Score - ${team1Name} vs ${team2Name}</title>
+    <title>Box Score - ${team1Name} ${separator} ${team2Name}</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;

@@ -20,6 +20,7 @@ import { initializeChartDefaults } from '../utils/chartConfig';
 import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 import { BASE_DEFINITIONS } from '../utils/embedDefinitions';
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
+import { formatMatchup } from '../utils/matchup';
 
 // Initialize Chart.js defaults
 initializeChartDefaults();
@@ -35,6 +36,8 @@ interface ChartsGridProps {
     seasonType: string;
     team: string;
     gameId?: string;
+    awayTeam?: string;
+    neutralSite?: boolean;
   } | null;
   winProbabilityData?: Record<string, any>[];
   rawApiData?: Record<string, any>[];
@@ -206,7 +209,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
 
   const gameSubtitle = (() => {
     if (!currentParams) return undefined;
-    const teams = `${selectedTeam} vs. ${opponentTeam}`;
+    const teams = formatMatchup(selectedTeam, opponentTeam, currentParams);
     const wallclock = plays[0]?.wallclock;
     if (wallclock) {
       const date = new Date(wallclock);
