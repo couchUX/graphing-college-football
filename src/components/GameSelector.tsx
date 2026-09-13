@@ -12,6 +12,9 @@ interface GameSelectorProps {
     week: number;
     seasonType: string;
     team: string;
+    // Where the game was played, so its matchup can read "at" for a road game.
+    awayTeam: string;
+    neutralSite: boolean;
   }) => void;
   isLoading: boolean;
   selectedTeamColor: string;
@@ -62,10 +65,12 @@ const GameSelector: React.FC<GameSelectorProps> = ({
   const handleFetchData = () => {
     if (selectedGame && selectedTeam) {
       onFetchData({ 
-        year: selectedGame.season, 
-        week: selectedGame.week, 
-        seasonType: selectedGame.seasonType, 
-        team: selectedTeam.school
+        year: selectedGame.season,
+        week: selectedGame.week,
+        seasonType: selectedGame.seasonType,
+        team: selectedTeam.school,
+        awayTeam: selectedGame.awayTeam,
+        neutralSite: selectedGame.neutralSite,
       });
     }
   };
@@ -217,10 +222,12 @@ const GameSelector: React.FC<GameSelectorProps> = ({
                 }
                 
                 onFetchData({ 
-                  year: game.season, 
-                  week: game.week, 
-                  seasonType: game.seasonType, 
-                  team: selectedTeam.school
+                  year: game.season,
+                  week: game.week,
+                  seasonType: game.seasonType,
+                  team: selectedTeam.school,
+                  awayTeam: game.awayTeam,
+                  neutralSite: game.neutralSite,
                 });
                 // Allow URL updates after loading is complete
                 setTimeout(() => {
