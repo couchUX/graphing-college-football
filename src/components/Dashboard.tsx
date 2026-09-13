@@ -277,7 +277,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h2 className="headline text-[30px] leading-tight text-ink sm:text-[34px]">
                   {currentParams.team}
-                  <span className="mx-[0.075em] text-neutral-400"> {matchupSeparator(currentParams.team, currentParams)} </span>
+                  <span className="mx-[0.1em] text-neutral-400"> {matchupSeparator(currentParams.team, currentParams)} </span>
                   {opponentTeam}
                 </h2>
                 <p className="mt-1 text-sm text-byline">
