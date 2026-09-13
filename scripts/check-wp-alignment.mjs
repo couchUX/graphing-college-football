@@ -19,7 +19,8 @@
  *      row's own score already include the points, or does the score only move
  *      on the following row?
  *
- * Needs CFB_API_KEY in .env (the same key `npm run dev` uses).
+ * Needs CFB_API_KEY in .env (the same key `npm run dev` uses). When there's
+ * nothing to compare, or the evidence splits evenly, it says so and exits 2.
  *
  *   node scripts/check-wp-alignment.mjs <gameId>
  *   node scripts/check-wp-alignment.mjs 401628319   # 2024 Western Kentucky at Alabama
@@ -147,17 +148,29 @@ console.log('\nOn scoring plays, the score on the row…');
 console.log(`  already includes the points:        ${scoredOnOwnRow}`);
 console.log(`  only moves on the following row:    ${scoredOnNextRow}`);
 
-const beforePlay = matchesOwn > matchesNext;
-console.log(
-  `\nVerdict: the probability describes the state ${beforePlay ? 'BEFORE' : 'AFTER'} the play it names.` +
-    (beforePlay
-      ? '\n  → the play text is what happens next; its result lands on the following row.'
-      : '\n  → the play text is what just happened; the probability already contains its result.') +
-    (beforePlay && scoredOnOwnRow > scoredOnNextRow
-      ? '\n  Except scoring plays: their row already carries the new score, so the probability on a' +
-        '\n  touchdown or field goal row already reflects those points.'
-      : '')
-);
+// No comparable rows (the plays didn't join, or the feed has no downs) or an
+// even split can't point either way, so report that rather than a verdict.
+if (compared === 0 || matchesOwn === matchesNext) {
+  console.log(
+    `\nVerdict: inconclusive — ${compared} comparable row${compared === 1 ? '' : 's'}` +
+      (compared
+        ? `, split ${matchesOwn}–${matchesNext}.`
+        : '. The plays may not have joined by playId, or the feed carries no downs.')
+  );
+  process.exitCode = 2;
+} else {
+  const beforePlay = matchesOwn > matchesNext;
+  console.log(
+    `\nVerdict: the probability describes the state ${beforePlay ? 'BEFORE' : 'AFTER'} the play it names.` +
+      (beforePlay
+        ? '\n  → the play text is what happens next; its result lands on the following row.'
+        : '\n  → the play text is what just happened; the probability already contains its result.') +
+      (beforePlay && scoredOnOwnRow > scoredOnNextRow
+        ? '\n  Except scoring plays: their row already carries the new score, so the probability on a' +
+          '\n  touchdown or field goal row already reflects those points.'
+        : '')
+  );
+}
 
 console.log('\nFirst 12 rows:\n');
 console.log(
