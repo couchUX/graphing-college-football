@@ -13,17 +13,45 @@ export interface ScoringEvent {
 const outcomeOf = (play: PlayData): WaveOutcome =>
   play.explosiveness ? 'explosive' : play.success ? 'success' : 'other';
 
+// CFBD keeps a superseded call in the text when the ruling changes. A replay
+// reversal appends "(Original Play: … TOUCHDOWN …)" after the ruling that
+// stood, and a flag leaves "TOUCHDOWN nullified by penalty" in place. Neither
+// happened, so both are cut before the text is read for markers — otherwise an
+// overturned touchdown still gets a 6, and an overturned pick still gets an i.
+// The original play nests its own parentheses ("(00:48)", "(#6 J.Crumby)"), so
+// that block is removed by bracket depth rather than by pattern; an unclosed one
+// runs to the end of the text.
+const withoutSupersededCalls = (text: string): string => {
+  let out = text;
+  let start = out.search(/\(\s*original play\b/i);
+  while (start !== -1) {
+    let depth = 0;
+    let end = out.length;
+    for (let i = start; i < out.length; i += 1) {
+      if (out[i] === '(') depth += 1;
+      else if (out[i] === ')' && --depth === 0) {
+        end = i + 1;
+        break;
+      }
+    }
+    out = out.slice(0, start) + out.slice(end);
+    start = out.search(/\(\s*original play\b/i);
+  }
+  return out.replace(/touchdown\s+nullified/gi, '');
+};
+
 // Scoring / turnover marker for an offensive play. Special teams (field goals)
 // are excluded upstream, so those are supplied separately as ScoringEvents.
 //
 // CFBD usually carries the TD signal in play_type ("Rushing Touchdown" /
 // "Passing Touchdown") rather than the word "touchdown" in the text, so we read
-// both. A touchdown counts as 6 here — the PAT kick isn't a rush/pass play and a
+// both — the text only for the ruling that stood (see withoutSupersededCalls).
+// A touchdown counts as 6 here — the PAT kick isn't a rush/pass play and a
 // 2-pt try comes through as its own play. Defensive scores (pick-sixes,
 // fumble-return TDs) are turnovers for the offense, not a TD for the stacked
 // team, so the interception check runs first and return/opponent TDs are skipped.
 const playMarker = (text: string, playType: string): { label: string | null; isScore: boolean } => {
-  const t = (text || '').toLowerCase();
+  const t = withoutSupersededCalls(text || '').toLowerCase();
   const pt = (playType || '').toLowerCase();
 
   if (pt.includes('interception') || t.includes('intercept')) return { label: 'i', isScore: false };
