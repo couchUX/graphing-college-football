@@ -16,6 +16,7 @@ import {
   createAvgExtraYardsLine
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
+import { formatDownDistance } from '../utils/downDistance';
 
 export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default', realWinProbabilityData: any[] = [], rawApiData: any[] = []) => {
   return useMemo(() => {
@@ -117,7 +118,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: teamPlays.map(play => ({ 
             x: play.playNumber, 
             y: play.teamCumulativeXR, 
-            text: play.playText 
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText
           })),
           label: `${team} XR`,
           borderColor: teamColors.explosive,
@@ -128,7 +130,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: teamPlays.map(play => ({ 
             x: play.playNumber, 
             y: play.teamCumulativeSR, 
-            text: play.playText 
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText
           })),
           label: `${team} SR`,
           borderColor: teamColors.success,
@@ -139,7 +142,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: opponentPlays.map(play => ({ 
             x: play.playNumber, 
             y: play.teamCumulativeXR, 
-            text: play.playText 
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText
           })),
           label: `${opponentTeam} XR`,
           borderColor: opponentColors.explosive,
@@ -151,7 +155,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: opponentPlays.map(play => ({ 
             x: play.playNumber, 
             y: play.teamCumulativeSR, 
-            text: play.playText 
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText
           })),
           label: `${opponentTeam} SR`,
           borderColor: opponentColors.success,
@@ -173,6 +178,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: teamPlays.map(play => ({
             x: play.teamPlayNumber,
             y: play.teamRushCumulativeSR,
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
             text: play.playText,
           })),
           label: `${team} Rush SR`,
@@ -196,6 +202,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: teamPlays.map(play => ({
             x: play.teamPlayNumber,
             y: play.teamPassCumulativeSR,
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
             text: play.playText,
           })),
           label: `${team} Pass SR`,
@@ -230,6 +237,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: opponentPlays.map(play => ({
             x: play.teamPlayNumber,
             y: play.teamRushCumulativeSR,
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
             text: play.playText,
           })),
           label: `${opponentTeam} Rush SR`,
@@ -253,6 +261,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: opponentPlays.map(play => ({
             x: play.teamPlayNumber,
             y: play.teamPassCumulativeSR,
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
             text: play.playText,
           })),
           label: `${opponentTeam} Pass SR`,
@@ -287,7 +296,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: teamPlays.map(play => ({
             x: play.teamPlayNumber,
             y: play.teamCumulativeRushRate,
-            text: play.playText
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText,
           })),
           label: `${team} Rush Rate`,
           borderColor: teamColors.explosive,
@@ -322,7 +332,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: opponentPlays.map(play => ({
             x: play.teamPlayNumber,
             y: play.teamCumulativeRushRate,
-            text: play.playText
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText,
           })),
           label: `${opponentTeam} Rush Rate`,
           borderColor: opponentColors.explosive,
@@ -372,7 +383,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: teamRushPlays.map((play) => ({
             x: play.playNumber,
             y: play.yardsGained,
-            text: play.playText
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText,
           })),
           backgroundColor: getPointColors(teamRushPlays, teamColors),
           pointStyle: 'circle',
@@ -387,7 +399,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: teamPassPlays.map((play) => ({
             x: play.playNumber,
             y: play.yardsGained,
-            text: play.playText
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText,
           })),
           backgroundColor: getPointColors(teamPassPlays, teamColors),
           pointStyle: 'triangle',
@@ -411,7 +424,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: oppRushPlays.map((play) => ({
             x: play.playNumber,
             y: play.yardsGained,
-            text: play.playText
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText,
           })),
           backgroundColor: getPointColors(oppRushPlays, opponentColors),
           pointStyle: 'circle',
@@ -426,7 +440,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
           data: oppPassPlays.map((play) => ({
             x: play.playNumber,
             y: play.yardsGained,
-            text: play.playText
+            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
+            text: play.playText,
           })),
           backgroundColor: getPointColors(oppPassPlays, opponentColors),
           pointStyle: 'triangle',

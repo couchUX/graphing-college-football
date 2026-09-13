@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "check:embed": "node scripts/check-wave-embed.mjs",
+    "check:wp": "node scripts/check-wp-alignment.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

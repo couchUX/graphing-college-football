@@ -95,6 +95,7 @@ npm run build    # production build
 npm run lint     # eslint
 npx tsc --noEmit -p tsconfig.app.json   # typecheck (build does not typecheck)
 npm run check:embed   # prove the Game Wave embed's serialized runtime stands alone
+npm run check:wp <gameId>   # is a win probability row a before-play or after-play snapshot?
 ```
 
 A `CFB_API_KEY` in `.env` is required for live data; it stays server-side via

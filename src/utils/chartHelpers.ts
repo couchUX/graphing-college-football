@@ -1,5 +1,6 @@
 import { PlayData } from '../types';
 import { NCAA_AVERAGE_SR } from './chartConfig';
+import { formatDownDistance } from './downDistance';
 
 // Helper function to format quarter labels (Q1-Q4, OT for all overtime)
 export const formatQuarterLabel = (quarter: number): string => {
@@ -662,6 +663,34 @@ export const createWinProbabilityData = (
     };
   });
 
+  // Down & distance for each point, taken from the play the win probability row
+  // names rather than from the row's own situation fields: those describe the
+  // state the model scored, which is not necessarily the state the named play
+  // snapped from. Joining on playId to the play-by-play feed (the same join the
+  // quarter gridlines use) guarantees the situation and the play text in a
+  // tooltip describe the same snap. Falls back to the row's own fields for the
+  // handful of rows with no matching play.
+  const playById = new Map(
+    (plays || [])
+      .filter(play => play && play.id !== undefined && play.id !== null)
+      .map(play => [String(play.id), play] as const)
+  );
+
+  const downDistances = winProbData.map(point => {
+    const play = playById.get(String(point.playId));
+    if (play) {
+      return formatDownDistance(
+        play.down,
+        play.distance,
+        play.yards_to_goal !== undefined ? play.yards_to_goal : play.yardsToGoal
+      );
+    }
+    // No yards-to-goal here: the win probability row's `yardLine` isn't
+    // documented as distance-to-end-zone, so goal-to-go is left undetected
+    // rather than guessed at.
+    return formatDownDistance(point.down, point.distance);
+  });
+
   // Create segment colors based on selected team's win probability
   const segmentColors = winProbData.map((point) => {
     const selectedTeamWinProb = isSelectedTeamHome
@@ -688,6 +717,8 @@ export const createWinProbabilityData = (
     opponentTeam,
     isSelectedTeamHome, // Store this for tooltip calculations
     playTexts: winProbData.map(point => point.playText),
+    // Read back by the tooltip's afterLabel callback, on screen and in embeds.
+    downDistances,
     // Read back by the segment callback below and by chart embeds.
     segmentColors,
     segment: {
