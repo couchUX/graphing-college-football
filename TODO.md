@@ -7,11 +7,14 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 - **Pages should retain their state across tab switches.** Loading the 2025
   Alabama–Missouri game on Games, switching to Trends, then coming back resets
-  the page instead of restoring the game. Team Trends already solved this by
-  encoding its state in the URL (`src/utils/trendsUrl.ts`, see Shipped below);
-  Games/Ratings/Discover need the equivalent, or a shared store. Note that
-  Games already writes `year`/`team`/`gameId` to the canonical link, so the
-  missing piece is reading it back on mount and re-fetching.
+  the page instead of restoring the game. Team Trends and Discover already
+  solved this by encoding their state in the URL (`src/utils/urlState.ts`, see
+  Shipped below); Games/Ratings need the equivalent, or a shared store. Note
+  that Games already writes `year`/`team`/`gameId` to the canonical link, so
+  the missing piece is reading it back on mount and re-fetching. Ratings is the
+  odd one out in the other direction: its Top 25 embeds link back to
+  `/ratings?year=&conference=`, but the page ignores both on load, so those
+  links always open on the current season.
 
 - **Postseason labels still assume the four-team playoff.** With the 12-team
   bracket a team can play four postseason games, but `getPostseasonLabel` (in
@@ -56,4 +59,10 @@ sessions (not just in a chat). Also mirrored in the PR description.
   selected games (`aTeam`/`bTeam`/`aColor`/`bColor`/`year`/`aGames`/`bGames`,
   indices into each team's schedule) and auto-runs the comparison when restored.
   Multi-year SP+ persists `spTeam`. `SeasonSelector` preserves foreign params so
-  these survive tab switches. Shared helpers in `src/utils/trendsUrl.ts`.
+  these survive tab switches. Generic read/write helpers in
+  `src/utils/urlState.ts`; the game-index encoding stays in `trendsUrl.ts`.
+
+- **Shareable filters on Discover** — done. The season recap opens on the
+  season underway (2026 from August, not the last one that finished) and keeps
+  `year` plus a non-default `conference` in the URL, so a link shared mid-season
+  reopens on that exact slice instead of drifting forward with the site.

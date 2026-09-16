@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Layers } from 'lucide-react';
 import { MetaTags } from './MetaTags';
 import DiscoverCard from './DiscoverCard';
@@ -7,7 +7,8 @@ import SubTabs, { SubTabItem } from './SubTabs';
 import { detectors } from '../detectors/registry';
 import type { DetectorFilters } from '../detectors/types';
 import { useToast } from '../hooks/useToast';
-import { LATEST_COMPLETED_SEASON, RATINGS_YEARS } from '../constants/seasons';
+import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
+import { readParams, writeParams } from '../utils/urlState';
 
 type SubTab = 'season-recap' | 'weekly' | 'multi-season';
 
@@ -26,11 +27,38 @@ const CONFERENCES = [
   'Pac-12',
 ];
 
+// The filters open on whatever the link says, so a Discover URL someone
+// shares in October still lands on that season and conference. A year only
+// counts if it's one we actually offer; anything else falls back to the
+// season underway.
+const readYearParam = (): number => {
+  const fromUrl = Number(readParams().get('year'));
+  return RATINGS_YEARS.includes(fromUrl) ? fromUrl : CURRENT_SEASON;
+};
+
+const readConferenceParam = (): string => {
+  const fromUrl = readParams().get('conference');
+  if (!fromUrl) return 'all';
+  return CONFERENCES.find(c => c.toLowerCase() === fromUrl.toLowerCase()) ?? 'all';
+};
+
 const DiscoverPage: React.FC = () => {
   const [tab, setTab] = useState<SubTab>('season-recap');
-  const [year, setYear] = useState<number>(LATEST_COMPLETED_SEASON);
-  const [conference, setConference] = useState<string>('all');
+  const [year, setYear] = useState<number>(readYearParam);
+  const [conference, setConference] = useState<string>(readConferenceParam);
   const { showToast } = useToast();
+
+  // Mirror the filters back into the address bar (replaceState, so this never
+  // stacks up history entries). The year is written even at its default: a link
+  // shared this season should still open on this season next August, rather
+  // than rolling forward with the site. 'All conferences' is the default and
+  // stays out of the URL to keep shared links short.
+  useEffect(() => {
+    writeParams({
+      year: String(year),
+      conference: conference === 'all' ? null : conference,
+    });
+  }, [year, conference]);
 
   const handleCopySuccess = useCallback((message: string) => showToast(message), [showToast]);
   const handleCopyError = useCallback((message: string) => showToast(message), [showToast]);
