@@ -22,7 +22,7 @@ import TeamCompareView from './TeamCompareView';
 import AppShell from './AppShell';
 import { MetricRow } from './MetricCard';
 import SubTabs from './SubTabs';
-import { readParams, writeParams } from '../utils/trendsUrl';
+import { readParams, writeParams } from '../utils/urlState';
 
 type TrendsView = 'season' | 'spTrends' | 'compare';
 

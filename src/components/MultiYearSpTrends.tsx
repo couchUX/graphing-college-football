@@ -8,7 +8,7 @@ import { fetchSPRatingsHistory, type SPRating } from '../services/ratingsApi';
 import { useTeams } from '../hooks/useTeams';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import TeamPicker from './TeamPicker';
-import { readParams, writeParams } from '../utils/trendsUrl';
+import { readParams, writeParams } from '../utils/urlState';
 import { seriesColorsFor, teamLineColor } from '../utils/teamColorUtils';
 import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 

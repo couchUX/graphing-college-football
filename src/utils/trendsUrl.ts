@@ -1,27 +1,6 @@
-// Helpers for reading/writing Team Trends URL state without clobbering other
-// query params (each sub-view owns its own keys; switching tabs preserves the
-// rest). Game selections are encoded as sorted indices into the full games list.
-
-export const readParams = (): URLSearchParams =>
-  new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-
-export const writeParams = (updates: Record<string, string | null | undefined>): void => {
-  if (typeof window === 'undefined') return;
-  const params = new URLSearchParams(window.location.search);
-  for (const [key, value] of Object.entries(updates)) {
-    if (value === null || value === undefined || value === '') {
-      params.delete(key);
-    } else {
-      params.set(key, value);
-    }
-  }
-  const qs = params.toString();
-  window.history.replaceState(
-    {},
-    '',
-    qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
-  );
-};
+// Team Trends URL state that isn't just a plain value: game selections are
+// encoded as sorted indices into the full games list. The generic
+// read/write helpers live in ./urlState.
 
 // Encode selected game ids as sorted indices into the full games list; returns
 // null when all games are selected (the default) to keep URLs short. An empty
