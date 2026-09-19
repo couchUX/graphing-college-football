@@ -537,21 +537,58 @@
         }
 
         /*
-         * An embed injects Chart.js itself and builds its chart whenever that
-         * lands, so there is no event to wait on here. Re-apply on a short poll
-         * after each render; the signature check above makes every tick after
-         * the first a no-op.
+         * Is there any canvas chrome left to apply?
+         *
+         * The <canvas> elements are in the DOM the moment the embed's HTML is
+         * inserted — only the Chart instance is late, because the embed fetches
+         * Chart.js itself. So the work is done once every canvas present
+         * carries a chart applyChrome has configured. That is vacuously true
+         * for the canvas-free templates (the box score), and true again if a
+         * failed embed swaps its canvas out for an error message.
          */
+        function chromeSettled() {
+            const canvases = document.querySelectorAll('#articleContent canvas');
+            if (!canvases.length) return true;
+            if (typeof window.Chart === 'undefined' || typeof window.Chart.getChart !== 'function') return false;
+            return Array.prototype.every.call(canvases, function (canvas) {
+                const chart = window.Chart.getChart(canvas);
+                return chart && chart.cfbTesterApplied !== undefined;
+            });
+        }
+
+        /*
+         * An embed builds its chart whenever its Chart.js fetch lands, so there
+         * is no event to wait on here — this polls instead. It stops when the
+         * work is actually done rather than against the clock: a slow CDN can
+         * take longer than any deadline worth hard-coding, and giving up early
+         * leaves ticked boxes unapplied to a chart that shows up afterwards.
+         *
+         * The interval backs off, so a long wait costs almost nothing, and the
+         * signature check in applyChrome makes every tick after the first a
+         * no-op. WATCH_CAP_MS is only a backstop against an embed that never
+         * finishes — not the expected exit.
+         */
+        const WATCH_CAP_MS = 120000;
+
         function watchForCharts() {
-            if (chromeTimer) clearInterval(chromeTimer);
-            const deadline = Date.now() + 8000;
-            chromeTimer = setInterval(function () {
+            stopWatching();
+            const giveUpAt = Date.now() + WATCH_CAP_MS;
+            let delay = 150;
+            const tick = function () {
                 applyChrome();
-                if (Date.now() > deadline) {
-                    clearInterval(chromeTimer);
+                if (chromeSettled() || Date.now() > giveUpAt) {
                     chromeTimer = null;
+                    return;
                 }
-            }, 200);
+                delay = Math.min(Math.round(delay * 1.4), 2000);
+                chromeTimer = setTimeout(tick, delay);
+            };
+            tick();
+        }
+
+        function stopWatching() {
+            if (chromeTimer) clearTimeout(chromeTimer);
+            chromeTimer = null;
         }
 
         TOGGLE_IDS.forEach(function (id) {
@@ -612,10 +649,7 @@
         }
 
         function clearEmbed() {
-            if (chromeTimer) {
-                clearInterval(chromeTimer);
-                chromeTimer = null;
-            }
+            stopWatching();
             document.getElementById('embedCode').value = '';
             document.getElementById('articleContent').innerHTML = '';
             setStatus('');
