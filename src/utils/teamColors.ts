@@ -232,7 +232,7 @@ const teamColorsData: { [key: string]: TeamColor } = {
   "North Carolina": { success: "rgba(94, 140, 186, 0.8)", explosive: "rgba(32, 64, 96, 0.8)", light: "rgba(236, 242, 249, 0.8)" },
   "North Carolina A&T": { success: "rgba(37, 147, 244, 0.8)", explosive: "rgba(0, 68, 128, 0.8)", light: "rgba(230, 243, 255, 0.8)" },
   "North Carolina Central": { success: "rgba(176, 104, 125, 0.8)", explosive: "rgba(90, 37, 53, 0.8)", light: "rgba(248, 237, 240, 0.8)" },
-  "North Carolina State": { success: "rgba(244, 37, 37, 0.8)", explosive: "rgba(128, 0, 0, 0.8)", light: "rgba(255, 230, 230, 0.8)" },
+  "North Carolina State": { success: "rgba(204, 20, 20, 0.8)", explosive: "rgba(110, 0, 0, 0.8)", light: "rgba(251, 231, 231, 0.8)" },
   "North Carolina-Asheville": { success: "rgba(37, 113, 244, 0.8)", explosive: "rgba(0, 47, 128, 0.8)", light: "rgba(230, 239, 255, 0.8)" },
   "North Carolina-Wilmington": { success: "rgba(37, 244, 244, 0.8)", explosive: "rgba(0, 128, 128, 0.8)", light: "rgba(230, 255, 255, 0.8)" },
   "North Dakota": { success: "rgba(37, 244, 37, 0.8)", explosive: "rgba(0, 128, 0, 0.8)", light: "rgba(230, 255, 230, 0.8)" },
@@ -368,7 +368,7 @@ const teamColorsData: { [key: string]: TeamColor } = {
   "Utah Valley": { success: "rgba(37, 244, 140, 0.8)", explosive: "rgba(0, 128, 64, 0.8)", light: "rgba(230, 255, 242, 0.8)" },
   "UTEP": { success: "rgba(244, 140, 37, 0.8)", explosive: "rgba(128, 64, 0, 0.8)", light: "rgba(255, 242, 230, 0.8)" },
   "Valparaiso": { success: "rgba(244, 140, 37, 0.8)", explosive: "rgba(128, 64, 0, 0.8)", light: "rgba(255, 242, 230, 0.8)" },
-  "Vanderbilt": { success: "rgba(140, 140, 140, 0.8)", explosive: "rgba(64, 64, 64, 0.8)", light: "rgba(242, 242, 242, 0.8)" },
+  "Vanderbilt": { success: "rgba(181, 142, 74, 0.8)", explosive: "rgba(87, 64, 25, 0.8)", light: "rgba(248, 244, 234, 0.8)" },
   "Vermont": { success: "rgba(37, 244, 153, 0.8)", explosive: "rgba(0, 128, 71, 0.8)", light: "rgba(230, 255, 244, 0.8)" },
   "Villanova": { success: "rgba(37, 120, 244, 0.8)", explosive: "rgba(0, 51, 128, 0.8)", light: "rgba(230, 240, 255, 0.8)" },
   "Virginia": { success: "rgba(74, 115, 206, 0.8)", explosive: "rgba(21, 48, 107, 0.8)", light: "rgba(234, 239, 251, 0.8)" },
@@ -409,6 +409,54 @@ const defaultColors: TeamColor = {
   light: "rgba(242, 242, 242, 0.8)"
 };
 
-export const getTeamColors = (teamName: string): TeamColor => {
-  return teamColorsData[teamName] || defaultColors;
+/*
+ * The table above was built from a roster that spells some schools out in full;
+ * CFBD sends the short name instead. An unmatched name falls through to the gray
+ * default, so a game between two of them (NC State, say) drew a gray-on-gray
+ * chart. These map the API's spelling onto the entry that holds the colors.
+ * Every alias points at a key that already exists above.
+ */
+const teamNameAliases: { [alias: string]: string } = {
+  "NC State": "North Carolina State",
+  "BYU": "Brigham Young",
+  "UConn": "Connecticut",
+  "UMass": "Massachusetts",
+  "UTSA": "Texas-San Antonio",
+  "SMU": "Southern Methodist",
+  "Sam Houston": "Sam Houston State",
+  "Southern Mississippi": "Southern Miss",
+  "UL Monroe": "La.-Monroe",
+  "Louisiana Monroe": "La.-Monroe",
+  "Miami": "Miami (Fla.)",
+  "Miami (OH)": "Miami (Oh.)",
+  "Hawai'i": "Hawaii",
+  "San José State": "San Jose State",
 };
+
+/*
+ * Fold case, diacritics and punctuation away so a name matches however the API
+ * happens to spell it — "Hawai'i" and "Hawaii", "San José State" and "San Jose
+ * State", "Miami (OH)" and "Miami (Oh.)". No two keys in the table collapse to
+ * the same string, so nothing gets shadowed.
+ */
+const normalizeTeamName = (name: string): string =>
+  name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+// Built once at module load; a Map keeps prototype keys ("constructor") from
+// ever resolving to something that isn't a color.
+const colorIndex = new Map<string, TeamColor>();
+for (const [name, colors] of Object.entries(teamColorsData)) {
+  colorIndex.set(normalizeTeamName(name), colors);
+}
+for (const [alias, canonical] of Object.entries(teamNameAliases)) {
+  const colors = teamColorsData[canonical];
+  if (colors) colorIndex.set(normalizeTeamName(alias), colors);
+}
+
+export const getTeamColors = (teamName: string): TeamColor =>
+  colorIndex.get(normalizeTeamName(teamName)) ?? defaultColors;

@@ -31,6 +31,15 @@ sessions (not just in a chat). Also mirrored in the PR description.
   the point above, only pre-fill when Team vs. Team has no state of its own
   yet; an existing comparison wins.
 
+- **Seven FBS teams still hold the gray placeholder in `teamColors.ts`.**
+  Fixing Vanderbilt turned up the rest: Appalachian State, Army, Buffalo,
+  Colorado, Iowa, New Mexico and Northern Illinois all carry the
+  `rgba(140, 140, 140, …)` default, so any chart featuring one draws in the
+  same gray as an unknown team. Southern Miss too, reachable now that the
+  alias maps CFBD's "Southern Mississippi" onto it. None of them is broken
+  the way NC State was — the names resolve, the values are just placeholders —
+  so they wait for a deliberate pass on the palette rather than a drive-by.
+
 ## Shipped
 
 - **Down & distance in game chart tooltips** — done. Every play-level tooltip
