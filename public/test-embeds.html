@@ -214,6 +214,69 @@
 
         textarea::placeholder { color: var(--neutral-400); opacity: 1; }
 
+        /* Chrome toggles. A fieldset so the group has a real label and the
+           checkboxes are reachable as one thing by keyboard. */
+        .toggles {
+            border: 0;
+            padding: 0;
+            margin-top: 16px;
+        }
+
+        .toggles legend {
+            padding: 0;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink);
+        }
+
+        .toggle-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px 18px;
+        }
+
+        .toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            color: var(--neutral-700);
+            cursor: pointer;
+        }
+
+        .toggle input {
+            flex: none;
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .toggle-note {
+            margin-top: 9px;
+            font-size: 12px;
+            color: var(--byline);
+        }
+
+        /*
+         * What the toggles hide in the DOM. Chart.js draws axis titles, the
+         * legend and the gridlines onto the canvas, so those are handled in the
+         * config instead (see applyChrome) — only the surrounding furniture is
+         * CSS. `!important` because each embed ships its own scoped styles.
+         *
+         * Three of the four generators wrap the head in .chart-header; the box
+         * score template uses .header inside .embed-container. All four share
+         * .embed-footer. Game Wave's legend is HTML rather than canvas.
+         */
+        .article-content.hide-header .chart-header,
+        .article-content.hide-header .embed-container > .header,
+        .article-content.hide-footer .embed-footer,
+        .article-content.hide-legend .wave-legend {
+            display: none !important;
+        }
+
         .button-row {
             display: flex;
             align-items: center;
@@ -334,6 +397,18 @@
                     <textarea id="embedCode" placeholder="Paste your embed code here…" spellcheck="false"></textarea>
                 </div>
 
+                <fieldset class="toggles">
+                    <legend>Hide</legend>
+                    <div class="toggle-grid">
+                        <label class="toggle"><input type="checkbox" id="hideHeader"> Title and subtitle</label>
+                        <label class="toggle"><input type="checkbox" id="hideAxisTitles"> Axis titles</label>
+                        <label class="toggle"><input type="checkbox" id="hideLegend"> Legend</label>
+                        <label class="toggle"><input type="checkbox" id="hideGrid"> Gridlines</label>
+                        <label class="toggle"><input type="checkbox" id="hideFooter"> Footer</label>
+                    </div>
+                    <p class="toggle-note">Applies to the preview as you tick, and survives a re-render. The code you pasted is left alone.</p>
+                </fieldset>
+
                 <div class="button-row">
                     <button type="button" class="btn-ink" onclick="renderEmbed()">Render embed</button>
                     <button type="button" class="btn-ghost" onclick="clearEmbed()">Clear</button>
@@ -356,20 +431,135 @@
     </main>
 
     <script>
-        var statusTimer = null;
+        let statusTimer = null;
 
         // The column caps at 600px (WordPress) but goes narrower on a phone, so
         // report the live width rather than claiming 600 everywhere.
         function reportColumnWidth() {
-            var width = Math.round(document.getElementById('articleContent').getBoundingClientRect().width);
+            const width = Math.round(document.getElementById('articleContent').getBoundingClientRect().width);
             document.getElementById('columnWidth').textContent = width + 'px article column';
         }
 
         window.addEventListener('resize', reportColumnWidth);
         reportColumnWidth();
 
+        const TOGGLE_IDS = ['hideHeader', 'hideAxisTitles', 'hideLegend', 'hideGrid', 'hideFooter'];
+        let chromeTimer = null;
+
+        function hidden(id) {
+            return document.getElementById(id).checked;
+        }
+
+        /*
+         * Strip an embed's chrome down to the chart. The furniture (header,
+         * footer, the Game Wave's HTML legend) is a class on the preview; the
+         * axis titles, legend and gridlines are painted on the canvas, so those
+         * go through the live Chart.js config.
+         *
+         * Idempotent on purpose — it runs on every poll tick while the embed's
+         * scripts are still fetching Chart.js, and only touches a chart whose
+         * applied state has actually changed.
+         */
+        function applyChrome() {
+            const article = document.getElementById('articleContent');
+
+            article.classList.toggle('hide-header', hidden('hideHeader'));
+            article.classList.toggle('hide-footer', hidden('hideFooter'));
+            article.classList.toggle('hide-legend', hidden('hideLegend'));
+
+            if (typeof window.Chart === 'undefined' || typeof window.Chart.getChart !== 'function') return;
+
+            const wanted = {
+                axisTitles: hidden('hideAxisTitles'),
+                legend: hidden('hideLegend'),
+                grid: hidden('hideGrid'),
+            };
+            const signature = [wanted.axisTitles, wanted.legend, wanted.grid].join('|');
+
+            article.querySelectorAll('canvas').forEach(function (canvas) {
+                const chart = window.Chart.getChart(canvas);
+                if (!chart || chart.cfbTesterApplied === signature) return;
+
+                /*
+                 * Write to chart.config.options, NOT chart.options. The latter
+                 * is Chart.js v4's resolved proxy: assigning through it runs the
+                 * scriptable-option resolver against itself and throws
+                 * "Recursion detected: _scriptable->_scriptable". config.options
+                 * is the plain object the embed authored.
+                 */
+                const cfg = chart.config.options = chart.config.options || {};
+                cfg.scales = cfg.scales || {};
+                // Ask the live scales which axes exist, so this covers ones
+                // Chart.js created that the embed never named.
+                const scaleIds = Object.keys(chart.scales || {});
+                scaleIds.forEach(function (id) {
+                    cfg.scales[id] = cfg.scales[id] || {};
+                });
+                cfg.plugins = cfg.plugins || {};
+                cfg.plugins.legend = cfg.plugins.legend || {};
+
+                // Record what the embed itself asked for before overwriting it,
+                // so unticking restores the embed's setting rather than a guess.
+                // An absent value is meaningful — it means "Chart.js default" —
+                // so it is restored by deleting the key, not by writing
+                // undefined over it.
+                if (!chart.cfbTesterDefaults) {
+                    const defaults = { axisTitle: {}, grid: {}, legend: cfg.plugins.legend.display };
+                    scaleIds.forEach(function (id) {
+                        const scale = cfg.scales[id];
+                        defaults.axisTitle[id] = scale.title ? scale.title.display : undefined;
+                        defaults.grid[id] = scale.grid ? scale.grid.display : undefined;
+                    });
+                    chart.cfbTesterDefaults = defaults;
+                }
+
+                const saved = chart.cfbTesterDefaults;
+
+                scaleIds.forEach(function (id) {
+                    const scale = cfg.scales[id];
+                    scale.title = scale.title || {};
+                    scale.grid = scale.grid || {};
+                    setOrClear(scale.title, 'display', wanted.axisTitles ? false : saved.axisTitle[id]);
+                    setOrClear(scale.grid, 'display', wanted.grid ? false : saved.grid[id]);
+                });
+
+                setOrClear(cfg.plugins.legend, 'display', wanted.legend ? false : saved.legend);
+
+                chart.cfbTesterApplied = signature;
+                chart.update('none');
+            });
+        }
+
+        /** Restoring a default means removing the override, not writing undefined. */
+        function setOrClear(target, key, value) {
+            if (value === undefined) delete target[key];
+            else target[key] = value;
+        }
+
+        /*
+         * An embed injects Chart.js itself and builds its chart whenever that
+         * lands, so there is no event to wait on here. Re-apply on a short poll
+         * after each render; the signature check above makes every tick after
+         * the first a no-op.
+         */
+        function watchForCharts() {
+            if (chromeTimer) clearInterval(chromeTimer);
+            const deadline = Date.now() + 8000;
+            chromeTimer = setInterval(function () {
+                applyChrome();
+                if (Date.now() > deadline) {
+                    clearInterval(chromeTimer);
+                    chromeTimer = null;
+                }
+            }, 200);
+        }
+
+        TOGGLE_IDS.forEach(function (id) {
+            document.getElementById(id).addEventListener('change', applyChrome);
+        });
+
         function setStatus(message) {
-            var status = document.getElementById('status');
+            const status = document.getElementById('status');
             status.textContent = message;
             if (statusTimer) clearTimeout(statusTimer);
             if (message) {
@@ -413,11 +603,19 @@
 
             console.log('Embed rendered. Check for script loading...');
 
+            // Re-apply the hide toggles as soon as the embed's chart exists.
+            applyChrome();
+            watchForCharts();
+
             // Scroll to the rendered content
             articleContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function clearEmbed() {
+            if (chromeTimer) {
+                clearInterval(chromeTimer);
+                chromeTimer = null;
+            }
             document.getElementById('embedCode').value = '';
             document.getElementById('articleContent').innerHTML = '';
             setStatus('');
