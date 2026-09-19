@@ -69,9 +69,10 @@ export const buildBoxScoreEmbedHtml = ({
         }
         .embed-container {
             background: white;
-            border-radius: 12px;
-            border: 1px solid #e5e5e5;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            /* Matches the app's .plate: warm hairline, 4px corners, no
+               elevation — structure comes from the rule, not a shadow. */
+            border-radius: 4px;
+            border: 1px solid #E5E1DB;
             overflow: hidden;
             max-width: 800px;
             margin: 0 auto;
@@ -79,7 +80,7 @@ export const buildBoxScoreEmbedHtml = ({
         }
         .header {
             padding: 18px 24px 14px;
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #E5E1DB;
             background: white;
         }
         .title {
@@ -120,13 +121,13 @@ export const buildBoxScoreEmbedHtml = ({
             text-align: left;
         }
         tbody tr {
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #E5E1DB;
         }
         .bg-white {
             background-color: #ffffff;
         }
         .bg-neutral-50 {
-            background-color: #fafafa;
+            background-color: #FBFAF7;
         }
         .px-4 { padding-left: 1rem; padding-right: 1rem; }
         .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
@@ -136,7 +137,7 @@ export const buildBoxScoreEmbedHtml = ({
         .text-neutral-900 { color: #171717; }
         .text-center { text-align: center; }
         .embed-footer {
-            border-top: 1px solid #e5e5e5;
+            border-top: 1px solid #E5E1DB;
             font-size: 12px;
             color: #737373;
         }

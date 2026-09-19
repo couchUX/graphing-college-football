@@ -126,14 +126,15 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
         }
         .cfb-wave-embed-${uniqueId} .chart-container {
             background: white;
-            border-radius: 12px;
-            border: 1px solid #e5e5e5;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            /* Matches the app's .plate: warm hairline, 4px corners, no
+               elevation — structure comes from the rule, not a shadow. */
+            border-radius: 4px;
+            border: 1px solid #E5E1DB;
             overflow: hidden;
         }
         .cfb-wave-embed-${uniqueId} .chart-header {
             padding: 18px 24px 14px;
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #E5E1DB;
             background: white;
         }
         .cfb-wave-embed-${uniqueId} .chart-title {
@@ -211,7 +212,7 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
             font-family: inherit;
         }
         .cfb-wave-embed-${uniqueId} .embed-footer {
-            border-top: 1px solid #e5e5e5;
+            border-top: 1px solid #E5E1DB;
             font-size: 12px;
             color: #737373;
         }
@@ -255,8 +256,8 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
         .cfb-wave-embed-${uniqueId} .data-definitions {
             display: none;
             padding: 16px;
-            background: #fafafa;
-            border-top: 1px solid #e5e5e5;
+            background: #FBFAF7;
+            border-top: 1px solid #E5E1DB;
             font-size: 12px;
             line-height: 1.4;
         }
