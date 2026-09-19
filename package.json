@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "check:embed": "node scripts/check-wave-embed.mjs",
     "check:wp": "node scripts/check-wp-alignment.mjs",
+    "check:colors": "node scripts/check-team-colors.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

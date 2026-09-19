@@ -3,175 +3,617 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CFB Chart Embed Tester</title>
+    <meta name="robots" content="noindex">
+    <title>Embed tester — Graphing College Football</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="preload" href="/fonts/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /*
+         * Local copy of the Press Box tokens from src/index.css. This page is
+         * static (no Vite, no Tailwind), so the design system is hand-rolled
+         * here — keep the values in step with src/index.css and
+         * tailwind.config.js when those move.
+         *
+         * Self-hosted like the app: the font ships from /public rather than a
+         * third-party CDN.
+         */
+        @font-face {
+            font-family: 'Inter Tight Variable';
+            font-style: normal;
+            font-display: swap;
+            font-weight: 100 900;
+            src: url('/fonts/inter-tight-latin-wght-normal.woff2') format('woff2-variations');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+                           U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+                           U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
         }
+
+        :root {
+            --paper: #FBFAF7;
+            --surface: #FFFFFF;
+            --ink: #1C1917;
+            --byline: #78716C;
+            --hairline: #E5E1DB;
+            --neutral-100: #F5F3EE;
+            --neutral-300: #D6D1C8;
+            --neutral-400: #A8A29B;
+            --neutral-700: #44403C;
+            --rule: #C4B4A0;
+            --rule-soft: #E0D8CD;
+            --accent: #8E2434;
+
+            /* The whole point of this page is to give the chart room, so the
+               mobile gutter is deliberately thin — the embed is already a
+               bordered card and doesn't need a second frame around it. */
+            --gutter: 12px;
+            /* WordPress article column. */
+            --column: 600px;
+        }
+
+        @media (min-width: 640px) {
+            :root { --gutter: 24px; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { -webkit-text-size-adjust: 100%; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: #f5f5f5;
-            padding: 40px 20px;
+            font-family: 'Inter Tight Variable', 'Inter Tight', system-ui, -apple-system, sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.5;
         }
 
-        .container {
-            max-width: 600px;
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+
+        /* Content column: exactly 600px of usable width on desktop, so what you
+           see here is what the article gets. */
+        .shell {
+            width: 100%;
+            max-width: calc(var(--column) + (2 * var(--gutter)));
             margin: 0 auto;
-            background: transparent;
-            padding: 40px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
+            padding-inline: var(--gutter);
         }
 
-        h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #333;
+        .masthead {
+            border-bottom: 1px solid var(--rule-soft);
+            padding: 16px 0 14px;
         }
 
-        .instructions {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 6px;
-            margin-bottom: 30px;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #666;
+        @media (min-width: 640px) {
+            .masthead { padding: 24px 0 18px; }
         }
 
-        .instructions code {
-            background: #e5e5e5;
-            padding: 2px 6px;
-            border-radius: 3px;
+        .masthead-inner {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .wordmark {
+            font-weight: 800;
+            letter-spacing: -0.006em;
+            font-size: 19px;
+            line-height: 1.1;
+            color: var(--ink);
+            text-decoration: none;
+        }
+
+        @media (min-width: 640px) {
+            .wordmark { font-size: 22px; }
+        }
+
+        .kicker {
+            display: block;
+            margin-top: 3px;
             font-size: 13px;
+            color: var(--byline);
         }
 
-        .controls {
-            margin-bottom: 30px;
+        .back-link {
+            flex: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover { opacity: 0.8; }
+
+        main { padding: 24px 0 56px; }
+
+        @media (min-width: 640px) {
+            main { padding: 32px 0 72px; }
+        }
+
+        h2 {
+            font-weight: 700;
+            letter-spacing: -0.006em;
+            font-size: 17px;
+            line-height: 1.3;
+        }
+
+        /* Hairline frame, no elevation — structure comes from rules. */
+        .plate {
+            background: var(--surface);
+            border: 1px solid var(--hairline);
+            border-radius: 4px;
+        }
+
+        .plate-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid var(--hairline);
+            padding: 12px 14px;
+            min-height: 3.25rem;
+        }
+
+        @media (min-width: 640px) {
+            .plate-header { padding: 12px 18px; }
+        }
+
+        .plate-body { padding: 14px; }
+
+        @media (min-width: 640px) {
+            .plate-body { padding: 18px; }
+        }
+
+        .steps {
+            margin: 0;
+            padding-left: 1.15em;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--neutral-700);
+        }
+
+        .steps li::marker { color: var(--byline); }
+
+        .steps code, kbd {
+            font-family: ui-monospace, 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 12px;
+            background: var(--neutral-100);
+            border: 1px solid var(--hairline);
+            border-radius: 3px;
+            padding: 1px 5px;
+            white-space: nowrap;
         }
 
         textarea {
+            display: block;
             width: 100%;
-            min-height: 150px;
+            min-height: 148px;
             padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-family: 'Monaco', 'Courier New', monospace;
+            color: var(--ink);
+            background: var(--surface);
+            border: 1px solid var(--neutral-300);
+            border-radius: 4px;
+            font-family: ui-monospace, 'SF Mono', Monaco, 'Courier New', monospace;
             font-size: 12px;
-            margin-bottom: 12px;
+            line-height: 1.55;
             resize: vertical;
+            transition: border-color 0.2s;
         }
+
+        textarea:hover { border-color: var(--neutral-400); }
 
         textarea:focus {
             outline: none;
-            border-color: #4CAF50;
+            border-color: var(--accent);
         }
 
-        .button-group {
+        textarea::placeholder { color: var(--neutral-400); opacity: 1; }
+
+        /* Chrome toggles. A fieldset so the group has a real label and the
+           checkboxes are reachable as one thing by keyboard. */
+        .toggles {
+            border: 0;
+            padding: 0;
+            margin-top: 16px;
+        }
+
+        .toggles legend {
+            padding: 0;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink);
+        }
+
+        .toggle-grid {
             display: flex;
+            flex-wrap: wrap;
+            gap: 9px 18px;
+        }
+
+        .toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            color: var(--neutral-700);
+            cursor: pointer;
+        }
+
+        .toggle input {
+            flex: none;
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .toggle-note {
+            margin-top: 9px;
+            font-size: 12px;
+            color: var(--byline);
+        }
+
+        /*
+         * What the toggles hide in the DOM. Chart.js draws axis titles, the
+         * legend and the gridlines onto the canvas, so those are handled in the
+         * config instead (see applyChrome) — only the surrounding furniture is
+         * CSS. `!important` because each embed ships its own scoped styles.
+         *
+         * Three of the four generators wrap the head in .chart-header; the box
+         * score template uses .header inside .embed-container. All four share
+         * .embed-footer. Game Wave's legend is HTML rather than canvas.
+         */
+        .article-content.hide-header .chart-header,
+        .article-content.hide-header .embed-container > .header,
+        .article-content.hide-footer .embed-footer,
+        .article-content.hide-legend .wave-legend {
+            display: none !important;
+        }
+
+        .button-row {
+            display: flex;
+            align-items: center;
             gap: 10px;
+            margin-top: 12px;
         }
 
         button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
+            font: inherit;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
+            border-radius: 4px;
+            padding: 9px 18px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: opacity 0.2s, border-color 0.2s, color 0.2s;
         }
 
-        .btn-render {
-            background: #4CAF50;
-            color: white;
-            flex: 1;
+        /* Primary action: ink fill. */
+        .btn-ink {
+            border: 1px solid var(--ink);
+            background: var(--ink);
+            color: #FFFFFF;
         }
 
-        .btn-render:hover {
-            background: #45a049;
-        }
+        .btn-ink:hover { opacity: 0.9; }
 
-        .btn-clear {
-            background: #f44336;
-            color: white;
-            flex: 1;
-        }
-
-        .btn-clear:hover {
-            background: #da190b;
-        }
-
-        .article-content {
+        /* Secondary: outlined ghost, never a gray fill. */
+        .btn-ghost {
+            border: 1px solid var(--neutral-300);
             background: transparent;
-            padding: 40px 0;
-            min-height: 200px;
+            color: var(--byline);
         }
 
-        .article-content:empty:before {
-            content: "Your embed will appear here...";
-            color: #999;
-            font-style: italic;
-        }
+        .btn-ghost:hover { border-color: var(--neutral-400); color: var(--ink); }
 
-        .divider {
-            height: 1px;
-            background: #e0e0e0;
-            margin: 40px 0;
-        }
-
-        .reload-info {
-            margin-top: 20px;
-            padding: 12px;
-            background: #e3f2fd;
-            border-left: 4px solid #2196F3;
+        /* Replaces alert() — a line of type in the accent, like the app's toast. */
+        .status {
             font-size: 13px;
-            color: #1976D2;
+            color: var(--accent);
+        }
+
+        .status:empty { display: none; }
+
+        .note {
+            margin-top: 12px;
+            padding-left: 12px;
+            border-left: 2px solid var(--rule);
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--byline);
+        }
+
+        /* Section rule: a breath between the controls and the preview, carrying
+           its own space so the rhythm doesn't depend on the parent. */
+        .rule-section {
+            border-top: 1px solid var(--rule);
+            margin-top: 40px;
+            padding-top: 28px;
+        }
+
+        .preview-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .preview-head p {
+            font-size: 13px;
+            color: var(--byline);
+        }
+
+        /* The article simulation. Paper ground, not a white plate: the embed
+           brings its own white card, and this is what it sits on in the wild. */
+        .article-content {
+            min-height: 180px;
+            padding: 12px 0;
+        }
+
+        .article-content:empty::before {
+            content: "Rendered embeds appear here.";
+            display: block;
+            padding: 48px 0;
+            text-align: center;
+            font-size: 14px;
+            color: var(--neutral-400);
+            border: 1px dashed var(--rule-soft);
             border-radius: 4px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>CFB Chart Embed Tester</h1>
-
-        <div class="instructions">
-            <strong>How to use:</strong><br>
-            1. Copy embed code from your local dashboard (http://localhost:5173)<br>
-            2. Paste it in the textarea below<br>
-            3. Click "Render Embed" to see how it looks<br>
-            4. Use <code>Cmd/Ctrl + R</code> to hard reload and test consistency<br>
-            5. Mimics 600px article width (like WordPress)
-        </div>
-
-        <div class="controls">
-            <textarea id="embedCode" placeholder="Paste your embed code here..."></textarea>
-            <div class="button-group">
-                <button class="btn-render" onclick="renderEmbed()">Render Embed</button>
-                <button class="btn-clear" onclick="clearEmbed()">Clear</button>
+    <header class="masthead">
+        <div class="shell masthead-inner">
+            <div>
+                <a class="wordmark" href="/games">Graphing College Football</a>
+                <span class="kicker">Embed tester</span>
             </div>
-            <div class="reload-info">
-                💡 Tip: After rendering, try hard reloading (Cmd+Shift+R / Ctrl+Shift+R) to test if labels stay in correct position
-            </div>
+            <a class="back-link" href="/games">Back to the app</a>
         </div>
+    </header>
 
-        <div class="divider"></div>
+    <main class="shell">
+        <section class="plate">
+            <div class="plate-header">
+                <h2>Paste an embed</h2>
+            </div>
+            <div class="plate-body">
+                <ol class="steps">
+                    <li>Copy embed code from a chart card, locally or on the live site.</li>
+                    <li>Paste it below and render it.</li>
+                    <li>Hard reload (<kbd>Cmd/Ctrl + Shift + R</kbd>) to check that labels land in the same place every time.</li>
+                </ol>
 
-        <div class="article-content" id="articleContent"></div>
-    </div>
+                <div style="margin-top: 14px;">
+                    <label for="embedCode" style="display:block; font-size:13px; font-weight:500; margin-bottom:6px;">Embed code</label>
+                    <textarea id="embedCode" placeholder="Paste your embed code here…" spellcheck="false"></textarea>
+                </div>
+
+                <fieldset class="toggles">
+                    <legend>Hide</legend>
+                    <div class="toggle-grid">
+                        <label class="toggle"><input type="checkbox" id="hideHeader"> Title and subtitle</label>
+                        <label class="toggle"><input type="checkbox" id="hideAxisTitles"> Axis titles</label>
+                        <label class="toggle"><input type="checkbox" id="hideLegend"> Legend</label>
+                        <label class="toggle"><input type="checkbox" id="hideGrid"> Gridlines</label>
+                        <label class="toggle"><input type="checkbox" id="hideFooter"> Footer</label>
+                    </div>
+                    <p class="toggle-note">Applies to the preview as you tick, and survives a re-render. The code you pasted is left alone.</p>
+                </fieldset>
+
+                <div class="button-row">
+                    <button type="button" class="btn-ink" onclick="renderEmbed()">Render embed</button>
+                    <button type="button" class="btn-ghost" onclick="clearEmbed()">Clear</button>
+                    <span class="status" id="status" role="status" aria-live="polite"></span>
+                </div>
+
+                <p class="note">
+                    <kbd>Cmd/Ctrl + Enter</kbd> renders without leaving the textarea.
+                </p>
+            </div>
+        </section>
+
+        <section class="rule-section">
+            <div class="preview-head">
+                <h2>Preview</h2>
+                <p id="columnWidth"></p>
+            </div>
+            <div class="article-content" id="articleContent"></div>
+        </section>
+    </main>
 
     <script>
+        let statusTimer = null;
+
+        // The column caps at 600px (WordPress) but goes narrower on a phone, so
+        // report the live width rather than claiming 600 everywhere.
+        function reportColumnWidth() {
+            const width = Math.round(document.getElementById('articleContent').getBoundingClientRect().width);
+            document.getElementById('columnWidth').textContent = width + 'px article column';
+        }
+
+        window.addEventListener('resize', reportColumnWidth);
+        reportColumnWidth();
+
+        const TOGGLE_IDS = ['hideHeader', 'hideAxisTitles', 'hideLegend', 'hideGrid', 'hideFooter'];
+        let chromeTimer = null;
+
+        function hidden(id) {
+            return document.getElementById(id).checked;
+        }
+
+        /*
+         * Strip an embed's chrome down to the chart. The furniture (header,
+         * footer, the Game Wave's HTML legend) is a class on the preview; the
+         * axis titles, legend and gridlines are painted on the canvas, so those
+         * go through the live Chart.js config.
+         *
+         * Idempotent on purpose — it runs on every poll tick while the embed's
+         * scripts are still fetching Chart.js, and only touches a chart whose
+         * applied state has actually changed.
+         */
+        function applyChrome() {
+            const article = document.getElementById('articleContent');
+
+            article.classList.toggle('hide-header', hidden('hideHeader'));
+            article.classList.toggle('hide-footer', hidden('hideFooter'));
+            article.classList.toggle('hide-legend', hidden('hideLegend'));
+
+            if (typeof window.Chart === 'undefined' || typeof window.Chart.getChart !== 'function') return;
+
+            const wanted = {
+                axisTitles: hidden('hideAxisTitles'),
+                legend: hidden('hideLegend'),
+                grid: hidden('hideGrid'),
+            };
+            const signature = [wanted.axisTitles, wanted.legend, wanted.grid].join('|');
+
+            article.querySelectorAll('canvas').forEach(function (canvas) {
+                const chart = window.Chart.getChart(canvas);
+                if (!chart || chart.cfbTesterApplied === signature) return;
+
+                /*
+                 * Write to chart.config.options, NOT chart.options. The latter
+                 * is Chart.js v4's resolved proxy: assigning through it runs the
+                 * scriptable-option resolver against itself and throws
+                 * "Recursion detected: _scriptable->_scriptable". config.options
+                 * is the plain object the embed authored.
+                 */
+                const cfg = chart.config.options = chart.config.options || {};
+                cfg.scales = cfg.scales || {};
+                // Ask the live scales which axes exist, so this covers ones
+                // Chart.js created that the embed never named.
+                const scaleIds = Object.keys(chart.scales || {});
+                scaleIds.forEach(function (id) {
+                    cfg.scales[id] = cfg.scales[id] || {};
+                });
+                cfg.plugins = cfg.plugins || {};
+                cfg.plugins.legend = cfg.plugins.legend || {};
+
+                // Record what the embed itself asked for before overwriting it,
+                // so unticking restores the embed's setting rather than a guess.
+                // An absent value is meaningful — it means "Chart.js default" —
+                // so it is restored by deleting the key, not by writing
+                // undefined over it.
+                if (!chart.cfbTesterDefaults) {
+                    const defaults = { axisTitle: {}, grid: {}, legend: cfg.plugins.legend.display };
+                    scaleIds.forEach(function (id) {
+                        const scale = cfg.scales[id];
+                        defaults.axisTitle[id] = scale.title ? scale.title.display : undefined;
+                        defaults.grid[id] = scale.grid ? scale.grid.display : undefined;
+                    });
+                    chart.cfbTesterDefaults = defaults;
+                }
+
+                const saved = chart.cfbTesterDefaults;
+
+                scaleIds.forEach(function (id) {
+                    const scale = cfg.scales[id];
+                    scale.title = scale.title || {};
+                    scale.grid = scale.grid || {};
+                    setOrClear(scale.title, 'display', wanted.axisTitles ? false : saved.axisTitle[id]);
+                    setOrClear(scale.grid, 'display', wanted.grid ? false : saved.grid[id]);
+                });
+
+                setOrClear(cfg.plugins.legend, 'display', wanted.legend ? false : saved.legend);
+
+                chart.cfbTesterApplied = signature;
+                chart.update('none');
+            });
+        }
+
+        /** Restoring a default means removing the override, not writing undefined. */
+        function setOrClear(target, key, value) {
+            if (value === undefined) delete target[key];
+            else target[key] = value;
+        }
+
+        /*
+         * Is there any canvas chrome left to apply?
+         *
+         * The <canvas> elements are in the DOM the moment the embed's HTML is
+         * inserted — only the Chart instance is late, because the embed fetches
+         * Chart.js itself. So the work is done once every canvas present
+         * carries a chart applyChrome has configured. That is vacuously true
+         * for the canvas-free templates (the box score), and true again if a
+         * failed embed swaps its canvas out for an error message.
+         */
+        function chromeSettled() {
+            const canvases = document.querySelectorAll('#articleContent canvas');
+            if (!canvases.length) return true;
+            if (typeof window.Chart === 'undefined' || typeof window.Chart.getChart !== 'function') return false;
+            return Array.prototype.every.call(canvases, function (canvas) {
+                const chart = window.Chart.getChart(canvas);
+                return chart && chart.cfbTesterApplied !== undefined;
+            });
+        }
+
+        /*
+         * An embed builds its chart whenever its Chart.js fetch lands, so there
+         * is no event to wait on here — this polls instead. It stops when the
+         * work is actually done rather than against the clock: a slow CDN can
+         * take longer than any deadline worth hard-coding, and giving up early
+         * leaves ticked boxes unapplied to a chart that shows up afterwards.
+         *
+         * The interval backs off, so a long wait costs almost nothing, and the
+         * signature check in applyChrome makes every tick after the first a
+         * no-op. WATCH_CAP_MS is only a backstop against an embed that never
+         * finishes — not the expected exit.
+         */
+        const WATCH_CAP_MS = 120000;
+
+        function watchForCharts() {
+            stopWatching();
+            const giveUpAt = Date.now() + WATCH_CAP_MS;
+            let delay = 150;
+            const tick = function () {
+                applyChrome();
+                if (chromeSettled() || Date.now() > giveUpAt) {
+                    chromeTimer = null;
+                    return;
+                }
+                delay = Math.min(Math.round(delay * 1.4), 2000);
+                chromeTimer = setTimeout(tick, delay);
+            };
+            tick();
+        }
+
+        function stopWatching() {
+            if (chromeTimer) clearTimeout(chromeTimer);
+            chromeTimer = null;
+        }
+
+        TOGGLE_IDS.forEach(function (id) {
+            document.getElementById(id).addEventListener('change', applyChrome);
+        });
+
+        function setStatus(message) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            if (statusTimer) clearTimeout(statusTimer);
+            if (message) {
+                statusTimer = setTimeout(function () { status.textContent = ''; }, 4000);
+            }
+        }
+
         function renderEmbed() {
             const embedCode = document.getElementById('embedCode').value;
             const articleContent = document.getElementById('articleContent');
 
             if (!embedCode.trim()) {
-                alert('Please paste some embed code first!');
+                setStatus('Paste some embed code first.');
                 return;
             }
+
+            setStatus('');
 
             // Clear previous content
             articleContent.innerHTML = '';
@@ -198,13 +640,19 @@
 
             console.log('Embed rendered. Check for script loading...');
 
+            // Re-apply the hide toggles as soon as the embed's chart exists.
+            applyChrome();
+            watchForCharts();
+
             // Scroll to the rendered content
             articleContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function clearEmbed() {
+            stopWatching();
             document.getElementById('embedCode').value = '';
             document.getElementById('articleContent').innerHTML = '';
+            setStatus('');
         }
 
         // Allow Cmd/Ctrl + Enter to render
