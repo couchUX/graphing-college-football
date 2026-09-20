@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { PlayData } from '../types';
 import { classifyPlayType } from '../utils/playType';
+import { PlayFilterKind, matchesPlayFilter } from '../utils/playFilters';
 
 /**
  * The all-plays list, with a filter control per column.
@@ -11,14 +12,14 @@ import { classifyPlayType } from '../utils/playType';
  * numeric expression (yards, distance, the cumulative rates). Every filter is
  * an AND, so "Offense = Texas" + "Down = 3" answers the common question —
  * show me this team's third downs — in two clicks.
+ *
+ * The matching rules themselves live in utils/playFilters, under test.
  */
-
-type FilterKind = 'select' | 'text' | 'number';
 
 interface Column {
   key: string;
   label: string;
-  filter: FilterKind;
+  filter: PlayFilterKind;
   /** The value both shown and filtered on, so what you see is what you match. */
   value: (play: PlayData) => string | number;
   /** Optional richer cell; falls back to `value`. */
@@ -73,45 +74,6 @@ const COLUMNS: Column[] = [
   },
 ];
 
-/**
- * Numeric filter expressions: `15` exact, `>15`, `>=15`, `<0`, `<=3`, or
- * `10-20` for an inclusive range. A half-typed expression (`>`, `10-`) matches
- * everything rather than blanking the table mid-keystroke.
- */
-const matchesNumber = (expr: string, value: number): boolean => {
-  const text = expr.trim();
-  if (!text) return true;
-
-  const comparison = text.match(/^(>=|<=|>|<|=)\s*(-?\d+(?:\.\d+)?)$/);
-  if (comparison) {
-    const n = Number(comparison[2]);
-    switch (comparison[1]) {
-      case '>': return value > n;
-      case '>=': return value >= n;
-      case '<': return value < n;
-      case '<=': return value <= n;
-      default: return value === n;
-    }
-  }
-
-  const range = text.match(/^(-?\d+(?:\.\d+)?)\s*(?:\.\.|–|-|to)\s*(-?\d+(?:\.\d+)?)$/);
-  if (range) {
-    const [low, high] = [Number(range[1]), Number(range[2])].sort((a, b) => a - b);
-    return value >= low && value <= high;
-  }
-
-  const exact = Number(text);
-  return Number.isNaN(exact) ? true : value === exact;
-};
-
-const matchesFilter = (column: Column, expr: string, play: PlayData): boolean => {
-  if (!expr) return true;
-  const value = column.value(play);
-  if (column.filter === 'number') return matchesNumber(expr, Number(value));
-  if (column.filter === 'select') return String(value) === expr;
-  return String(value).toLowerCase().includes(expr.trim().toLowerCase());
-};
-
 const FILTER_CLASS =
   'w-full min-w-[80px] rounded border border-neutral-300 bg-surface px-1.5 py-1 text-xs font-normal ' +
   'text-ink transition-colors placeholder:text-neutral-400 hover:border-neutral-400 ' +
@@ -143,7 +105,9 @@ const AllPlaysTable: React.FC<AllPlaysTableProps> = ({ plays }) => {
   }, [plays]);
 
   const visiblePlays = useMemo(
-    () => plays.filter(play => COLUMNS.every(column => matchesFilter(column, filters[column.key] || '', play))),
+    () => plays.filter(play => COLUMNS.every(column =>
+        matchesPlayFilter(column.filter, filters[column.key] || '', column.value(play))
+      )),
     [plays, filters]
   );
 
