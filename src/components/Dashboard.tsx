@@ -3,6 +3,7 @@ import { BarChart3, Database, ChevronDown, BookOpen, AlertCircle, Link, Download
 import GameSelector from './GameSelector';
 import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
+import AllPlaysTable from './AllPlaysTable';
 import AppShell from './AppShell';
 import { MetricRow, Metric } from './MetricCard';
 import { MetaTags } from './MetaTags';
@@ -11,7 +12,6 @@ import { fetchPlayByPlayData, fetchWinProbabilityData } from '../services/api';
 import { processPlayData } from '../utils/metrics';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { applyAccent } from '../utils/accent';
-import { classifyPlayType } from '../utils/playType';
 import { track } from '../utils/analytics';
 import { useBoxScore } from '../hooks/useBoxScore';
 import { useToast } from '../hooks/useToast';
@@ -602,61 +602,7 @@ const Dashboard: React.FC = () => {
                     )}
                   </div>
 
-                  <div>
-                    <h3 className="mb-3 text-[15px] font-semibold text-ink">
-                      Processed plays — rush and pass only, with player names ({plays.length} total)
-                    </h3>
-                    <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
-                      <div className="max-h-[456px] overflow-auto">
-                        <table className="min-w-full divide-y divide-hairline text-sm">
-                          <thead className="sticky top-0 bg-neutral-100">
-                            <tr>
-                              {['Play #', 'Team play #', 'ID', 'Drive', 'Play in drive', 'Quarter', 'Down', 'Distance', 'Offense', 'Defense', 'Play type', 'Rusher', 'Passer', 'Receiver', 'Yards', 'Success', 'Explosive', 'Team SR', 'Team XR', 'Rush rate', 'Rush SR', 'Pass SR', 'Play text'].map(h => (
-                                <th key={h} className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold text-byline">
-                                  {h}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-hairline">
-                            {plays.map((play, index) => (
-                              <tr key={play.id} className={index % 2 === 0 ? 'bg-surface' : 'bg-neutral-50'}>
-                                <td className="whitespace-nowrap px-3 py-2">{play.playNumber}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.teamPlayNumber}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.id}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.driveNumber}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.playInDrive}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.quarter}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.down}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.distance}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.offense}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.defense}</td>
-                                <td className="whitespace-nowrap px-3 py-2">
-                                  <span className="rounded-full border border-hairline px-2 py-0.5 text-xs font-medium text-neutral-700">
-                                    {classifyPlayType(play.playType)}
-                                  </span>
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.rusher || '—'}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.passer || '—'}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.receiver || '—'}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.yardsGained}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.success ? 'Yes' : 'No'}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{play.explosiveness ? 'Yes' : 'No'}</td>
-                                <td className="whitespace-nowrap px-3 py-2">{(play.teamCumulativeSR * 100).toFixed(1)}%</td>
-                                <td className="whitespace-nowrap px-3 py-2">{(play.teamCumulativeXR * 100).toFixed(1)}%</td>
-                                <td className="whitespace-nowrap px-3 py-2">{(play.teamCumulativeRushRate * 100).toFixed(1)}%</td>
-                                <td className="whitespace-nowrap px-3 py-2">{(play.teamRushCumulativeSR * 100).toFixed(1)}%</td>
-                                <td className="whitespace-nowrap px-3 py-2">{(play.teamPassCumulativeSR * 100).toFixed(1)}%</td>
-                                <td className="max-w-2xl truncate px-3 py-2" title={play.playText}>
-                                  {play.playText}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
+                  <AllPlaysTable plays={plays} />
                 </div>
               )}
             </section>

@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "check:embed": "node scripts/check-wave-embed.mjs",
+    "check:filters": "node scripts/check-play-filters.mjs",
     "check:wp": "node scripts/check-wp-alignment.mjs",
     "check:colors": "node scripts/check-team-colors.mjs",
     "preview": "vite preview"
