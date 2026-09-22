@@ -5,6 +5,21 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ### Queued after the Press Box styling PR
 
+- **The old Vercel project name is hardcoded in 26 places.** The project was
+  renamed to `graphing-college-football`, but `cfb-adv-metrics-dashboard.vercel.app`
+  is still baked into every `og:url`/`og:image`/`twitter:image` and the JSON-LD
+  `url` across `index/games/ratings/trends.html`, the four `MetaTags` calls in
+  `Dashboard`/`RatingsPage`/`TeamTrendsPage`/`DiscoverPage`, the `Sitemap:` line
+  in `public/robots.txt`, and the single `<loc>` in `public/sitemap.xml`. Vercel
+  derives the `.vercel.app` alias from the project name, so those absolute URLs
+  now point at a hostname the project no longer answers on — broken social
+  preview images and a canonical/sitemap pointing somewhere dead. Fix by
+  pointing all of it at `https://graphingcollegefootball.com`, the custom
+  domain, rather than at the new `.vercel.app` name: the embed generator in
+  `RatingsPage` already links back that way, and a custom domain survives the
+  next rename. The sitemap only lists `/`, so it's worth adding `/games`,
+  `/ratings`, `/trends` and `/discover` while in there.
+
 - **Postseason labels still assume the four-team playoff.** With the 12-team
   bracket a team can play four postseason games, but `getPostseasonLabel` (in
   both `GameSelector.tsx` and `SeasonSelector.tsx`) only knows semifinal and
