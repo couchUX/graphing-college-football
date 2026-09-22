@@ -13,10 +13,19 @@
 // re-selects the game and re-fetches, Trends reloads the season, Ratings
 // opens on the season and conference you left it on.
 //
-// sessionStorage rather than localStorage is deliberate. The memory should
-// last a browsing session, not forever, and it stays per-tab — so two tabs
-// parked on different seasons don't overwrite each other, and a link opened
+// sessionStorage rather than localStorage is deliberate: the memory lasts a
+// browsing session, not forever, and each tab keeps its own, so two tabs
+// parked on different seasons don't overwrite each other and a link opened
 // tomorrow starts clean.
+//
+// One wrinkle worth knowing: a tab opened *from* this one (cmd-click, middle
+// click, target=_blank) starts with a copy of this tab's sessionStorage, so it
+// inherits these snapshots as its seed. The two diverge from then on — the copy
+// is taken once, at creation — and a link carrying its own params is untouched
+// either way, so what the new tab inherits is only ever the section state its
+// opener had. That's the same continuity the feature is for, so it's left
+// alone; separating them would mean tracking tab identity across a duplication
+// the browser does deliberately.
 
 const KEY_PREFIX = 'gcf:view:';
 

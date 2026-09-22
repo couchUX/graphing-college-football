@@ -74,8 +74,11 @@ string per path into sessionStorage on `pagehide`, and `main.tsx` replays it
 before React mounts, so each page's existing URL-restore path does the rest.
 **A URL that carries any params of its own is left alone**, so a shared link
 never inherits the visitor's last session. sessionStorage, not localStorage:
-the memory is per-tab and lasts the browsing session, so two tabs on different
-seasons don't fight and tomorrow's visit starts clean.
+the memory lasts the browsing session and each tab keeps its own, so two tabs
+on different seasons don't fight and tomorrow's visit starts clean. A tab
+opened from another one does start with a copy of its opener's snapshots —
+that's how the browser duplicates sessionStorage — after which the two
+diverge.
 
 ### Embeds
 

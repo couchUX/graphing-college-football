@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen, Copy, Check } from 'lucide-react';
@@ -65,6 +65,12 @@ const RatingsPage: React.FC = () => {
   const [expandedTop25, setExpandedTop25] = useState<boolean>(false);
   const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
   const { showToast: notify } = useToast();
+  // Season switches race: a slow 2019 fetch can land after a fast 2024 one and
+  // overwrite it. Same guard Dashboard uses for play-by-play — it matters more
+  // here because a late response also re-vets the conference, so a stale season
+  // could clear a filter that's valid for the season on screen and then persist
+  // that in the URL.
+  const ratingsRequestRef = useRef(0);
 
   const yearOptions = RATINGS_YEARS;
 
@@ -89,18 +95,36 @@ const RatingsPage: React.FC = () => {
         ? 'Power 4'
         : selectedConference;
 
-  // The definitions sit below the tables and start collapsed, so the link opens
-  // the section as well as scrolling to it — landing on a shut panel would look
-  // like the link was broken. Honours the reduced-motion preference the rest of
-  // the site respects in CSS.
-  const handleDefinitionsJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const openDefinitions = (smooth: boolean) => {
     setShowDataDefinitions(true);
     const target = document.getElementById(DEFINITIONS_ID);
     if (!target) return;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    target.scrollIntoView({ behavior: smooth && !reduceMotion ? 'smooth' : 'auto', block: 'start' });
   };
+
+  // The definitions sit below the tables and start collapsed, so the link opens
+  // the section as well as scrolling to it — landing on a shut panel would look
+  // like the link was broken.
+  const handleDefinitionsJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // A modified click means "open this URL somewhere else". Let the browser
+    // do that with the real href rather than quietly expanding this page.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    openDefinitions(true);
+    // Put the fragment in the address bar so the link the meta line advertises
+    // is the one you'd copy — replaceState, so it doesn't stack history.
+    const { pathname, search } = window.location;
+    window.history.replaceState({}, '', `${pathname}${search}#${DEFINITIONS_ID}`);
+  };
+
+  // Arriving on /ratings#data-definitions has to land open, or the fragment we
+  // hand out is a lie. React renders after the browser looks for the anchor,
+  // so the scroll is ours to do too.
+  useEffect(() => {
+    if (window.location.hash !== `#${DEFINITIONS_ID}`) return;
+    openDefinitions(false);
+  }, []);
 
   // Power 4 conferences
   const power4Conferences = ['ACC', 'SEC', 'Big 12', 'Big Ten'];
@@ -129,11 +153,17 @@ const RatingsPage: React.FC = () => {
   };
 
   useEffect(() => {
+    const requestId = ++ratingsRequestRef.current;
+
     const loadRatings = async () => {
       setLoading(true);
       setError(null);
       try {
         const data = await fetchSPRatings(year);
+
+        // A newer season started loading while this one was in flight — drop it.
+        if (requestId !== ratingsRequestRef.current) return;
+
         // Filter out "National Average" if it exists
         const filteredData = data.filter(r =>
           r.team &&
@@ -147,10 +177,11 @@ const RatingsPage: React.FC = () => {
         // filter the table down to nothing with no way back but the dropdown.
         setSelectedConference(prev => normalizeConference(prev, filteredData));
       } catch (err) {
+        if (requestId !== ratingsRequestRef.current) return;
         setError('Failed to load SP+ ratings. Please try again.');
         console.error('Error loading ratings:', err);
       } finally {
-        setLoading(false);
+        if (requestId === ratingsRequestRef.current) setLoading(false);
       }
     };
 
