@@ -10,6 +10,7 @@ import {
 } from "../services/api";
 import { CURRENT_SEASON, SEASON_YEARS } from "../constants/seasons";
 import { colorPalette } from "../utils/colorPalette";
+import { getPostseasonLabel } from "../utils/postseasonLabel";
 import { getTeamColors } from "../utils/teamColors";
 
 interface SeasonSelectorProps {
@@ -279,93 +280,6 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 					.slice(0, 10); // Show top 10 matches
 
 	// Get postseason game label (matching Games page logic)
-	const getPostseasonLabel = (game: TeamGame, allGames: TeamGame[]) => {
-		if (!game.notes) {
-			// If no notes, use chronological numbering for multiple postseason games
-			const postseasonGames = allGames
-				.filter((g) => g.seasonType === "postseason")
-				.sort(
-					(a, b) =>
-						new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-				);
-
-			if (postseasonGames.length > 1) {
-				const gameIndex = postseasonGames.findIndex((g) => g.id === game.id);
-				return `Postseason ${gameIndex + 1}`;
-			}
-			return `Postseason ${game.week}`;
-		}
-
-		const notes = game.notes.toUpperCase();
-
-		// Championship game patterns (most specific first)
-		if (
-			notes.includes("NATIONAL CHAMPIONSHIP") ||
-			notes.includes("CFP NATIONAL CHAMPIONSHIP")
-		) {
-			return "National Championship";
-		}
-		if (notes.includes("SEMIFINAL")) return "CFP Semifinal";
-		if (notes.includes("SEC CHAMPIONSHIP")) return "SEC Championship";
-		if (notes.includes("BIG TEN CHAMPIONSHIP")) return "Big Ten Championship";
-		if (notes.includes("ACC CHAMPIONSHIP")) return "ACC Championship";
-		if (notes.includes("BIG 12 CHAMPIONSHIP")) return "Big 12 Championship";
-		if (notes.includes("PAC-12 CHAMPIONSHIP")) return "Pac-12 Championship";
-
-		// Major bowl games
-		if (notes.includes("ROSE BOWL")) return "Rose Bowl";
-		if (notes.includes("SUGAR BOWL")) return "Sugar Bowl";
-		if (notes.includes("ORANGE BOWL")) return "Orange Bowl";
-		if (notes.includes("PEACH BOWL")) return "Peach Bowl";
-		if (notes.includes("COTTON BOWL")) return "Cotton Bowl";
-		if (notes.includes("FIESTA BOWL")) return "Fiesta Bowl";
-
-		// Other major bowls
-		if (notes.includes("CITRUS BOWL")) return "Citrus Bowl";
-		if (notes.includes("OUTBACK BOWL")) return "Outback Bowl";
-		if (notes.includes("GATOR BOWL")) return "Gator Bowl";
-		if (notes.includes("LIBERTY BOWL")) return "Liberty Bowl";
-		if (notes.includes("HOLIDAY BOWL")) return "Holiday Bowl";
-		if (notes.includes("ALAMO BOWL")) return "Alamo Bowl";
-
-		// General playoff detection (fallback)
-		if (notes.includes("PLAYOFF") || notes.includes("CFP")) {
-			const postseasonGames = allGames
-				.filter((g) => g.seasonType === "postseason")
-				.sort(
-					(a, b) =>
-						new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-				);
-
-			if (postseasonGames.length > 1) {
-				const gameIndex = postseasonGames.findIndex((g) => g.id === game.id);
-				return gameIndex === 0 ? "CFP Semifinal" : "National Championship";
-			}
-		}
-
-		// Generic bowl game - try to extract bowl name
-		if (notes.includes("BOWL")) {
-			const bowlMatch = notes.match(/(\w+(?:\s+\w+)*)\s+BOWL/);
-			if (bowlMatch) {
-				return `${bowlMatch[1].toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())} Bowl`;
-			}
-		}
-
-		// Final fallback: use chronological numbering
-		const postseasonGames = allGames
-			.filter((g) => g.seasonType === "postseason")
-			.sort(
-				(a, b) =>
-					new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-			);
-
-		if (postseasonGames.length > 1) {
-			const gameIndex = postseasonGames.findIndex((g) => g.id === game.id);
-			return `Postseason ${gameIndex + 1}`;
-		}
-
-		return `Postseason ${game.week}`;
-	};
 
 	// Update URL with current selections
 	const updateURL = () => {

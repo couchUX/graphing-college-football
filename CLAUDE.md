@@ -117,6 +117,7 @@ npm run lint     # eslint
 npx tsc --noEmit -p tsconfig.app.json   # typecheck (build does not typecheck)
 npm run check:embed   # prove the Game Wave embed's serialized runtime stands alone
 npm run check:filters # exercise the all-plays column-filter grammar
+npm run check:postseason # label a postseason game from CFBD's free-text notes
 npm run check:wp <gameId>   # is a win probability row a before-play or after-play snapshot?
 ```
 
