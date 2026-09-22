@@ -15,6 +15,9 @@ const SORT_FIELDS: SortField[] = ['ranking', 'team', 'conference', 'rating', 'of
 const DEFAULT_SORT_FIELD: SortField = 'rating';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
 
+/** Anchor for the meta line's jump link down to the definitions. */
+const DEFINITIONS_ID = 'data-definitions';
+
 // The page opens on whatever the link says, so a Top 25 embed pointing back at
 // /ratings?year=2019&conference=SEC lands on that season and conference instead
 // of rolling forward to whatever season is underway. A year only counts if it's
@@ -76,6 +79,28 @@ const RatingsPage: React.FC = () => {
     // until the fetch either confirms it or clears it.
     return options.includes(selectedConference) ? options : [...options, selectedConference];
   }, [ratings, selectedConference]);
+
+  // How the active filter reads in the meta line under the title — matching the
+  // dropdown's own wording rather than the raw 'power4' key.
+  const conferenceLabel =
+    selectedConference === 'all'
+      ? null
+      : selectedConference === 'power4'
+        ? 'Power 4'
+        : selectedConference;
+
+  // The definitions sit below the tables and start collapsed, so the link opens
+  // the section as well as scrolling to it — landing on a shut panel would look
+  // like the link was broken. Honours the reduced-motion preference the rest of
+  // the site respects in CSS.
+  const handleDefinitionsJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setShowDataDefinitions(true);
+    const target = document.getElementById(DEFINITIONS_ID);
+    if (!target) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  };
 
   // Power 4 conferences
   const power4Conferences = ['ACC', 'SEC', 'Big 12', 'Big Ten'];
@@ -1055,69 +1080,18 @@ const RatingsPage: React.FC = () => {
             <h3 className="headline text-[26px] text-ink">
               SP+ team ratings
             </h3>
-            <p className="text-neutral-600 mb-6">
+            <p className="text-neutral-600">
               {year} season
-            </p>
-
-            {/* Definitions and notes Section - matching Games page */}
-            <div className="plate mb-4">
-              <button
-                onClick={() => setShowDataDefinitions(!showDataDefinitions)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left sm:px-5"
-                aria-expanded={showDataDefinitions}
+              {conferenceLabel && ` · ${conferenceLabel}`}
+              {' · '}
+              <a
+                href={`#${DEFINITIONS_ID}`}
+                onClick={handleDefinitionsJump}
+                className="underline underline-offset-2 hover:text-ink"
               >
-                <span className="flex items-center gap-2.5">
-                  <BookOpen className="h-[18px] w-[18px] text-byline" />
-                  <span className="headline text-[17px] font-bold text-ink">Definitions and notes</span>
-                </span>
-                <ChevronDown className={`h-5 w-5 flex-none text-byline transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showDataDefinitions && (
-                <div className="space-y-4 border-t border-hairline px-4 py-5 sm:px-5">
-                  <div>
-                    <h4 className="text-sm font-semibold text-neutral-900 mb-2">What is SP+?</h4>
-                    <p className="text-sm text-neutral-700 leading-relaxed">
-                      SP+ (formerly known as S&P+) is a tempo- and opponent-adjusted rating system created by Bill Connelly.
-                      It measures team efficiency on a per-play basis, adjusted for the strength of opponent and the pace at which games are played.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-semibold text-neutral-900 mb-2">How to Read the Ratings</h4>
-                    <ul className="space-y-2 text-sm text-neutral-700">
-                      <li className="flex items-start">
-                        <span className="font-semibold mr-2">•</span>
-                        <span><strong>Overall Rating:</strong> The combined offensive and defensive efficiency. Higher is better. A rating of 0.0 represents an average FBS team.</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="font-semibold mr-2">•</span>
-                        <span><strong>Offensive Rating:</strong> Points above/below average a team's offense would score against an average defense. Higher is better.</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="font-semibold mr-2">•</span>
-                        <span><strong>Defensive Rating:</strong> Points above/below average a team's defense would allow against an average offense. Lower is better (fewer points allowed).</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
-                    <p className="text-xs text-neutral-600">
-                      <strong>Data Source:</strong> SP+ ratings provided by{' '}
-                      <a
-                        href="https://collegefootballdata.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-neutral-900 underline hover:text-neutral-700"
-                      >
-                        CollegeFootballData.com
-                      </a>
-                      . Created by Bill Connelly.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+                Data definitions
+              </a>
+            </p>
           </div>
 
           {/* Loading State */}
@@ -1188,6 +1162,67 @@ const RatingsPage: React.FC = () => {
               <p className="text-neutral-500">No ratings data available for {year}.</p>
             </div>
           )}
+
+          {/* Definitions and notes — moved below the tables, linked from the
+              subtext under the page title. */}
+          <div id={DEFINITIONS_ID} className="plate mt-10">
+            <button
+              onClick={() => setShowDataDefinitions(!showDataDefinitions)}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left sm:px-5"
+              aria-expanded={showDataDefinitions}
+            >
+              <span className="flex items-center gap-2.5">
+                <BookOpen className="h-[18px] w-[18px] text-byline" />
+                <span className="headline text-[17px] font-bold text-ink">Definitions and notes</span>
+              </span>
+              <ChevronDown className={`h-5 w-5 flex-none text-byline transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showDataDefinitions && (
+              <div className="space-y-4 border-t border-hairline px-4 py-5 sm:px-5">
+                <div>
+                  <h4 className="text-sm font-semibold text-neutral-900 mb-2">What is SP+?</h4>
+                  <p className="text-sm text-neutral-700 leading-relaxed">
+                    SP+ (formerly known as S&P+) is a tempo- and opponent-adjusted rating system created by Bill Connelly.
+                    It measures team efficiency on a per-play basis, adjusted for the strength of opponent and the pace at which games are played.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-neutral-900 mb-2">How to Read the Ratings</h4>
+                  <ul className="space-y-2 text-sm text-neutral-700">
+                    <li className="flex items-start">
+                      <span className="font-semibold mr-2">•</span>
+                      <span><strong>Overall Rating:</strong> The combined offensive and defensive efficiency. Higher is better. A rating of 0.0 represents an average FBS team.</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="font-semibold mr-2">•</span>
+                      <span><strong>Offensive Rating:</strong> Points above/below average a team's offense would score against an average defense. Higher is better.</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="font-semibold mr-2">•</span>
+                      <span><strong>Defensive Rating:</strong> Points above/below average a team's defense would allow against an average offense. Lower is better (fewer points allowed).</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
+                  <p className="text-xs text-neutral-600">
+                    <strong>Data Source:</strong> SP+ ratings provided by{' '}
+                    <a
+                      href="https://collegefootballdata.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-neutral-900 underline hover:text-neutral-700"
+                    >
+                      CollegeFootballData.com
+                    </a>
+                    . Created by Bill Connelly.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
       </AppShell>
