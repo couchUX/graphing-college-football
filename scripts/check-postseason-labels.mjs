@@ -6,21 +6,30 @@
 // playoff games, and the old fallback labelled the first "CFP Semifinal" and
 // every later one "National Championship".
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+// Bundle the util to a scratch directory and load it, then throw the
+// directory away: once imported the module lives in memory, so the file on
+// disk is disposable. In a finally so a failed build doesn't leave one behind
+// either — this runs often enough that the strays would pile up.
 const dir = mkdtempSync(join(tmpdir(), 'postseason-'));
-const out = join(dir, 'postseasonLabel.mjs');
-await build({
-  entryPoints: ['src/utils/postseasonLabel.ts'],
-  outfile: out,
-  bundle: true,
-  format: 'esm',
-  platform: 'neutral',
-  logLevel: 'silent',
-});
-const { getPostseasonLabel } = await import(out);
+let getPostseasonLabel;
+try {
+  const out = join(dir, 'postseasonLabel.mjs');
+  await build({
+    entryPoints: ['src/utils/postseasonLabel.ts'],
+    outfile: out,
+    bundle: true,
+    format: 'esm',
+    platform: 'neutral',
+    logLevel: 'silent',
+  });
+  ({ getPostseasonLabel } = await import(out));
+} finally {
+  rmSync(dir, { recursive: true, force: true });
+}
 
 let day = 0;
 const game = (notes, id = ++day) => ({
