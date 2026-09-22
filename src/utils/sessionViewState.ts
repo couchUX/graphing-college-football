@@ -89,7 +89,12 @@ export const restoreViewState = (): void => {
 
   try {
     const remembered = storage.getItem(storageKey(path));
-    if (remembered) window.history.replaceState({}, '', `${path}?${remembered}`);
+    // Keep any fragment: /ratings#data-definitions carries no query, so it
+    // reaches here looking bare, and rebuilding the URL without the hash would
+    // strip the anchor before the page ever gets to honour it.
+    if (remembered) {
+      window.history.replaceState({}, '', `${path}?${remembered}${window.location.hash}`);
+    }
   } catch {
     // Unreadable entry — open on the defaults.
   }
