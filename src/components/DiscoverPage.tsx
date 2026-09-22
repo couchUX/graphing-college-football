@@ -8,6 +8,8 @@ import { detectors } from '../detectors/registry';
 import type { DetectorFilters } from '../detectors/types';
 import { useToast } from '../hooks/useToast';
 import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
+import { SITE_URL } from '../constants/site';
+import { useCanonical } from '../hooks/useCanonical';
 import { readParams, writeParams } from '../utils/urlState';
 
 type SubTab = 'season-recap' | 'weekly' | 'multi-season';
@@ -48,6 +50,9 @@ const DiscoverPage: React.FC = () => {
   const [conference, setConference] = useState<string>(readConferenceParam);
   const { showToast } = useToast();
 
+  // Filters here are views of one page, so the route is what gets indexed.
+  useCanonical('/discover');
+
   // Mirror the filters back into the address bar (replaceState, so this never
   // stacks up history entries). The year is written even at its default: a link
   // shared this season should still open on this season next August, rather
@@ -81,8 +86,8 @@ const DiscoverPage: React.FC = () => {
       <MetaTags
         title="Discover - Graphing College Football"
         description="Auto-surfaced college football insights — close games, upsets, efficiency leaders, and more."
-        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_open-graph.jpg"
-        url="https://cfb-adv-metrics-dashboard.vercel.app/discover"
+        image={`${SITE_URL}/gcf_open-graph.jpg`}
+        url={`${SITE_URL}/discover`}
       />
       <AppShell current="discover">
           <div>

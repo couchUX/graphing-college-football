@@ -1,9 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  One entry per section. These must use the same canonical host as the og:url
+  and canonical tags (see src/constants/site.ts) — the apex 301s to www, so
+  listing the apex here would point crawlers at a redirect.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://cfb-adv-metrics-dashboard.vercel.app/</loc>
-    <lastmod>2025-01-01</lastmod>
+    <loc>https://www.graphingcollegefootball.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.graphingcollegefootball.com/games</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.graphingcollegefootball.com/ratings</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.graphingcollegefootball.com/trends</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.graphingcollegefootball.com/discover</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

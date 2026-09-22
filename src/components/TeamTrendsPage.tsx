@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BarChart3, TrendingUp, AlertCircle, Flame, Ruler, Copy, Check, Download } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
 import SeasonSelector from './SeasonSelector';
@@ -20,9 +20,11 @@ import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCs
 import MultiYearSpTrends from './MultiYearSpTrends';
 import TeamCompareView from './TeamCompareView';
 import AppShell from './AppShell';
+import { SITE_URL } from '../constants/site';
 import { MetricRow } from './MetricCard';
 import SubTabs from './SubTabs';
 import { readParams, writeParams } from '../utils/urlState';
+import { useCanonical } from '../hooks/useCanonical';
 
 type TrendsView = 'season' | 'spTrends' | 'compare';
 
@@ -185,58 +187,43 @@ const TeamTrendsPage: React.FC = () => {
     return calculateAveragedBoxScore(boxScores, currentParams.team, boxScoreMode);
   }, [boxScores, currentParams, boxScoreMode]);
 
-  // Update canonical URL when params or colors change
-  useEffect(() => {
-    // Remove existing canonical tag if present
-    const existingCanonical = document.querySelector('link[rel="canonical"]');
-    if (existingCanonical) {
-      existingCanonical.remove();
+  // Keep the canonical link in step with the season on screen.
+  const canonicalPath = useMemo(() => {
+    if (!currentParams) return '/trends';
+
+    const params = new URLSearchParams();
+    params.set('year', currentParams.year.toString());
+    params.set('team', currentParams.team);
+
+    // Use indices for games, matching what's in the URL. Only include the
+    // parameter when a subset is selected — all games is the default.
+    if (currentParams.selectedGameIds.length > 0 && seasonGames.length > 0) {
+      const allGameIds = seasonGames.map(g => g.id);
+      const selectedIndices = currentParams.selectedGameIds
+        .map(id => allGameIds.indexOf(id))
+        .filter(index => index !== -1)
+        .sort((a, b) => a - b);
+
+      if (selectedIndices.length !== seasonGames.length) {
+        params.set('games', selectedIndices.join(','));
+      }
     }
 
-    // Create new canonical URL based on current state
-    const canonical = document.createElement('link');
-    canonical.rel = 'canonical';
-
-    if (currentParams) {
-      // Build URL with current parameters
-      const params = new URLSearchParams();
-      params.set('year', currentParams.year.toString());
-      params.set('team', currentParams.team);
-
-      // Use indices for games - match what's in the URL
-      // Only add 'games' parameter if not all games are selected (default is all)
-      if (currentParams.selectedGameIds.length > 0 && seasonGames.length > 0) {
-        const allGameIds = seasonGames.map(g => g.id);
-        const selectedIndices = currentParams.selectedGameIds
-          .map(id => allGameIds.indexOf(id))
-          .filter(index => index !== -1)
-          .sort((a, b) => a - b);
-
-        // Only include games parameter when specific games are selected (not all)
-        if (selectedIndices.length !== seasonGames.length) {
-          params.set('games', selectedIndices.join(','));
-        }
-      }
-
-      if (selectedTeamColor !== 'default') {
-        params.set('teamColor', selectedTeamColor);
-      }
-      canonical.href = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-    } else {
-      // Default to base URL if no params
-      canonical.href = `${window.location.origin}${window.location.pathname}`;
+    if (selectedTeamColor !== 'default') {
+      params.set('teamColor', selectedTeamColor);
     }
-
-    document.head.appendChild(canonical);
+    return `/trends?${params.toString()}`;
   }, [currentParams, selectedTeamColor, seasonGames]);
+
+  useCanonical(canonicalPath);
 
   return (
     <>
       <MetaTags
         title="Team Trends - Graphing College Football"
         description="Track college football team performance trends across entire seasons with advanced metrics, success rate trends, explosiveness charts, and comprehensive season analytics."
-        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_team-trends_open-graph.jpg"
-        url="https://cfb-adv-metrics-dashboard.vercel.app/trends"
+        image={`${SITE_URL}/gcf_team-trends_open-graph.jpg`}
+        url={`${SITE_URL}/trends`}
       />
       <AppShell current="trends">
         <div>

@@ -6,6 +6,8 @@ import { MetaTags } from './MetaTags';
 import AppShell from './AppShell';
 import { useToast } from '../hooks/useToast';
 import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
+import { SITE_URL } from '../constants/site';
+import { useCanonical } from '../hooks/useCanonical';
 import { readParams, writeParams } from '../utils/urlState';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
@@ -65,6 +67,9 @@ const RatingsPage: React.FC = () => {
   const [expandedTop25, setExpandedTop25] = useState<boolean>(false);
   const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
   const { showToast: notify } = useToast();
+
+  // Filters here are views of one page, so the route is what gets indexed.
+  useCanonical('/ratings');
   // Season switches race: a slow 2019 fetch can land after a fast 2024 one and
   // overwrite it. Same guard Dashboard uses for play-by-play — it matters more
   // here because a late response also re-vets the conference, so a stale season
@@ -1052,8 +1057,8 @@ const RatingsPage: React.FC = () => {
       <MetaTags
         title="Ratings - Graphing College Football"
         description="College football SP+ ratings and rankings featuring offensive, defensive, and special teams ratings for every FBS team."
-        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_ratings_open-graph.jpg"
-        url="https://cfb-adv-metrics-dashboard.vercel.app/ratings"
+        image={`${SITE_URL}/gcf_ratings_open-graph.jpg`}
+        url={`${SITE_URL}/ratings`}
       />
       <AppShell current="ratings">
         <div>
