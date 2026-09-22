@@ -58,7 +58,10 @@ sessions (not just in a chat). Also mirrored in the PR description.
   does, so its own Top 25 embed links (`/ratings?year=&conference=`) finally
   open where they point; a conference is vetted against the season's actual
   ratings once they load, so Pac-12 in 2024 or a typo falls back to all
-  conferences instead of an empty table.
+  conferences instead of an empty table. Season switches go through the same
+  `requestRef` sequencing `Dashboard` uses for play-by-play — without it a slow
+  season landing after a fast one re-vetted the conference against the wrong
+  year, clearing a filter valid for the season on screen and persisting that.
 
   Carrying that across sections is `src/utils/sessionViewState.ts`. MainNav is
   plain `<a href>`, so every section switch is a real page load and the query
@@ -66,7 +69,16 @@ sessions (not just in a chat). Also mirrored in the PR description.
   `pagehide` and replays it on a bare load, letting each page's existing
   URL-restore path do the work (Games re-selects the game and re-fetches,
   Trends reloads the season). A URL that carries params of its own always
-  wins, so a shared link never picks up the visitor's last session.
+  wins, so a shared link never picks up the visitor's last session. A tab
+  opened from another inherits its opener's snapshots as a seed, because that
+  is how browsers duplicate sessionStorage; the two diverge from then on.
+
+  The same pass moved the Ratings definitions panel below both tables, put the
+  active filter in the meta line under the title (`2019 season · SEC · Data
+  definitions`), and made that fragment real: `/ratings#data-definitions`
+  opens and scrolls to it on arrival, a modified click goes to the browser,
+  and both `writeParams` and `restoreViewState` preserve the hash — each was
+  rebuilding the URL from pathname plus query and dropping the anchor.
 
 - **Down & distance in game chart tooltips** — done. Every play-level tooltip
   on Games (SR/XR, SR by play type, rush rate, play maps, win probability)
