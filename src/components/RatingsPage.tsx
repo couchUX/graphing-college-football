@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen, Copy, Check } from 'lucide-react';
@@ -6,22 +6,71 @@ import { MetaTags } from './MetaTags';
 import AppShell from './AppShell';
 import { useToast } from '../hooks/useToast';
 import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
+import { readParams, writeParams } from '../utils/urlState';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
 type SortDirection = 'asc' | 'desc';
 
+const SORT_FIELDS: SortField[] = ['ranking', 'team', 'conference', 'rating', 'offense', 'defense', 'specialTeams'];
+const DEFAULT_SORT_FIELD: SortField = 'rating';
+const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
+
+/** Anchor for the meta line's jump link down to the definitions. */
+const DEFINITIONS_ID = 'data-definitions';
+
+// The page opens on whatever the link says, so a Top 25 embed pointing back at
+// /ratings?year=2019&conference=SEC lands on that season and conference instead
+// of rolling forward to whatever season is underway. A year only counts if it's
+// one we actually offer; anything else falls back to the current season.
+const readYearParam = (): number => {
+  const fromUrl = Number(readParams().get('year'));
+  return RATINGS_YEARS.includes(fromUrl) ? fromUrl : CURRENT_SEASON;
+};
+
+// The conference list is built from the ratings themselves, which haven't been
+// fetched yet — so the raw value rides along and gets vetted once they land.
+const readConferenceParam = (): string => readParams().get('conference') || 'all';
+
+// Sort travels as one 'field-direction' param. No field name contains a dash,
+// so the split is unambiguous; a field we don't know throws the whole thing out
+// rather than half-applying it.
+const readSortParam = (): { field: SortField; direction: SortDirection } => {
+  const [field, direction] = (readParams().get('sort') || '').split('-');
+  if (!SORT_FIELDS.includes(field as SortField)) {
+    return { field: DEFAULT_SORT_FIELD, direction: DEFAULT_SORT_DIRECTION };
+  }
+  return { field: field as SortField, direction: direction === 'asc' ? 'asc' : 'desc' };
+};
+
+/**
+ * Keep a conference only if this season actually has one by that name — Pac-12
+ * is a real choice in 2019 and an empty table in 2024 — matching case
+ * insensitively so a hand-typed ?conference=sec still lands on SEC.
+ */
+const normalizeConference = (value: string, rows: SPRating[]): string => {
+  if (value === 'all' || value === 'power4') return value;
+  const match = rows.find(r => r.conference?.toLowerCase() === value.toLowerCase());
+  return match?.conference ?? 'all';
+};
+
 const RatingsPage: React.FC = () => {
-  const [year, setYear] = useState<number>(CURRENT_SEASON);
+  const [year, setYear] = useState<number>(readYearParam);
   const [ratings, setRatings] = useState<SPRating[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>('rating');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [selectedConference, setSelectedConference] = useState<string>('all');
+  const [sortField, setSortField] = useState<SortField>(() => readSortParam().field);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(() => readSortParam().direction);
+  const [selectedConference, setSelectedConference] = useState<string>(readConferenceParam);
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [expandedTop25, setExpandedTop25] = useState<boolean>(false);
   const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
   const { showToast: notify } = useToast();
+  // Season switches race: a slow 2019 fetch can land after a fast 2024 one and
+  // overwrite it. Same guard Dashboard uses for play-by-play — it matters more
+  // here because a late response also re-vets the conference, so a stale season
+  // could clear a filter that's valid for the season on screen and then persist
+  // that in the URL.
+  const ratingsRequestRef = useRef(0);
 
   const yearOptions = RATINGS_YEARS;
 
@@ -30,8 +79,52 @@ const RatingsPage: React.FC = () => {
     const uniqueConferences = Array.from(
       new Set(ratings.map(r => r.conference).filter(Boolean))
     ).sort();
-    return ['all', 'power4', ...uniqueConferences];
-  }, [ratings]);
+    const options = ['all', 'power4', ...uniqueConferences];
+    // A conference restored from the URL has no option to match until the
+    // ratings arrive, which would leave the select rendering blank. Carry it
+    // until the fetch either confirms it or clears it.
+    return options.includes(selectedConference) ? options : [...options, selectedConference];
+  }, [ratings, selectedConference]);
+
+  // How the active filter reads in the meta line under the title — matching the
+  // dropdown's own wording rather than the raw 'power4' key.
+  const conferenceLabel =
+    selectedConference === 'all'
+      ? null
+      : selectedConference === 'power4'
+        ? 'Power 4'
+        : selectedConference;
+
+  const openDefinitions = (smooth: boolean) => {
+    setShowDataDefinitions(true);
+    const target = document.getElementById(DEFINITIONS_ID);
+    if (!target) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: smooth && !reduceMotion ? 'smooth' : 'auto', block: 'start' });
+  };
+
+  // The definitions sit below the tables and start collapsed, so the link opens
+  // the section as well as scrolling to it — landing on a shut panel would look
+  // like the link was broken.
+  const handleDefinitionsJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // A modified click means "open this URL somewhere else". Let the browser
+    // do that with the real href rather than quietly expanding this page.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    openDefinitions(true);
+    // Put the fragment in the address bar so the link the meta line advertises
+    // is the one you'd copy — replaceState, so it doesn't stack history.
+    const { pathname, search } = window.location;
+    window.history.replaceState({}, '', `${pathname}${search}#${DEFINITIONS_ID}`);
+  };
+
+  // Arriving on /ratings#data-definitions has to land open, or the fragment we
+  // hand out is a lie. React renders after the browser looks for the anchor,
+  // so the scroll is ours to do too.
+  useEffect(() => {
+    if (window.location.hash !== `#${DEFINITIONS_ID}`) return;
+    openDefinitions(false);
+  }, []);
 
   // Power 4 conferences
   const power4Conferences = ['ACC', 'SEC', 'Big 12', 'Big Ten'];
@@ -60,11 +153,17 @@ const RatingsPage: React.FC = () => {
   };
 
   useEffect(() => {
+    const requestId = ++ratingsRequestRef.current;
+
     const loadRatings = async () => {
       setLoading(true);
       setError(null);
       try {
         const data = await fetchSPRatings(year);
+
+        // A newer season started loading while this one was in flight — drop it.
+        if (requestId !== ratingsRequestRef.current) return;
+
         // Filter out "National Average" if it exists
         const filteredData = data.filter(r =>
           r.team &&
@@ -73,16 +172,37 @@ const RatingsPage: React.FC = () => {
           r.team.toLowerCase() !== 'nationalaverages'
         );
         setRatings(filteredData);
+        // Now that we know which conferences this season has, vet the one that
+        // came in off the URL. A stale or misspelled name would otherwise
+        // filter the table down to nothing with no way back but the dropdown.
+        setSelectedConference(prev => normalizeConference(prev, filteredData));
       } catch (err) {
+        if (requestId !== ratingsRequestRef.current) return;
         setError('Failed to load SP+ ratings. Please try again.');
         console.error('Error loading ratings:', err);
       } finally {
-        setLoading(false);
+        if (requestId === ratingsRequestRef.current) setLoading(false);
       }
     };
 
     loadRatings();
   }, [year]);
+
+  // Mirror the filters back into the address bar (replaceState, so this never
+  // stacks up history entries). The year is written even at its default: a link
+  // shared this season should still open on this season next August, rather
+  // than rolling forward with the site. The other two are omitted at their
+  // defaults to keep shared links short.
+  useEffect(() => {
+    writeParams({
+      year: String(year),
+      conference: selectedConference === 'all' ? null : selectedConference,
+      sort:
+        sortField === DEFAULT_SORT_FIELD && sortDirection === DEFAULT_SORT_DIRECTION
+          ? null
+          : `${sortField}-${sortDirection}`,
+    });
+  }, [year, selectedConference, sortField, sortDirection]);
 
   useEffect(() => {
     if (!copiedEmbedKey) return;
@@ -991,69 +1111,18 @@ const RatingsPage: React.FC = () => {
             <h3 className="headline text-[26px] text-ink">
               SP+ team ratings
             </h3>
-            <p className="text-neutral-600 mb-6">
+            <p className="text-neutral-600">
               {year} season
-            </p>
-
-            {/* Definitions and notes Section - matching Games page */}
-            <div className="plate mb-4">
-              <button
-                onClick={() => setShowDataDefinitions(!showDataDefinitions)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left sm:px-5"
-                aria-expanded={showDataDefinitions}
+              {conferenceLabel && ` · ${conferenceLabel}`}
+              {' · '}
+              <a
+                href={`#${DEFINITIONS_ID}`}
+                onClick={handleDefinitionsJump}
+                className="underline underline-offset-2 hover:text-ink"
               >
-                <span className="flex items-center gap-2.5">
-                  <BookOpen className="h-[18px] w-[18px] text-byline" />
-                  <span className="headline text-[17px] font-bold text-ink">Definitions and notes</span>
-                </span>
-                <ChevronDown className={`h-5 w-5 flex-none text-byline transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showDataDefinitions && (
-                <div className="space-y-4 border-t border-hairline px-4 py-5 sm:px-5">
-                  <div>
-                    <h4 className="text-sm font-semibold text-neutral-900 mb-2">What is SP+?</h4>
-                    <p className="text-sm text-neutral-700 leading-relaxed">
-                      SP+ (formerly known as S&P+) is a tempo- and opponent-adjusted rating system created by Bill Connelly.
-                      It measures team efficiency on a per-play basis, adjusted for the strength of opponent and the pace at which games are played.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-semibold text-neutral-900 mb-2">How to Read the Ratings</h4>
-                    <ul className="space-y-2 text-sm text-neutral-700">
-                      <li className="flex items-start">
-                        <span className="font-semibold mr-2">•</span>
-                        <span><strong>Overall Rating:</strong> The combined offensive and defensive efficiency. Higher is better. A rating of 0.0 represents an average FBS team.</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="font-semibold mr-2">•</span>
-                        <span><strong>Offensive Rating:</strong> Points above/below average a team's offense would score against an average defense. Higher is better.</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="font-semibold mr-2">•</span>
-                        <span><strong>Defensive Rating:</strong> Points above/below average a team's defense would allow against an average offense. Lower is better (fewer points allowed).</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
-                    <p className="text-xs text-neutral-600">
-                      <strong>Data Source:</strong> SP+ ratings provided by{' '}
-                      <a
-                        href="https://collegefootballdata.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-neutral-900 underline hover:text-neutral-700"
-                      >
-                        CollegeFootballData.com
-                      </a>
-                      . Created by Bill Connelly.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+                Data definitions
+              </a>
+            </p>
           </div>
 
           {/* Loading State */}
@@ -1124,6 +1193,67 @@ const RatingsPage: React.FC = () => {
               <p className="text-neutral-500">No ratings data available for {year}.</p>
             </div>
           )}
+
+          {/* Definitions and notes — moved below the tables, linked from the
+              subtext under the page title. */}
+          <div id={DEFINITIONS_ID} className="plate mt-10">
+            <button
+              onClick={() => setShowDataDefinitions(!showDataDefinitions)}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left sm:px-5"
+              aria-expanded={showDataDefinitions}
+            >
+              <span className="flex items-center gap-2.5">
+                <BookOpen className="h-[18px] w-[18px] text-byline" />
+                <span className="headline text-[17px] font-bold text-ink">Definitions and notes</span>
+              </span>
+              <ChevronDown className={`h-5 w-5 flex-none text-byline transition-transform ${showDataDefinitions ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showDataDefinitions && (
+              <div className="space-y-4 border-t border-hairline px-4 py-5 sm:px-5">
+                <div>
+                  <h4 className="text-sm font-semibold text-neutral-900 mb-2">What is SP+?</h4>
+                  <p className="text-sm text-neutral-700 leading-relaxed">
+                    SP+ (formerly known as S&P+) is a tempo- and opponent-adjusted rating system created by Bill Connelly.
+                    It measures team efficiency on a per-play basis, adjusted for the strength of opponent and the pace at which games are played.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-neutral-900 mb-2">How to Read the Ratings</h4>
+                  <ul className="space-y-2 text-sm text-neutral-700">
+                    <li className="flex items-start">
+                      <span className="font-semibold mr-2">•</span>
+                      <span><strong>Overall Rating:</strong> The combined offensive and defensive efficiency. Higher is better. A rating of 0.0 represents an average FBS team.</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="font-semibold mr-2">•</span>
+                      <span><strong>Offensive Rating:</strong> Points above/below average a team's offense would score against an average defense. Higher is better.</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="font-semibold mr-2">•</span>
+                      <span><strong>Defensive Rating:</strong> Points above/below average a team's defense would allow against an average offense. Lower is better (fewer points allowed).</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
+                  <p className="text-xs text-neutral-600">
+                    <strong>Data Source:</strong> SP+ ratings provided by{' '}
+                    <a
+                      href="https://collegefootballdata.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-neutral-900 underline hover:text-neutral-700"
+                    >
+                      CollegeFootballData.com
+                    </a>
+                    . Created by Bill Connelly.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
       </AppShell>

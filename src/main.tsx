@@ -9,6 +9,12 @@ import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/inter-tight';
 import App from './App.tsx';
 import './index.css';
+import { initViewStateMemory } from './utils/sessionViewState';
+
+// Before anything renders: if this is a bare section URL and the tab was here
+// earlier in the session, put that view's query string back, so the pages
+// below read an address bar that's already settled.
+initViewStateMemory();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

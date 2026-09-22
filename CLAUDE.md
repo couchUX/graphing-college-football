@@ -27,6 +27,7 @@ variant. Don't add one.
 
 ```
 src/
+  main.tsx             mounts the app; restores each section's remembered query string first
   App.tsx              pathname router; each page is React.lazy'd into its own chunk
   components/
     AppShell.tsx       masthead, nav, footer, About/Contact modals — every page wraps in this
@@ -43,6 +44,7 @@ src/
   services/            api.ts (CFBD via the /api/cfbd proxy), boxScoreApi, ratingsApi, seasonApi
   detectors/           Discover storyline detectors + registry
   utils/               chart helpers, metrics, embed generators, accent, playType, analytics
+                       urlState (query-string state), sessionViewState (see below)
 ```
 
 ### Design system
@@ -59,6 +61,24 @@ shadows are neutralized (structure comes from hairlines).
   with a luminance clamp so pale golds stay legible); crimson is the default.
 - Type is Inter Tight, self-hosted via `@fontsource-variable/inter-tight`.
   Sentence case everywhere — no all-caps or letterspaced labels.
+
+### Page state
+
+Every page keeps its view state in the query string (`src/utils/urlState.ts`),
+which doubles as the shareable link. But `MainNav` is plain `<a href="/trends">`
+— there's no client-side router — so each section switch is a full page load
+and that query string would die with it.
+
+`src/utils/sessionViewState.ts` bridges the gap: it snapshots the whole query
+string per path into sessionStorage on `pagehide`, and `main.tsx` replays it
+before React mounts, so each page's existing URL-restore path does the rest.
+**A URL that carries any params of its own is left alone**, so a shared link
+never inherits the visitor's last session. sessionStorage, not localStorage:
+the memory lasts the browsing session and each tab keeps its own, so two tabs
+on different seasons don't fight and tomorrow's visit starts clean. A tab
+opened from another one does start with a copy of its opener's snapshots —
+that's how the browser duplicates sessionStorage — after which the two
+diverge.
 
 ### Embeds
 

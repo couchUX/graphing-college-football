@@ -5,16 +5,27 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ### Queued after the Press Box styling PR
 
-- **Pages should retain their state across tab switches.** Loading the 2025
-  Alabama–Missouri game on Games, switching to Trends, then coming back resets
-  the page instead of restoring the game. Team Trends and Discover already
-  solved this by encoding their state in the URL (`src/utils/urlState.ts`, see
-  Shipped below); Games/Ratings need the equivalent, or a shared store. Note
-  that Games already writes `year`/`team`/`gameId` to the canonical link, so
-  the missing piece is reading it back on mount and re-fetching. Ratings is the
-  odd one out in the other direction: its Top 25 embeds link back to
-  `/ratings?year=&conference=`, but the page ignores both on load, so those
-  links always open on the current season.
+- **Site metadata points at the `.vercel.app` host, not the canonical domain.**
+  `cfb-adv-metrics-dashboard.vercel.app` is hardcoded in 26 places: every
+  `og:url`/`og:image`/`twitter:image` and the JSON-LD `url` across
+  `index/games/ratings/trends.html`, the four `MetaTags` calls in
+  `Dashboard`/`RatingsPage`/`TeamTrendsPage`/`DiscoverPage`, the `Sitemap:`
+  line in `public/robots.txt`, and the single `<loc>` in `public/sitemap.xml`.
+
+  Nothing is broken — the project rename to `graphing-college-football` kept
+  that hostname attached and verified, so those URLs still resolve. But it is
+  not the canonical host: the project serves `www.graphingcollegefootball.com`,
+  with the apex redirecting to it. Pointing canonical/og/sitemap at a
+  non-canonical duplicate splits SEO signals between the two hostnames, and
+  the `.vercel.app` name is the one tied to the project name, so it's the one
+  that would move if the project were renamed again.
+
+  Fix by pointing all of it at `https://www.graphingcollegefootball.com` — the
+  redirect target, so no hop. Note `RatingsPage`'s embed generator links back
+  to the apex (`https://graphingcollegefootball.com/ratings`), which is fine
+  for a link but worth making consistent. The sitemap also lists only `/`, so
+  `/games`, `/ratings`, `/trends` and `/discover` are worth adding while in
+  there.
 
 - **Postseason labels still assume the four-team playoff.** With the 12-team
   bracket a team can play four postseason games, but `getPostseasonLabel` (in
@@ -41,6 +52,33 @@ sessions (not just in a chat). Also mirrored in the PR description.
   so they wait for a deliberate pass on the palette rather than a drive-by.
 
 ## Shipped
+
+- **Pages retain their state across tab switches** — done, in two parts.
+  Ratings now keeps `year`, `conference` and `sort` in the URL the way Discover
+  does, so its own Top 25 embed links (`/ratings?year=&conference=`) finally
+  open where they point; a conference is vetted against the season's actual
+  ratings once they load, so Pac-12 in 2024 or a typo falls back to all
+  conferences instead of an empty table. Season switches go through the same
+  `requestRef` sequencing `Dashboard` uses for play-by-play — without it a slow
+  season landing after a fast one re-vetted the conference against the wrong
+  year, clearing a filter valid for the season on screen and persisting that.
+
+  Carrying that across sections is `src/utils/sessionViewState.ts`. MainNav is
+  plain `<a href>`, so every section switch is a real page load and the query
+  string dies with it — this snapshots it per path into sessionStorage on
+  `pagehide` and replays it on a bare load, letting each page's existing
+  URL-restore path do the work (Games re-selects the game and re-fetches,
+  Trends reloads the season). A URL that carries params of its own always
+  wins, so a shared link never picks up the visitor's last session. A tab
+  opened from another inherits its opener's snapshots as a seed, because that
+  is how browsers duplicate sessionStorage; the two diverge from then on.
+
+  The same pass moved the Ratings definitions panel below both tables, put the
+  active filter in the meta line under the title (`2019 season · SEC · Data
+  definitions`), and made that fragment real: `/ratings#data-definitions`
+  opens and scrolls to it on arrival, a modified click goes to the browser,
+  and both `writeParams` and `restoreViewState` preserve the hash — each was
+  rebuilding the URL from pathname plus query and dropping the anchor.
 
 - **Down & distance in game chart tooltips** — done. Every play-level tooltip
   on Games (SR/XR, SR by play type, rush rate, play maps, win probability)

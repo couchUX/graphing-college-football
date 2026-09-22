@@ -17,9 +17,8 @@ export const writeParams = (updates: Record<string, string | null | undefined>):
     }
   }
   const qs = params.toString();
-  window.history.replaceState(
-    {},
-    '',
-    qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
-  );
+  // Keep the fragment: Ratings links to #data-definitions from its meta line,
+  // and rewriting the query on any filter change used to drop it.
+  const { pathname, hash } = window.location;
+  window.history.replaceState({}, '', `${pathname}${qs ? `?${qs}` : ''}${hash}`);
 };
