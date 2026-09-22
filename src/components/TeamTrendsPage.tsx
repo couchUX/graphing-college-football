@@ -487,7 +487,7 @@ const TeamTrendsPage: React.FC = () => {
 
           {trendsView === 'spTrends' && <MultiYearSpTrends />}
 
-          {trendsView === 'compare' && <TeamCompareView />}
+          {trendsView === 'compare' && <TeamCompareView defaultTeam={currentParams?.team ?? null} />}
         </div>
       </AppShell>
     </>

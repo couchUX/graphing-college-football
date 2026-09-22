@@ -5,21 +5,6 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ### Queued after the Press Box styling PR
 
-- **Postseason labels still assume the four-team playoff.** With the 12-team
-  bracket a team can play four postseason games, but `getPostseasonLabel` (in
-  both `GameSelector.tsx` and `SeasonSelector.tsx`) only knows semifinal and
-  title game: its `PLAYOFF`/`CFP` fallback labels the first postseason game
-  "CFP Semifinal" and everything after it "National Championship". First-round
-  and quarterfinal games need their own cases. Not urgent until December —
-  and worth checking CFBD's actual `notes` strings for 2025 before writing the
-  matches.
-
-- **Carry the selected team into Team vs. Team.** When someone is looking at a
-  team on Season trends and switches to Team vs. Team, pre-fill that team as
-  Team A — they're almost certainly about to compare it against someone. Per
-  the point above, only pre-fill when Team vs. Team has no state of its own
-  yet; an existing comparison wins.
-
 - **Seven FBS teams still hold the gray placeholder in `teamColors.ts`.**
   Fixing Vanderbilt turned up the rest: Appalachian State, Army, Buffalo,
   Colorado, Iowa, New Mexico and Northern Illinois all carry the
@@ -30,6 +15,29 @@ sessions (not just in a chat). Also mirrored in the PR description.
   so they wait for a deliberate pass on the palette rather than a drive-by.
 
 ## Shipped
+
+- **Postseason labels understand the 12-team bracket** — done. The label logic
+  lived twice, in `GameSelector` and `SeasonSelector`, and had already drifted:
+  only one knew the conference championships, only the other could pull a bowl
+  name out of arbitrary notes. It is now one `src/utils/postseasonLabel.ts`,
+  with first-round and quarterfinal cases added.
+
+  The real bug was the fallback for a playoff game whose notes name no round:
+  it returned "CFP Semifinal" for the first and "National Championship" for
+  every one after, so a team's four-game run reported three title games. It now
+  numbers them (`CFP Game 2`) rather than asserting a round it cannot know.
+  Fixing the shared bowl regex also fixed "Duke's Mayo Bowl", which the old
+  `\w`-only capture rendered as "S Mayo Bowl".
+
+  `npm run check:postseason` covers the grammar (20 cases). Still worth doing
+  when someone has an API key: check CFBD's real `notes` strings for 2024 and
+  2025 and confirm the round matches fire — the strings here are best-effort,
+  and quarterfinals played as bowls may well match the bowl name first.
+
+- **The selected team carries into Team vs. Team** — done. Switching from a
+  team's season to Team vs. Team pre-fills it as Team A. Only when the link
+  names neither side, so an existing comparison wins, and it pre-fills without
+  running the comparison, which would fire a season fetch nobody asked for.
 
 - **Site metadata points at the canonical domain** — done. All 26 references to
   `cfb-adv-metrics-dashboard.vercel.app` now read

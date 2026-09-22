@@ -142,7 +142,17 @@ const PlayerCountFilter: React.FC<{
   </FilterSelect>
 );
 
-const TeamCompareView: React.FC = () => {
+interface TeamCompareViewProps {
+  /**
+   * The team whose season is loaded on Season trends, if any. Used only to
+   * pre-fill Team A when this view has no state of its own — someone who
+   * switches over from a team's season is almost certainly about to compare
+   * that team against someone.
+   */
+  defaultTeam?: string | null;
+}
+
+const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null }) => {
   const { teams, loading: loadingTeams, error: teamsError } = useTeams();
   const [teamA, setTeamA] = useState<Team | null>(null);
   const [teamB, setTeamB] = useState<Team | null>(null);
@@ -282,10 +292,19 @@ const TeamCompareView: React.FC = () => {
     if (a && b) {
       autoCompareRef.current = true;
     } else {
+      // Nothing of this view's own in the link, so carry over the team being
+      // looked at on Season trends. Only when the link names neither side: an
+      // existing comparison, even half of one, wins. Pre-fill only — it never
+      // starts a comparison, since that would fire a season fetch nobody asked
+      // for.
+      if (!a && !b && defaultTeam) {
+        const carried = find(defaultTeam);
+        if (carried) setTeamA(carried);
+      }
       urlReadyRef.current = true;
     }
      
-  }, [teams]);
+  }, [teams, defaultTeam]);
 
   const canCompare =
     !!teamA &&
