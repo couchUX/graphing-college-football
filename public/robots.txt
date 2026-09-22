@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://cfb-adv-metrics-dashboard.vercel.app/sitemap.xml
+Sitemap: https://www.graphingcollegefootball.com/sitemap.xml
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1

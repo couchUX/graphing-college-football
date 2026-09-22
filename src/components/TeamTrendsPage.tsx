@@ -20,6 +20,7 @@ import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCs
 import MultiYearSpTrends from './MultiYearSpTrends';
 import TeamCompareView from './TeamCompareView';
 import AppShell from './AppShell';
+import { SITE_URL } from '../constants/site';
 import { MetricRow } from './MetricCard';
 import SubTabs from './SubTabs';
 import { readParams, writeParams } from '../utils/urlState';
@@ -235,8 +236,8 @@ const TeamTrendsPage: React.FC = () => {
       <MetaTags
         title="Team Trends - Graphing College Football"
         description="Track college football team performance trends across entire seasons with advanced metrics, success rate trends, explosiveness charts, and comprehensive season analytics."
-        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_team-trends_open-graph.jpg"
-        url="https://cfb-adv-metrics-dashboard.vercel.app/trends"
+        image={`${SITE_URL}/gcf_team-trends_open-graph.jpg`}
+        url={`${SITE_URL}/trends`}
       />
       <AppShell current="trends">
         <div>

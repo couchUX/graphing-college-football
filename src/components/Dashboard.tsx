@@ -5,6 +5,7 @@ import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
 import AllPlaysTable from './AllPlaysTable';
 import AppShell from './AppShell';
+import { SITE_URL } from '../constants/site';
 import { MetricRow, Metric } from './MetricCard';
 import { MetaTags } from './MetaTags';
 import { PlayData } from '../types';
@@ -251,8 +252,8 @@ const Dashboard: React.FC = () => {
       <MetaTags
         title="Games - Graphing College Football"
         description="Advanced college football analytics dashboard featuring success rate, explosiveness, play-by-play analysis, and interactive charts for every CFB team and game."
-        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_games_open-graph.jpg"
-        url="https://cfb-adv-metrics-dashboard.vercel.app/games"
+        image={`${SITE_URL}/gcf_games_open-graph.jpg`}
+        url={`${SITE_URL}/games`}
       />
       <AppShell current="games">
         {/* Game picker */}

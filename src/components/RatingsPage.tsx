@@ -6,6 +6,7 @@ import { MetaTags } from './MetaTags';
 import AppShell from './AppShell';
 import { useToast } from '../hooks/useToast';
 import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
+import { SITE_URL } from '../constants/site';
 import { readParams, writeParams } from '../utils/urlState';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
@@ -1052,8 +1053,8 @@ const RatingsPage: React.FC = () => {
       <MetaTags
         title="Ratings - Graphing College Football"
         description="College football SP+ ratings and rankings featuring offensive, defensive, and special teams ratings for every FBS team."
-        image="https://cfb-adv-metrics-dashboard.vercel.app/gcf_ratings_open-graph.jpg"
-        url="https://cfb-adv-metrics-dashboard.vercel.app/ratings"
+        image={`${SITE_URL}/gcf_ratings_open-graph.jpg`}
+        url={`${SITE_URL}/ratings`}
       />
       <AppShell current="ratings">
         <div>

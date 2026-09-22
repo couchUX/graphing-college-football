@@ -5,28 +5,6 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ### Queued after the Press Box styling PR
 
-- **Site metadata points at the `.vercel.app` host, not the canonical domain.**
-  `cfb-adv-metrics-dashboard.vercel.app` is hardcoded in 26 places: every
-  `og:url`/`og:image`/`twitter:image` and the JSON-LD `url` across
-  `index/games/ratings/trends.html`, the four `MetaTags` calls in
-  `Dashboard`/`RatingsPage`/`TeamTrendsPage`/`DiscoverPage`, the `Sitemap:`
-  line in `public/robots.txt`, and the single `<loc>` in `public/sitemap.xml`.
-
-  Nothing is broken — the project rename to `graphing-college-football` kept
-  that hostname attached and verified, so those URLs still resolve. But it is
-  not the canonical host: the project serves `www.graphingcollegefootball.com`,
-  with the apex redirecting to it. Pointing canonical/og/sitemap at a
-  non-canonical duplicate splits SEO signals between the two hostnames, and
-  the `.vercel.app` name is the one tied to the project name, so it's the one
-  that would move if the project were renamed again.
-
-  Fix by pointing all of it at `https://www.graphingcollegefootball.com` — the
-  redirect target, so no hop. Note `RatingsPage`'s embed generator links back
-  to the apex (`https://graphingcollegefootball.com/ratings`), which is fine
-  for a link but worth making consistent. The sitemap also lists only `/`, so
-  `/games`, `/ratings`, `/trends` and `/discover` are worth adding while in
-  there.
-
 - **Postseason labels still assume the four-team playoff.** With the 12-team
   bracket a team can play four postseason games, but `getPostseasonLabel` (in
   both `GameSelector.tsx` and `SeasonSelector.tsx`) only knows semifinal and
@@ -52,6 +30,25 @@ sessions (not just in a chat). Also mirrored in the PR description.
   so they wait for a deliberate pass on the palette rather than a drive-by.
 
 ## Shipped
+
+- **Site metadata points at the canonical domain** — done. All 26 references to
+  `cfb-adv-metrics-dashboard.vercel.app` now read
+  `https://www.graphingcollegefootball.com`: the `og:url`/`og:image`/
+  `twitter:image` and JSON-LD `url` in the four HTML entry points, the four
+  `MetaTags` calls, the `Sitemap:` line in `public/robots.txt`, and
+  `public/sitemap.xml`. The www host, not the apex — Vercel serves www and 301s
+  the apex, so a canonical on the apex would point at a redirect.
+
+  The TypeScript side reads `SITE_URL` from `src/constants/site.ts` rather than
+  repeating the literal, so the next hosting rename is one edit plus the HTML
+  and `public/` files, which can't import it. The sitemap also listed only `/`;
+  it now carries `/games`, `/ratings`, `/trends` and `/discover`, and its
+  hardcoded `lastmod` of 2025-01-01 is gone rather than left lying.
+
+  Not touched: the embed generators still link back to the apex
+  (`https://graphingcollegefootball.com/...`). Those are reader-facing links
+  where the redirect costs nothing, and changing them would change what copied
+  embeds regenerate as — worth unifying, but as its own decision.
 
 - **Pages retain their state across tab switches** — done, in two parts.
   Ratings now keeps `year`, `conference` and `sort` in the URL the way Discover
