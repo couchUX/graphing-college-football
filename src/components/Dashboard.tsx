@@ -6,6 +6,7 @@ import BoxScoreContainer from './BoxScoreContainer';
 import AllPlaysTable from './AllPlaysTable';
 import AppShell from './AppShell';
 import { SITE_URL } from '../constants/site';
+import { useCanonical } from '../hooks/useCanonical';
 import { MetricRow, Metric } from './MetricCard';
 import { MetaTags } from './MetaTags';
 import { PlayData } from '../types';
@@ -128,29 +129,22 @@ const Dashboard: React.FC = () => {
   };
 
   // Keep the canonical link in step with the game on screen.
-  useEffect(() => {
-    document.querySelector('link[rel="canonical"]')?.remove();
+  const canonicalPath = useMemo(() => {
+    if (!currentParams) return '/games';
 
-    const canonical = document.createElement('link');
-    canonical.rel = 'canonical';
-
-    if (currentParams) {
-      const params = new URLSearchParams({
-        year: String(currentParams.year),
-        seasonType: currentParams.seasonType,
-        week: String(currentParams.week),
-        team: currentParams.team,
-      });
-      if (currentParams.gameId) params.set('gameId', String(currentParams.gameId));
-      if (selectedTeamColor !== 'default') params.set('teamColor', selectedTeamColor);
-      if (selectedOpponentColor !== 'default') params.set('opponentColor', selectedOpponentColor);
-      canonical.href = `${window.location.origin}${window.location.pathname}?${params}`;
-    } else {
-      canonical.href = `${window.location.origin}${window.location.pathname}`;
-    }
-
-    document.head.appendChild(canonical);
+    const params = new URLSearchParams({
+      year: String(currentParams.year),
+      seasonType: currentParams.seasonType,
+      week: String(currentParams.week),
+      team: currentParams.team,
+    });
+    if (currentParams.gameId) params.set('gameId', String(currentParams.gameId));
+    if (selectedTeamColor !== 'default') params.set('teamColor', selectedTeamColor);
+    if (selectedOpponentColor !== 'default') params.set('opponentColor', selectedOpponentColor);
+    return `/games?${params}`;
   }, [currentParams, selectedTeamColor, selectedOpponentColor]);
+
+  useCanonical(canonicalPath);
 
   const handleFetchData = async (params: Omit<GameParams, 'gameId'>) => {
     track('fetch_data', {

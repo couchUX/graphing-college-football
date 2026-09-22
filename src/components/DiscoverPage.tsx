@@ -9,6 +9,7 @@ import type { DetectorFilters } from '../detectors/types';
 import { useToast } from '../hooks/useToast';
 import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
 import { SITE_URL } from '../constants/site';
+import { useCanonical } from '../hooks/useCanonical';
 import { readParams, writeParams } from '../utils/urlState';
 
 type SubTab = 'season-recap' | 'weekly' | 'multi-season';
@@ -48,6 +49,9 @@ const DiscoverPage: React.FC = () => {
   const [year, setYear] = useState<number>(readYearParam);
   const [conference, setConference] = useState<string>(readConferenceParam);
   const { showToast } = useToast();
+
+  // Filters here are views of one page, so the route is what gets indexed.
+  useCanonical('/discover');
 
   // Mirror the filters back into the address bar (replaceState, so this never
   // stacks up history entries). The year is written even at its default: a link

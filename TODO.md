@@ -45,6 +45,12 @@ sessions (not just in a chat). Also mirrored in the PR description.
   it now carries `/games`, `/ratings`, `/trends` and `/discover`, and its
   hardcoded `lastmod` of 2025-01-01 is gone rather than left lying.
 
+  The `<link rel="canonical">` tags go through `useCanonical` for the same
+  reason: Games and Trends built theirs from `window.location.origin`, so a
+  crawler arriving on the still-attached `.vercel.app` host got pages naming
+  that duplicate as their own canonical. Ratings and Discover emitted none at
+  all and now do.
+
   Not touched: the embed generators still link back to the apex
   (`https://graphingcollegefootball.com/...`). Those are reader-facing links
   where the redirect costs nothing, and changing them would change what copied
