@@ -5,20 +5,27 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ### Queued after the Press Box styling PR
 
-- **The old Vercel project name is hardcoded in 26 places.** The project was
-  renamed to `graphing-college-football`, but `cfb-adv-metrics-dashboard.vercel.app`
-  is still baked into every `og:url`/`og:image`/`twitter:image` and the JSON-LD
-  `url` across `index/games/ratings/trends.html`, the four `MetaTags` calls in
-  `Dashboard`/`RatingsPage`/`TeamTrendsPage`/`DiscoverPage`, the `Sitemap:` line
-  in `public/robots.txt`, and the single `<loc>` in `public/sitemap.xml`. Vercel
-  derives the `.vercel.app` alias from the project name, so those absolute URLs
-  now point at a hostname the project no longer answers on — broken social
-  preview images and a canonical/sitemap pointing somewhere dead. Fix by
-  pointing all of it at `https://graphingcollegefootball.com`, the custom
-  domain, rather than at the new `.vercel.app` name: the embed generator in
-  `RatingsPage` already links back that way, and a custom domain survives the
-  next rename. The sitemap only lists `/`, so it's worth adding `/games`,
-  `/ratings`, `/trends` and `/discover` while in there.
+- **Site metadata points at the `.vercel.app` host, not the canonical domain.**
+  `cfb-adv-metrics-dashboard.vercel.app` is hardcoded in 26 places: every
+  `og:url`/`og:image`/`twitter:image` and the JSON-LD `url` across
+  `index/games/ratings/trends.html`, the four `MetaTags` calls in
+  `Dashboard`/`RatingsPage`/`TeamTrendsPage`/`DiscoverPage`, the `Sitemap:`
+  line in `public/robots.txt`, and the single `<loc>` in `public/sitemap.xml`.
+
+  Nothing is broken — the project rename to `graphing-college-football` kept
+  that hostname attached and verified, so those URLs still resolve. But it is
+  not the canonical host: the project serves `www.graphingcollegefootball.com`,
+  with the apex redirecting to it. Pointing canonical/og/sitemap at a
+  non-canonical duplicate splits SEO signals between the two hostnames, and
+  the `.vercel.app` name is the one tied to the project name, so it's the one
+  that would move if the project were renamed again.
+
+  Fix by pointing all of it at `https://www.graphingcollegefootball.com` — the
+  redirect target, so no hop. Note `RatingsPage`'s embed generator links back
+  to the apex (`https://graphingcollegefootball.com/ratings`), which is fine
+  for a link but worth making consistent. The sitemap also lists only `/`, so
+  `/games`, `/ratings`, `/trends` and `/discover` are worth adding while in
+  there.
 
 - **Postseason labels still assume the four-team playoff.** With the 12-team
   bracket a team can play four postseason games, but `getPostseasonLabel` (in
