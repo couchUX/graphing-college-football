@@ -6,18 +6,58 @@ import { MetaTags } from './MetaTags';
 import AppShell from './AppShell';
 import { useToast } from '../hooks/useToast';
 import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
+import { readParams, writeParams } from '../utils/urlState';
 
 type SortField = 'ranking' | 'team' | 'conference' | 'rating' | 'offense' | 'defense' | 'specialTeams';
 type SortDirection = 'asc' | 'desc';
 
+const SORT_FIELDS: SortField[] = ['ranking', 'team', 'conference', 'rating', 'offense', 'defense', 'specialTeams'];
+const DEFAULT_SORT_FIELD: SortField = 'rating';
+const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
+
+// The page opens on whatever the link says, so a Top 25 embed pointing back at
+// /ratings?year=2019&conference=SEC lands on that season and conference instead
+// of rolling forward to whatever season is underway. A year only counts if it's
+// one we actually offer; anything else falls back to the current season.
+const readYearParam = (): number => {
+  const fromUrl = Number(readParams().get('year'));
+  return RATINGS_YEARS.includes(fromUrl) ? fromUrl : CURRENT_SEASON;
+};
+
+// The conference list is built from the ratings themselves, which haven't been
+// fetched yet — so the raw value rides along and gets vetted once they land.
+const readConferenceParam = (): string => readParams().get('conference') || 'all';
+
+// Sort travels as one 'field-direction' param. No field name contains a dash,
+// so the split is unambiguous; a field we don't know throws the whole thing out
+// rather than half-applying it.
+const readSortParam = (): { field: SortField; direction: SortDirection } => {
+  const [field, direction] = (readParams().get('sort') || '').split('-');
+  if (!SORT_FIELDS.includes(field as SortField)) {
+    return { field: DEFAULT_SORT_FIELD, direction: DEFAULT_SORT_DIRECTION };
+  }
+  return { field: field as SortField, direction: direction === 'asc' ? 'asc' : 'desc' };
+};
+
+/**
+ * Keep a conference only if this season actually has one by that name — Pac-12
+ * is a real choice in 2019 and an empty table in 2024 — matching case
+ * insensitively so a hand-typed ?conference=sec still lands on SEC.
+ */
+const normalizeConference = (value: string, rows: SPRating[]): string => {
+  if (value === 'all' || value === 'power4') return value;
+  const match = rows.find(r => r.conference?.toLowerCase() === value.toLowerCase());
+  return match?.conference ?? 'all';
+};
+
 const RatingsPage: React.FC = () => {
-  const [year, setYear] = useState<number>(CURRENT_SEASON);
+  const [year, setYear] = useState<number>(readYearParam);
   const [ratings, setRatings] = useState<SPRating[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>('rating');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [selectedConference, setSelectedConference] = useState<string>('all');
+  const [sortField, setSortField] = useState<SortField>(() => readSortParam().field);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(() => readSortParam().direction);
+  const [selectedConference, setSelectedConference] = useState<string>(readConferenceParam);
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [expandedTop25, setExpandedTop25] = useState<boolean>(false);
   const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
@@ -30,8 +70,12 @@ const RatingsPage: React.FC = () => {
     const uniqueConferences = Array.from(
       new Set(ratings.map(r => r.conference).filter(Boolean))
     ).sort();
-    return ['all', 'power4', ...uniqueConferences];
-  }, [ratings]);
+    const options = ['all', 'power4', ...uniqueConferences];
+    // A conference restored from the URL has no option to match until the
+    // ratings arrive, which would leave the select rendering blank. Carry it
+    // until the fetch either confirms it or clears it.
+    return options.includes(selectedConference) ? options : [...options, selectedConference];
+  }, [ratings, selectedConference]);
 
   // Power 4 conferences
   const power4Conferences = ['ACC', 'SEC', 'Big 12', 'Big Ten'];
@@ -73,6 +117,10 @@ const RatingsPage: React.FC = () => {
           r.team.toLowerCase() !== 'nationalaverages'
         );
         setRatings(filteredData);
+        // Now that we know which conferences this season has, vet the one that
+        // came in off the URL. A stale or misspelled name would otherwise
+        // filter the table down to nothing with no way back but the dropdown.
+        setSelectedConference(prev => normalizeConference(prev, filteredData));
       } catch (err) {
         setError('Failed to load SP+ ratings. Please try again.');
         console.error('Error loading ratings:', err);
@@ -83,6 +131,22 @@ const RatingsPage: React.FC = () => {
 
     loadRatings();
   }, [year]);
+
+  // Mirror the filters back into the address bar (replaceState, so this never
+  // stacks up history entries). The year is written even at its default: a link
+  // shared this season should still open on this season next August, rather
+  // than rolling forward with the site. The other two are omitted at their
+  // defaults to keep shared links short.
+  useEffect(() => {
+    writeParams({
+      year: String(year),
+      conference: selectedConference === 'all' ? null : selectedConference,
+      sort:
+        sortField === DEFAULT_SORT_FIELD && sortDirection === DEFAULT_SORT_DIRECTION
+          ? null
+          : `${sortField}-${sortDirection}`,
+    });
+  }, [year, selectedConference, sortField, sortDirection]);
 
   useEffect(() => {
     if (!copiedEmbedKey) return;
