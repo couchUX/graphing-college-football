@@ -193,7 +193,7 @@ const teamColorsData: { [key: string]: TeamColor } = {
   "McNeese State": { success: "rgba(49, 76, 231, 0.8)", explosive: "rgba(7, 23, 121, 0.8)", light: "rgba(231, 234, 254, 0.8)" },
   "Memphis": { success: "rgba(55, 76, 225, 0.8)", explosive: "rgba(10, 23, 117, 0.8)", light: "rgba(232, 234, 253, 0.8)" },
   "Mercer": { success: "rgba(228, 134, 53, 0.8)", explosive: "rgba(119, 60, 9, 0.8)", light: "rgba(253, 241, 231, 0.8)" },
-  "Miami (Fla.)": { success: "rgba(37, 120, 244, 0.8)", explosive: "rgba(0, 51, 128, 0.8)", light: "rgba(230, 240, 255, 0.8)" },
+  "Miami (Fla.)": { success: "rgba(47, 162, 116, 0.8)", explosive: "rgba(12, 106, 68, 0.8)", light: "rgba(232, 247, 241, 0.8)" },
   "Miami (Oh.)": { success: "rgba(211, 69, 84, 0.8)", explosive: "rgba(109, 18, 28, 0.8)", light: "rgba(251, 233, 235, 0.8)" },
   "Michigan": { success: "rgba(233, 199, 48, 0.8)", explosive: "rgba(122, 100, 6, 0.8)", light: "rgba(254, 250, 231, 0.8)" },
   "Michigan State": { success: "rgba(96, 184, 165, 0.8)", explosive: "rgba(33, 95, 81, 0.8)", light: "rgba(236, 248, 246, 0.8)" },
