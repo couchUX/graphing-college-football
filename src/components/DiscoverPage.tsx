@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Layers } from 'lucide-react';
 import { MetaTags } from './MetaTags';
 import DiscoverCard from './DiscoverCard';
@@ -6,7 +6,6 @@ import AppShell from './AppShell';
 import SubTabs, { SubTabItem } from './SubTabs';
 import { detectors } from '../detectors/registry';
 import type { DetectorFilters } from '../detectors/types';
-import { useToast } from '../hooks/useToast';
 import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
 import { SITE_URL } from '../constants/site';
 import { useCanonical } from '../hooks/useCanonical';
@@ -48,7 +47,6 @@ const DiscoverPage: React.FC = () => {
   const [tab, setTab] = useState<SubTab>('season-recap');
   const [year, setYear] = useState<number>(readYearParam);
   const [conference, setConference] = useState<string>(readConferenceParam);
-  const { showToast } = useToast();
 
   // Filters here are views of one page, so the route is what gets indexed.
   useCanonical('/discover');
@@ -65,8 +63,6 @@ const DiscoverPage: React.FC = () => {
     });
   }, [year, conference]);
 
-  const handleCopySuccess = useCallback((message: string) => showToast(message), [showToast]);
-  const handleCopyError = useCallback((message: string) => showToast(message), [showToast]);
 
   const yearOptions = RATINGS_YEARS;
 
@@ -150,8 +146,6 @@ const DiscoverPage: React.FC = () => {
                     key={d.id}
                     detector={d}
                     filters={filters}
-                    onCopySuccess={handleCopySuccess}
-                    onCopyError={handleCopyError}
                   />
                 ))}
               </div>

@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
-import { AlertCircle, Check, Copy, GitCompareArrows, Play } from 'lucide-react';
+import { AlertCircle, GitCompareArrows, Play } from 'lucide-react';
 import type { PlayData } from '../types';
 import { fetchGamesForTeam, type Team, type TeamGame } from '../services/api';
 import type { Game as BoxScoreGame } from '../services/boxScoreApi';
@@ -21,6 +21,7 @@ import TeamPicker from './TeamPicker';
 import GameMultiSelect from './GameMultiSelect';
 import CompareBoxScore from './CompareBoxScore';
 import TrendsChartsGrid from './TrendsChartsGrid';
+import ShareMenu from './ShareMenu';
 
 initializeChartDefaults();
 
@@ -101,33 +102,6 @@ const PlayerTeamFilter: React.FC<{
   </FilterSelect>
 );
 
-// Copy-embed button for the player charts. Module scope (like the filters
-// above) so its identity is stable across renders.
-const PlayerEmbedButton: React.FC<{
-  chartId: string;
-  title: string;
-  data: unknown;
-  copiedChartId: string | null;
-  onCopy: (chartId: string, title: string, data: unknown) => void;
-}> = ({ chartId, title, data, copiedChartId, onCopy }) => {
-  const copied = copiedChartId === chartId;
-  return (
-    <button
-      onClick={() => onCopy(chartId, title, data)}
-      className={`ml-auto flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-        copied ? 'border-green-300 bg-green-50' : 'border-neutral-300 hover:bg-neutral-50'
-      }`}
-      title={copied ? 'Copied!' : 'Copy embed code'}
-    >
-      {copied ? (
-        <Check className="h-4 w-4 text-green-600" />
-      ) : (
-        <Copy className="h-4 w-4 text-neutral-600" />
-      )}
-    </button>
-  );
-};
-
 const PlayerCountFilter: React.FC<{
   value: PlayerCount;
   onChange: (v: PlayerCount) => void;
@@ -174,7 +148,6 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
   const [boxScoresB, setBoxScoresB] = useState<BoxScoreGame[]>([]);
   const [boxScoreMode, setBoxScoreMode] = useState<BoxScoreMode>('averages');
 
-  const [copiedPlayerChart, setCopiedPlayerChart] = useState<string | null>(null);
   const [rushersFilter, setRushersFilter] = useState<PlayerFilter>('both');
   const [passersFilter, setPassersFilter] = useState<PlayerFilter>('both');
   const [receiversFilter, setReceiversFilter] = useState<PlayerFilter>('both');
@@ -416,32 +389,22 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
     };
   }, [result, colorA, colorB, gamesA, gamesB]);
 
-  const handleCopyPlayerEmbed = async (chartId: string, title: string, data: unknown) => {
-    if (!result) return;
-    if (!navigator.clipboard?.writeText) {
-      console.error('Clipboard not available in this browser');
-      return;
-    }
-    try {
-      const embedCode = generateTrendsEmbedCode(
-        chartId,
-        title,
-        data,
-        'bar',
-        `${result.a.team} vs. ${result.b.team}`,
-        result.year,
-        Math.max(result.a.games.length, result.b.games.length),
-        colorA,
-        compareEmbedOptions
-      );
-      await navigator.clipboard.writeText(embedCode);
-      setCopiedPlayerChart(chartId);
-      setTimeout(() => setCopiedPlayerChart(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy player chart embed code:', err);
-      setCopiedPlayerChart(null);
-    }
-  };
+  /** A player chart's embed code, for its share menu. */
+  const playerEmbed = (chartId: string, title: string, data: unknown) =>
+    result
+      ? () =>
+          generateTrendsEmbedCode(
+            chartId,
+            title,
+            data,
+            'bar',
+            `${result.a.team} vs. ${result.b.team}`,
+            result.year,
+            Math.max(result.a.games.length, result.b.games.length),
+            colorA,
+            compareEmbedOptions
+          )
+      : undefined;
 
   // Take the top-N per included team, then concatenate (players come pre-sorted
   // by total within each team). count 'all' shows every player for the team.
@@ -607,7 +570,7 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
             <h2 className="headline text-[26px] text-ink mb-6">Player charts</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+                <div id="top-rushers" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
                     <h3 className="headline relative top-px text-[17px] font-bold text-ink">Top rushers</h3>
                     <PlayerTeamFilter
@@ -617,12 +580,14 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
                       teamBName={result.b.team}
                     />
                     <PlayerCountFilter value={rushersCount} onChange={setRushersCount} />
-                    <PlayerEmbedButton
-                      chartId="top-rushers"
+                    <ShareMenu
+                      className="ml-auto"
                       title="Top Rushers"
-                      data={createPlayerData(selectPlayers(chartData.allRushers, rushersFilter, rushersCount), 'rush')}
-                      copiedChartId={copiedPlayerChart}
-                      onCopy={handleCopyPlayerEmbed}
+                      getEmbedCode={playerEmbed(
+                        'top-rushers',
+                        'Top Rushers',
+                        createPlayerData(selectPlayers(chartData.allRushers, rushersFilter, rushersCount), 'rush')
+                      )}
                     />
                   </div>
                   <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -635,7 +600,7 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+                <div id="top-passers" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
                     <h3 className="headline relative top-px text-[17px] font-bold text-ink">Top passers</h3>
                     <PlayerTeamFilter
@@ -645,12 +610,14 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
                       teamBName={result.b.team}
                     />
                     <PlayerCountFilter value={passersCount} onChange={setPassersCount} />
-                    <PlayerEmbedButton
-                      chartId="top-passers"
+                    <ShareMenu
+                      className="ml-auto"
                       title="Top Passers"
-                      data={createPlayerData(selectPlayers(chartData.allPassers, passersFilter, passersCount), 'pass')}
-                      copiedChartId={copiedPlayerChart}
-                      onCopy={handleCopyPlayerEmbed}
+                      getEmbedCode={playerEmbed(
+                        'top-passers',
+                        'Top Passers',
+                        createPlayerData(selectPlayers(chartData.allPassers, passersFilter, passersCount), 'pass')
+                      )}
                     />
                   </div>
                   <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -664,7 +631,7 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+              <div id="top-receivers" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                 <div className="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-neutral-200">
                   <h3 className="headline relative top-px text-[17px] font-bold text-ink">Top receivers</h3>
                   <PlayerTeamFilter
@@ -674,12 +641,14 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
                     teamBName={result.b.team}
                   />
                   <PlayerCountFilter value={receiversCount} onChange={setReceiversCount} />
-                  <PlayerEmbedButton
-                    chartId="top-receivers"
+                  <ShareMenu
+                    className="ml-auto"
                     title="Top Receivers"
-                    data={createPlayerData(selectPlayers(chartData.allReceivers, receiversFilter, receiversCount), 'receive')}
-                    copiedChartId={copiedPlayerChart}
-                    onCopy={handleCopyPlayerEmbed}
+                    getEmbedCode={playerEmbed(
+                      'top-receivers',
+                      'Top Receivers',
+                      createPlayerData(selectPlayers(chartData.allReceivers, receiversFilter, receiversCount), 'receive')
+                    )}
                   />
                 </div>
                 <div className="pt-5 px-6 pb-6 sm:pt-5 sm:px-6 sm:pb-6">

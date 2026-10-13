@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bar, Line, Pie, Doughnut, Scatter, Radar } from 'react-chartjs-2';
-import { AlertCircle, ChevronDown, Copy, Check, Search } from 'lucide-react';
+import { AlertCircle, ChevronDown, Search } from 'lucide-react';
 import type { Detector, DetectorFilters, DetectorResult } from '../detectors/types';
 import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import { useIsMobile } from '../hooks/useIsMobile';
+import ShareMenu from './ShareMenu';
 
 initializeChartDefaults();
 
@@ -37,8 +38,6 @@ const responsiveChartHeight = (
 interface Props {
   detector: Detector;
   filters: DetectorFilters;
-  onCopySuccess: (message: string) => void;
-  onCopyError: (message: string) => void;
 }
 
 const DIMMED = '#d1d5db'; // neutral-300 for non-matching points
@@ -114,11 +113,10 @@ const renderChart = (result: DetectorResult) => {
   }
 };
 
-const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCopyError }) => {
+const DiscoverCard: React.FC<Props> = ({ detector, filters }) => {
   const [result, setResult] = useState<DetectorResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState('');
   const isMobile = useIsMobile();
 
@@ -149,49 +147,33 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCop
     };
   }, [detector, filters]);
 
-  useEffect(() => {
-    if (!copied) return;
-    const t = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(t);
-  }, [copied]);
-
   const displayResult = useMemo(
     () => (result ? applySearchHighlight(result, search) : null),
     [result, search]
   );
 
-  const handleCopy = async () => {
-    if (!result) return;
-    try {
-      if (!navigator.clipboard?.writeText) {
-        onCopyError('Clipboard not available in this browser');
-        return;
-      }
-      // Embed the un-highlighted chart at its natural height — search dimming and
-      // the responsive on-screen trims are viewing aids, not part of the story.
-      const html = generateChartEmbed({
-        chartType: result.chart.type,
-        data: result.chart.data,
-        options: result.chart.options,
-        title: result.headline,
-        subtitle: result.subtext,
-        sourceUrl: 'https://graphingcollegefootball.com/discover',
-        sourceLabel: 'See all insights',
-        height: result.chart.height ?? DEFAULT_CHART_HEIGHT,
-        rows: result.rows ?? [],
-        detailsLabel: 'Show details',
-      });
-      await navigator.clipboard.writeText(html);
-      setCopied(true);
-      onCopySuccess(`Embed code copied for ${result.headline}`);
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-      onCopyError('Failed to copy embed code. Please try again.');
-    }
-  };
+  // Embed the un-highlighted chart at its natural height — search dimming and
+  // the responsive on-screen trims are viewing aids, not part of the story.
+  const buildEmbed = (story: DetectorResult) => () =>
+    generateChartEmbed({
+      chartType: story.chart.type,
+      data: story.chart.data,
+      options: story.chart.options,
+      title: story.headline,
+      subtitle: story.subtext,
+      sourceUrl: 'https://graphingcollegefootball.com/discover',
+      sourceLabel: 'See all insights',
+      height: story.chart.height ?? DEFAULT_CHART_HEIGHT,
+      rows: story.rows ?? [],
+      detailsLabel: 'Show details',
+    });
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex flex-col h-full">
+    <div
+      id={detector.id}
+      data-share-card
+      className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex flex-col h-full"
+    >
       {/* Header — full-bleed bottom border already comes from the next div */}
       <div className="px-5 py-4 flex items-start justify-between gap-3 border-b border-neutral-100">
         <div className="min-w-0">
@@ -203,19 +185,11 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCop
           </p>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
-            onClick={handleCopy}
+          <ShareMenu
+            title={result?.headline || detector.title}
+            getEmbedCode={result ? buildEmbed(result) : undefined}
             disabled={!result || loading}
-            aria-label={copied ? 'Embed code copied' : 'Copy embed code'}
-            title={copied ? 'Copied!' : 'Copy embed code'}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 ${
-              copied
-                ? 'border-ink bg-ink text-white'
-                : 'border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed'
-            }`}
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          </button>
+          />
         </div>
       </div>
 
@@ -240,7 +214,7 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCop
         {!loading && !error && displayResult && (
           <>
             {displayResult.chart.searchable && (
-              <div className="mb-3 relative">
+              <div className="mb-3 relative" data-share-exclude>
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
                 <input
                   type="text"
@@ -269,7 +243,7 @@ const DiscoverCard: React.FC<Props> = ({ detector, filters, onCopySuccess, onCop
 
       {/* Details drawer — full-bleed top border, sticks to bottom of card */}
       {!loading && !error && result?.rows && result.rows.length > 0 && (
-        <details className="group border-t border-neutral-100 mt-auto">
+        <details className="group border-t border-neutral-100 mt-auto" data-share-exclude>
           <summary className="flex items-center cursor-pointer list-none select-none px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
             <ChevronDown className="h-4 w-4 mr-2 transition-transform group-open:rotate-0 -rotate-90" />
             Show details ({result.rows.length})

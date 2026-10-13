@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { BarChart3, TrendingUp, AlertCircle, Flame, Ruler, Copy, Check, Download } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertCircle, Flame, Ruler, Download } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
 import SeasonSelector from './SeasonSelector';
 import TrendsChartsGrid from './TrendsChartsGrid';
@@ -23,6 +23,7 @@ import AppShell from './AppShell';
 import { SITE_URL } from '../constants/site';
 import { MetricRow } from './MetricCard';
 import SubTabs from './SubTabs';
+import ShareMenu from './ShareMenu';
 import { readParams, writeParams } from '../utils/urlState';
 import { useCanonical } from '../hooks/useCanonical';
 
@@ -62,7 +63,6 @@ const TeamTrendsPage: React.FC = () => {
     team: string;
     selectedGameIds: number[];
   } | null>(null);
-  const [copiedPlayerChart, setCopiedPlayerChart] = useState<string | null>(null);
 
   const handleFetchSeasonData = async (params: {
     year: number;
@@ -128,37 +128,21 @@ const TeamTrendsPage: React.FC = () => {
   };
 
   // Handle copy embed for player charts
-  const handleCopyPlayerEmbed = async (
-    chartId: string,
-    title: string,
-    data: any
-  ) => {
-    if (!currentParams) return;
-
-    setCopiedPlayerChart(chartId);
-
-    try {
-      const embedCode = generateTrendsEmbedCode(
-        chartId,
-        title,
-        data,
-        'bar',
-        currentParams.team,
-        currentParams.year,
-        seasonGames.length,
-        selectedTeamColor
-      );
-
-      await navigator.clipboard.writeText(embedCode);
-
-      setTimeout(() => {
-        setCopiedPlayerChart(null);
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy player chart embed code:', err);
-      setCopiedPlayerChart(null);
-    }
-  };
+  /** A player chart's embed code, for its share menu. */
+  const playerEmbed = (chartId: string, title: string, players: any[], kind: 'rush' | 'pass' | 'receive') =>
+    currentParams
+      ? () =>
+          generateTrendsEmbedCode(
+            chartId,
+            title,
+            createPlayerData(players, kind),
+            'bar',
+            currentParams.team,
+            currentParams.year,
+            seasonGames.length,
+            selectedTeamColor
+          )
+      : undefined;
 
   const handleDownloadCsv = () => {
     if (!currentParams || allSeasonPlays.length === 0) return;
@@ -367,26 +351,15 @@ const TeamTrendsPage: React.FC = () => {
                 {/* Left column - Rushers and Passers stacked */}
                 <div className="space-y-6">
                   {/* Top Rushers */}
-                  <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+                  <div id="top-rushers" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
                       <h3 className="headline relative top-px text-[17px] font-bold text-ink">
                         Top rushers
                       </h3>
-                      <button
-                        onClick={() => handleCopyPlayerEmbed('top-rushers', 'Top Rushers', createPlayerData(chartData.topRushers, 'rush'))}
-                        className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                          copiedPlayerChart === 'top-rushers'
-                            ? 'border-green-300 bg-green-50'
-                            : 'border-neutral-300 hover:bg-neutral-50'
-                        }`}
-                        title={copiedPlayerChart === 'top-rushers' ? "Copied!" : "Copy embed code"}
-                      >
-                        {copiedPlayerChart === 'top-rushers' ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <Copy className="h-4 w-4 text-neutral-600" />
-                        )}
-                      </button>
+                      <ShareMenu
+                        title="Top Rushers"
+                        getEmbedCode={playerEmbed('top-rushers', 'Top Rushers', chartData.topRushers, 'rush')}
+                      />
                     </div>
                     <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
                       <div className="h-80">
@@ -396,26 +369,15 @@ const TeamTrendsPage: React.FC = () => {
                   </div>
 
                   {/* Top Passers */}
-                  <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+                  <div id="top-passers" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
                       <h3 className="headline relative top-px text-[17px] font-bold text-ink">
                         Top passers
                       </h3>
-                      <button
-                        onClick={() => handleCopyPlayerEmbed('top-passers', 'Top Passers', createPlayerData(chartData.topPassers, 'pass'))}
-                        className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                          copiedPlayerChart === 'top-passers'
-                            ? 'border-green-300 bg-green-50'
-                            : 'border-neutral-300 hover:bg-neutral-50'
-                        }`}
-                        title={copiedPlayerChart === 'top-passers' ? "Copied!" : "Copy embed code"}
-                      >
-                        {copiedPlayerChart === 'top-passers' ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <Copy className="h-4 w-4 text-neutral-600" />
-                        )}
-                      </button>
+                      <ShareMenu
+                        title="Top Passers"
+                        getEmbedCode={playerEmbed('top-passers', 'Top Passers', chartData.topPassers, 'pass')}
+                      />
                     </div>
                     <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
                       <div className="h-50" style={{ height: '200px' }}>
@@ -426,26 +388,15 @@ const TeamTrendsPage: React.FC = () => {
                 </div>
 
                 {/* Right column - Receivers spanning full height */}
-                <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+                <div id="top-receivers" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
                   <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
                     <h3 className="headline relative top-px text-[17px] font-bold text-ink">
                       Top receivers
                     </h3>
-                    <button
-                      onClick={() => handleCopyPlayerEmbed('top-receivers', 'Top Receivers', createPlayerData(chartData.topReceivers, 'receive'))}
-                      className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                        copiedPlayerChart === 'top-receivers'
-                          ? 'border-green-300 bg-green-50'
-                          : 'border-neutral-300 hover:bg-neutral-50'
-                      }`}
-                      title={copiedPlayerChart === 'top-receivers' ? "Copied!" : "Copy embed code"}
-                    >
-                      {copiedPlayerChart === 'top-receivers' ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4 text-neutral-600" />
-                      )}
-                    </button>
+                    <ShareMenu
+                      title="Top Receivers"
+                      getEmbedCode={playerEmbed('top-receivers', 'Top Receivers', chartData.topReceivers, 'receive')}
+                    />
                   </div>
                   <div className="pt-5 px-6 pb-6 sm:pt-5 sm:px-6 sm:pb-6">
                     <div className="h-[640px]">

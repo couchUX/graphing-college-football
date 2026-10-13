@@ -1,6 +1,6 @@
 import React from 'react';
-import { Copy, Check } from 'lucide-react';
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
+import ShareMenu from './ShareMenu';
 
 interface ChartCardProps {
   title: string;
@@ -12,15 +12,23 @@ interface ChartCardProps {
   height?: number;
   /** Chart area height below 640px; defaults to `height`. */
   mobileHeight?: number;
-  /** Omit to hide the embed button (charts with no embed support). */
-  onCopyEmbed?: () => void;
-  isCopied?: boolean;
+  /**
+   * Deep-link anchor (`#win-probability`). Setting it makes the card
+   * shareable: the share menu appears, and the card is what its image shows.
+   */
+  id?: string;
+  /** Builds the embed HTML. Omit for a card with no embed. */
+  getEmbedCode?: () => string;
+  /** Runs once the embed code is on the clipboard. */
+  onEmbedCopied?: () => void;
+  /** Grey the share button out, e.g. when there's no chart to share. */
+  shareDisabled?: boolean;
   className?: string;
   children: React.ReactNode;
 }
 
 /**
- * The white plate a chart sits on: hairline frame, ruled header, embed button.
+ * The white plate a chart sits on: hairline frame, ruled header, share button.
  *
  * Charts render exactly once here. The previous markup mounted every chart
  * twice (a `sm:hidden` copy and a `hidden sm:block` copy) purely to vary
@@ -33,14 +41,16 @@ const ChartCard: React.FC<ChartCardProps> = ({
   headerControl,
   height = CHART_HEIGHTS.DEFAULT_DESKTOP,
   mobileHeight,
-  onCopyEmbed,
-  isCopied = false,
+  id,
+  getEmbedCode,
+  onEmbedCopied,
+  shareDisabled = false,
   className = '',
   children,
 }) => (
-  <div className={`plate flex flex-col ${className}`}>
+  <div id={id} data-share-card={id ? '' : undefined} className={`plate flex flex-col ${className}`}>
     {/* min-height keeps the header the same depth whether or not it carries a
-        control, so the title and the embed button stay optically centered. */}
+        control, so the title and the share button stay optically centered. */}
     <div className="flex min-h-[3.5rem] items-center justify-between gap-3 border-b border-hairline px-4 py-2.5 sm:px-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {/* top-px: most of these titles have no descender, so the glyphs sit
@@ -50,19 +60,13 @@ const ChartCard: React.FC<ChartCardProps> = ({
         {headerControl}
       </div>
 
-      {onCopyEmbed && (
-        <button
-          onClick={onCopyEmbed}
-          className={`flex h-8 w-8 flex-none items-center justify-center rounded-lg border transition-colors ${
-            isCopied
-              ? 'border-accent text-accent'
-              : 'border-neutral-300 text-byline hover:border-neutral-400 hover:text-ink'
-          }`}
-          title={isCopied ? 'Copied' : 'Copy embed code'}
-          aria-label={isCopied ? 'Embed code copied' : `Copy embed code for ${title}`}
-        >
-          {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        </button>
+      {id && (
+        <ShareMenu
+          title={title}
+          getEmbedCode={getEmbedCode}
+          onEmbedCopied={onEmbedCopied}
+          disabled={shareDisabled}
+        />
       )}
     </div>
 

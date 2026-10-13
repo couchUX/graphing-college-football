@@ -308,7 +308,9 @@ const GameSelector: React.FC<GameSelectorProps> = ({
       params.delete('opponentColor'); // Remove parameter when color is default
     }
     
-    const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    // Keep the fragment: it may be a deep link to one of the game's charts.
+    const { pathname, hash } = window.location;
+    const newURL = params.toString() ? `${pathname}?${params.toString()}${hash}` : `${pathname}${hash}`;
     window.history.replaceState({}, '', newURL);
   };
 

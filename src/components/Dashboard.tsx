@@ -330,7 +330,6 @@ const Dashboard: React.FC = () => {
               team2Name={boxScoreData.team2Name}
               selectedTeamColor={selectedTeamColor}
               selectedOpponentColor={selectedOpponentColor}
-              onCopyEmbed={notify}
               currentParams={currentParams}
               plays={plays}
             />

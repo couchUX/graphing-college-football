@@ -2,12 +2,13 @@ import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import type { ChartData, ChartOptions } from 'chart.js';
-import { AlertCircle, Check, Copy, TrendingUp } from 'lucide-react';
+import { AlertCircle, TrendingUp } from 'lucide-react';
 import type { Team } from '../services/api';
 import { fetchSPRatingsHistory, type SPRating } from '../services/ratingsApi';
 import { useTeams } from '../hooks/useTeams';
 import { initializeChartDefaults } from '../utils/chartConfig';
 import TeamPicker from './TeamPicker';
+import ShareMenu from './ShareMenu';
 import { readParams, writeParams } from '../utils/urlState';
 import { seriesColorsFor, teamLineColor } from '../utils/teamColorUtils';
 import { generateChartEmbed } from '../utils/chartEmbedGenerator';
@@ -58,7 +59,6 @@ const MultiYearSpTrends: React.FC = () => {
   const [loadingB, setLoadingB] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorB, setErrorB] = useState<string | null>(null);
-  const [copiedEmbed, setCopiedEmbed] = useState(false);
   const restoredRef = useRef(false);
 
   const compareMode = !!selectedTeamB;
@@ -289,50 +289,37 @@ const MultiYearSpTrends: React.FC = () => {
       ? `${Math.min(...subtitleYears)}–${Math.max(...subtitleYears)} seasons`
       : '';
 
-  const handleCopyEmbed = async () => {
-    if (!selectedTeam || ratings.length === 0) return;
-    // In compare mode, don't copy while team B's history is still loading —
-    // the chart (and thus the embed) would be missing its second line.
-    if (loading || (compareMode && loadingB)) return;
-    if (!navigator.clipboard?.writeText) {
-      console.error('Clipboard not available in this browser');
-      return;
-    }
-    try {
-      // Link back to this exact view (same params the page persists to its URL).
-      const params = new URLSearchParams();
-      params.set('view', 'spTrends');
-      params.set('spTeam', selectedTeam.school);
-      if (colorId !== 'default') params.set('spColor', colorId);
-      if (selectedTeamB) {
-        params.set('spTeamB', selectedTeamB.school);
-        if (colorB !== 'default') params.set('spColorB', colorB);
-        if (aspect !== 'overall') params.set('spAspect', aspect);
-      }
+  // In compare mode, hold sharing while team B's history is still loading —
+  // the chart (and so the embed and the image) would be missing its second line.
+  const shareDisabled = loading || (compareMode && loadingB);
 
-      const embedCode = generateChartEmbed({
-        chartType: 'line',
-        data: chartData,
-        options,
-        title: chartTitle,
-        subtitle: chartSubtitle,
-        sourceUrl: `https://graphingcollegefootball.com/trends?${params.toString()}`,
-        height: 420,
-        definitions: [
-          '<strong>SP+:</strong> Bill Connelly\'s tempo- and opponent-adjusted measure of college football efficiency',
-          '<strong>Overall / Offense:</strong> Higher ratings are better',
-          '<strong>Defense:</strong> Lower ratings indicate fewer adjusted points allowed (a stronger defense)',
-          'Source: <a href="https://collegefootballdata.com" target="_blank" style="color: #525252; text-decoration: underline;">collegefootballdata.com</a> SP+',
-        ],
-      });
-
-      await navigator.clipboard.writeText(embedCode);
-      setCopiedEmbed(true);
-      window.setTimeout(() => setCopiedEmbed(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-      setCopiedEmbed(false);
+  const buildEmbed = () => {
+    // Link back to this exact view (same params the page persists to its URL).
+    const params = new URLSearchParams();
+    params.set('view', 'spTrends');
+    if (selectedTeam) params.set('spTeam', selectedTeam.school);
+    if (colorId !== 'default') params.set('spColor', colorId);
+    if (selectedTeamB) {
+      params.set('spTeamB', selectedTeamB.school);
+      if (colorB !== 'default') params.set('spColorB', colorB);
+      if (aspect !== 'overall') params.set('spAspect', aspect);
     }
+
+    return generateChartEmbed({
+      chartType: 'line',
+      data: chartData,
+      options,
+      title: chartTitle,
+      subtitle: chartSubtitle,
+      sourceUrl: `https://graphingcollegefootball.com/trends?${params.toString()}`,
+      height: 420,
+      definitions: [
+        '<strong>SP+:</strong> Bill Connelly\'s tempo- and opponent-adjusted measure of college football efficiency',
+        '<strong>Overall / Offense:</strong> Higher ratings are better',
+        '<strong>Defense:</strong> Lower ratings indicate fewer adjusted points allowed (a stronger defense)',
+        'Source: <a href="https://collegefootballdata.com" target="_blank" style="color: #525252; text-decoration: underline;">collegefootballdata.com</a> SP+',
+      ],
+    });
   };
 
   const latest = ratings.length > 0 ? ratings[ratings.length - 1] : null;
@@ -396,7 +383,10 @@ const MultiYearSpTrends: React.FC = () => {
       )}
 
       {!combinedLoading && !combinedError && selectedTeam && hasData && (
-        <>
+        // The share target is the whole block, not just the chart's plate:
+        // the title and the source note sit outside it, and an image without
+        // them wouldn't say whose ratings these are.
+        <div id="sp-history" data-share-card>
           <div className="mb-6">
             <h2 className="headline text-[26px] text-ink">
               {compareMode && selectedTeamB
@@ -412,7 +402,7 @@ const MultiYearSpTrends: React.FC = () => {
           </div>
 
           {teamBMissing && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex items-start gap-3">
+            <div data-share-exclude className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-amber-800 text-sm">
                 No SP+ history found for {selectedTeamB?.school} — showing {selectedTeam.school} only.
@@ -424,8 +414,9 @@ const MultiYearSpTrends: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               {compareMode ? (
                 /* Comparison mode: a single aspect dropdown keeps the legend to the
-                   two team names rather than eight series. */
-                <div className="flex flex-wrap items-center gap-3">
+                   two team names rather than eight series. The heading names
+                   the aspect, so a shared image leaves the control out. */
+                <div className="flex flex-wrap items-center gap-3" data-share-exclude>
                   <label htmlFor="sp-aspect" className="text-sm font-medium text-neutral-700">
                     Aspect
                   </label>
@@ -448,6 +439,9 @@ const MultiYearSpTrends: React.FC = () => {
                   {SERIES.map((series, i) => (
                     <label
                       key={series.key}
+                      // This checklist doubles as the legend. In a shared image
+                      // the boxes drop out, so a hidden series drops out too.
+                      data-share-exclude={visibleSeries[series.key] ? undefined : ''}
                       className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer select-none"
                     >
                       <input
@@ -468,21 +462,7 @@ const MultiYearSpTrends: React.FC = () => {
                   ))}
                 </div>
               )}
-              <button
-                onClick={handleCopyEmbed}
-                className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                  copiedEmbed
-                    ? 'border-green-300 bg-green-50'
-                    : 'border-neutral-300 hover:bg-neutral-50'
-                }`}
-                title={copiedEmbed ? 'Copied!' : 'Copy embed code'}
-              >
-                {copiedEmbed ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4 text-neutral-600" />
-                )}
-              </button>
+              <ShareMenu title={chartTitle} getEmbedCode={buildEmbed} disabled={shareDisabled} />
             </div>
             <div className="h-[420px]">
               <Line data={chartData} options={options} />
@@ -493,7 +473,7 @@ const MultiYearSpTrends: React.FC = () => {
             Higher is better for Overall and Offense. For Defense, lower ratings indicate fewer
             adjusted points allowed (a stronger defense). Source: collegefootballdata.com SP+.
           </p>
-        </>
+        </div>
       )}
 
       {!combinedLoading && !combinedError && !selectedTeam && (

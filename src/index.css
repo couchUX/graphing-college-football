@@ -141,6 +141,41 @@
   }
 }
 
+/*
+ * Deep-linked chart cards (src/utils/shareLink.ts). Plain CSS rather than a
+ * Tailwind layer, since these hang off data attributes, not classes.
+ *
+ * A card a link lands on gets a little air above it, and an accent outline
+ * that fades so the reader can see which chart the link meant. Under reduced
+ * motion the fade is skipped and the outline simply holds until the attribute
+ * is removed.
+ */
+[data-share-card] {
+  scroll-margin-top: 1.5rem;
+}
+
+[data-share-linked] {
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  animation: share-linked 2.4s ease-out;
+}
+
+@keyframes share-linked {
+  0%,
+  40% {
+    outline-color: var(--accent);
+  }
+  100% {
+    outline-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-share-linked] {
+    outline-color: var(--accent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

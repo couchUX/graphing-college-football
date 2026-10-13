@@ -3,6 +3,7 @@ import { Info, X } from 'lucide-react';
 import MainNav, { MainNavId } from './MainNav';
 import Toast from './Toast';
 import { ToastContext, useToastState } from '../hooks/useToast';
+import { useLinkedCard } from '../hooks/useLinkedCard';
 
 interface AppShellProps {
   current: MainNavId;
@@ -25,6 +26,7 @@ const AppShell: React.FC<AppShellProps> = ({ current, children }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToastState();
   const { showToast } = toast;
+  useLinkedCard();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

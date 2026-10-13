@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import React from 'react';
 import { AveragedBoxScoreStat, BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { buildBoxScoreEmbedHtml } from '../utils/boxScoreEmbed';
+import ShareMenu from './ShareMenu';
 
 // Generate season box score embed HTML (team vs. combined opponents)
 const generateSeasonBoxScoreEmbed = (
@@ -140,34 +140,18 @@ const SeasonAdvancedBoxScore: React.FC<SeasonAdvancedBoxScoreProps> = ({
   mode,
   onModeChange
 }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyEmbed = async () => {
-    if (!navigator.clipboard?.writeText) {
-      console.error('Clipboard not available in this browser');
-      return;
-    }
-    try {
-      // Generate season box score embed HTML inside try so a serializer failure
-      // still resets the button via the catch below.
-      const embedHTML = generateSeasonBoxScoreEmbed(
-        [...firstTableStats, ...secondTableStats],
-        team,
-        year,
-        gamesCount,
-        mode,
-        selectedTeamColor
-      );
-      await navigator.clipboard.writeText(embedHTML);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-    }
-  };
+  const buildEmbed = () =>
+    generateSeasonBoxScoreEmbed(
+      [...firstTableStats, ...secondTableStats],
+      team,
+      year,
+      gamesCount,
+      mode,
+      selectedTeamColor
+    );
 
   return (
-    <div className="mb-8">
+    <div id="box-score" data-share-card className="mb-8">
       {/* Mobile: Header card (white) separate from tables */}
       {/* Desktop: Full card with header and tables together */}
 
@@ -176,8 +160,9 @@ const SeasonAdvancedBoxScore: React.FC<SeasonAdvancedBoxScoreProps> = ({
         <div className="flex items-center justify-between mb-3">
           <h2 className="headline text-[22px] font-bold text-ink">Box score (season)</h2>
           <div className="flex items-center gap-2">
-            {/* Combined toggle buttons */}
-            <div className="flex border border-neutral-300 rounded-lg overflow-hidden h-8">
+            {/* Combined toggle buttons. Left out of a shared image: the
+                table title already says which mode it shows. */}
+            <div className="flex border border-neutral-300 rounded-lg overflow-hidden h-8" data-share-exclude>
               <button
                 onClick={() => onModeChange('averages')}
                 className={`px-3 text-sm font-medium transition-colors ${
@@ -199,21 +184,7 @@ const SeasonAdvancedBoxScore: React.FC<SeasonAdvancedBoxScoreProps> = ({
                 Totals
               </button>
             </div>
-            <button
-              onClick={handleCopyEmbed}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copied
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copied ? "Copied!" : "Copy embed code"}
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu title="Box score (season)" getEmbedCode={buildEmbed} />
           </div>
         </div>
       </div>
@@ -224,8 +195,9 @@ const SeasonAdvancedBoxScore: React.FC<SeasonAdvancedBoxScoreProps> = ({
         <div className="hidden md:flex items-center justify-between mb-6">
           <h2 className="headline text-[22px] font-bold text-ink">Box score (season)</h2>
           <div className="flex items-center gap-2">
-            {/* Combined toggle buttons */}
-            <div className="flex border border-neutral-300 rounded-lg overflow-hidden h-8">
+            {/* Combined toggle buttons. Left out of a shared image: the
+                table title already says which mode it shows. */}
+            <div className="flex border border-neutral-300 rounded-lg overflow-hidden h-8" data-share-exclude>
               <button
                 onClick={() => onModeChange('averages')}
                 className={`px-3 text-sm font-medium transition-colors ${
@@ -247,21 +219,7 @@ const SeasonAdvancedBoxScore: React.FC<SeasonAdvancedBoxScoreProps> = ({
                 Totals
               </button>
             </div>
-            <button
-              onClick={handleCopyEmbed}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copied
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copied ? "Copied!" : "Copy embed code"}
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu title="Box score (season)" getEmbedCode={buildEmbed} />
           </div>
         </div>
 
