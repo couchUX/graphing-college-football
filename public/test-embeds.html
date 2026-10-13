@@ -351,10 +351,19 @@
         }
 
         /* The article simulation. Paper ground, not a white plate: the embed
-           brings its own white card, and this is what it sits on in the wild. */
+           brings its own white card, and this is what it sits on in the wild.
+
+           The vertical padding is screenshot room. The sides already have the
+           gutter and, on desktop, the rest of the viewport; above, the Preview
+           heading used to sit 24px off the card, so an even crop dragged the
+           heading into frame. 40px of clear paper fixes the short side. */
         .article-content {
             min-height: 180px;
-            padding: 12px 0;
+            padding: 24px 0;
+        }
+
+        @media (min-width: 640px) {
+            .article-content { padding: 40px 0; }
         }
 
         .article-content:empty::before {
