@@ -330,10 +330,23 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
     !loadingGamesB &&
     !loading;
 
+  // Bumped by every comparison and by unmount. A load outlives its view when
+  // the reader switches tabs, and the share-link pin is page-wide: without
+  // this, a comparison abandoned mid-load could land after the one on screen
+  // and point every chart link at teams nobody is looking at.
+  const compareRunRef = useRef(0);
+  useEffect(
+    () => () => {
+      compareRunRef.current += 1;
+    },
+    [],
+  );
+
   // A comparison opened from a link keeps the link's player filters; one the
   // reader starts afresh resets them.
   const handleCompare = async (restoringFromUrl = false) => {
     if (!teamA || !teamB || teamA.school === teamB.school) return;
+    const run = ++compareRunRef.current;
     setLoading(true);
     setError(null);
     // What this fetch loads, for the charts' share links (see pinLoadedParams).
@@ -351,6 +364,7 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
       }
       const boxA = await fetchSeasonBoxScores(a.games, a.team, () => {});
       const boxB = await fetchSeasonBoxScores(b.games, b.team, () => {});
+      if (run !== compareRunRef.current) return;
       setResult({ a, b, year });
       setBoxScoresA(boxA.boxScores);
       setBoxScoresB(boxB.boxScores);
@@ -364,11 +378,12 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
         setReceiversCount('all');
       }
     } catch (err) {
+      if (run !== compareRunRef.current) return;
       console.error(err);
       setError('Failed to load comparison data. Please try again.');
       setResult(null);
     } finally {
-      setLoading(false);
+      if (run === compareRunRef.current) setLoading(false);
     }
   };
 
