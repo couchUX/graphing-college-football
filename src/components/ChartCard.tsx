@@ -1,6 +1,7 @@
 import React from 'react';
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
 import ShareMenu from './ShareMenu';
+import type { LinkParams } from '../utils/shareLink';
 
 interface ChartCardProps {
   title: string;
@@ -21,6 +22,8 @@ interface ChartCardProps {
   getEmbedCode?: () => string;
   /** Runs once the embed code is on the clipboard. */
   onEmbedCopied?: () => void;
+  /** This card's own settings, written into its link over the page's URL. */
+  linkParams?: LinkParams;
   /** Grey the share button out, e.g. when there's no chart to share. */
   shareDisabled?: boolean;
   className?: string;
@@ -44,6 +47,7 @@ const ChartCard: React.FC<ChartCardProps> = ({
   id,
   getEmbedCode,
   onEmbedCopied,
+  linkParams,
   shareDisabled = false,
   className = '',
   children,
@@ -65,6 +69,7 @@ const ChartCard: React.FC<ChartCardProps> = ({
           title={title}
           getEmbedCode={getEmbedCode}
           onEmbedCopied={onEmbedCopied}
+          linkParams={linkParams}
           disabled={shareDisabled}
         />
       )}

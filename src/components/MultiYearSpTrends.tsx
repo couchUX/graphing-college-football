@@ -84,6 +84,10 @@ const MultiYearSpTrends: React.FC = () => {
     if (cB) setColorB(cB);
     const a = p.get('spAspect');
     if (a && SERIES.some((s) => s.key === a)) setAspect(a as SeriesKey);
+    const hidden = (p.get('spHidden') ?? '').split(',');
+    if (hidden.some((key) => SERIES.some((s) => s.key === key))) {
+      setVisibleSeries(Object.fromEntries(SERIES.map((s) => [s.key, !hidden.includes(s.key)])));
+    }
   }, [teams]);
 
   // Persist selections to the URL.
@@ -108,6 +112,13 @@ const MultiYearSpTrends: React.FC = () => {
   const handleAspectChange = (key: SeriesKey) => {
     setAspect(key);
     writeParams({ spAspect: key === 'overall' ? null : key });
+  };
+  // Stored as the hidden series, since the default shows all four.
+  const handleSeriesToggle = (key: string, visible: boolean) => {
+    const next = { ...visibleSeries, [key]: visible };
+    setVisibleSeries(next);
+    const hidden = SERIES.filter((s) => !next[s.key]).map((s) => s.key);
+    writeParams({ spHidden: hidden.length ? hidden.join(',') : null });
   };
 
   useEffect(() => {
@@ -447,9 +458,7 @@ const MultiYearSpTrends: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={visibleSeries[series.key]}
-                        onChange={(e) =>
-                          setVisibleSeries((v) => ({ ...v, [series.key]: e.target.checked }))
-                        }
+                        onChange={(e) => handleSeriesToggle(series.key, e.target.checked)}
                         className="h-4 w-4 rounded border-neutral-300 focus:ring-accent"
                         style={{ accentColor: seriesColors[i] }}
                       />

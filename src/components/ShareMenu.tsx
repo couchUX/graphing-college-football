@@ -6,7 +6,7 @@ import { Check, Code, Download, Image as ImageIcon, Link as LinkIcon, Loader2, S
 import { useToast } from '../hooks/useToast';
 import { track } from '../utils/analytics';
 import { canCopyImage, copyImage, downloadBlob, imageFileName, renderCardImage } from '../utils/shareImage';
-import { SHARE_CARD_ATTR, cardLink } from '../utils/shareLink';
+import { SHARE_CARD_ATTR, cardLink, type LinkParams } from '../utils/shareLink';
 
 type ShareAction = 'embed' | 'copy_image' | 'download_image' | 'link';
 type Status = 'idle' | 'busy' | 'done';
@@ -18,6 +18,8 @@ interface ShareMenuProps {
   getEmbedCode?: () => string;
   /** Runs once the embed is on the clipboard (page-specific analytics). */
   onEmbedCopied?: () => void;
+  /** This card's own settings, written into its link over the page's URL. */
+  linkParams?: LinkParams;
   /** E.g. while the card's data is still loading. */
   disabled?: boolean;
   /** Placement within the header, e.g. `ml-auto`. */
@@ -96,6 +98,7 @@ const ShareMenu: React.FC<ShareMenuProps> = ({
   title,
   getEmbedCode,
   onEmbedCopied,
+  linkParams,
   disabled = false,
   className = '',
 }) => {
@@ -145,7 +148,7 @@ const ShareMenu: React.FC<ShareMenuProps> = ({
     const card = findCard();
     if (!card?.id) return;
     try {
-      await navigator.clipboard.writeText(cardLink(card.id));
+      await navigator.clipboard.writeText(cardLink(card.id, linkParams));
       succeed('link', card, 'Link copied');
     } catch (err) {
       fail('Couldn’t copy the link. Please try again.', err);

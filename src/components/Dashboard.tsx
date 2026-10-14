@@ -20,6 +20,7 @@ import { useToast } from '../hooks/useToast';
 import { createShareableUrl, copyToClipboard } from '../services/urlShortener';
 import { playsToCsv, downloadCsv, buildPlaysCsvFilename } from '../utils/playsCsv';
 import { matchupSeparator } from '../utils/matchup';
+import { pinLoadedParams, snapshotParams } from '../utils/shareLink';
 
 interface GameParams {
   year: number;
@@ -167,6 +168,8 @@ const Dashboard: React.FC = () => {
 
     const gameId = new URLSearchParams(window.location.search).get('gameId');
     setCurrentParams({ ...params, gameId: gameId || undefined });
+    // What this fetch loads, for the charts' share links (see pinLoadedParams).
+    const loadedView = snapshotParams(['year', 'team', 'gameId']);
 
     try {
       const [apiPlays, winProbData] = await Promise.all([
@@ -180,6 +183,7 @@ const Dashboard: React.FC = () => {
       setRawApiData(apiPlays);
       setWinProbabilityData(winProbData);
       setPlays(processPlayData(apiPlays));
+      pinLoadedParams(loadedView);
     } catch (err) {
       if (requestId !== requestRef.current) return;
       setError('Failed to load play data. Please check your parameters and try again.');

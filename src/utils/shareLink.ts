@@ -12,9 +12,45 @@ export const SHARE_CARD_ATTR = 'data-share-card';
 /** Set for a moment on a card the visitor arrived at, to show which one it is. */
 export const SHARE_LINKED_ATTR = 'data-share-linked';
 
-/** This page, in its current state, pointing at one card. */
-export const cardLink = (id: string): string => {
+/** Query values a link should carry in place of the address bar's. */
+export type LinkParams = Record<string, string | null>;
+
+/** The params behind the data on screen. See pinLoadedParams. */
+const loadedParams = new Map<string, string | null>();
+
+/** The address bar's current values for `keys`. Take one as a fetch starts. */
+export const snapshotParams = (keys: readonly string[]): LinkParams => {
+  const params = new URLSearchParams(window.location.search);
+  return Object.fromEntries(keys.map(key => [key, params.get(key)]));
+};
+
+/**
+ * Record what a finished fetch loaded.
+ *
+ * The pickers write a pending choice into the address bar the moment it's
+ * made, but the charts only change when the data does: pick another game, or
+ * untick one on Season trends without pressing Fetch, and the URL already
+ * describes a view nobody has loaded. Until the next fetch lands, card links
+ * take these keys from here. Everything else — colors, filters, modes, which
+ * apply the moment they change — still comes from the live address bar.
+ */
+export const pinLoadedParams = (snapshot: LinkParams): void => {
+  Object.entries(snapshot).forEach(([key, value]) => loadedParams.set(key, value));
+};
+
+/**
+ * This page, as it's showing, pointing at one card. `overrides` are a card's
+ * own settings that the page-wide URL can't hold (a player chart's team
+ * filter when the three disagree).
+ */
+export const cardLink = (id: string, overrides: LinkParams = {}): string => {
   const url = new URL(window.location.href);
+  const apply = (key: string, value: string | null) => {
+    if (value === null) url.searchParams.delete(key);
+    else url.searchParams.set(key, value);
+  };
+  loadedParams.forEach((value, key) => apply(key, value));
+  Object.entries(overrides).forEach(([key, value]) => apply(key, value));
   url.hash = id;
   return url.toString();
 };

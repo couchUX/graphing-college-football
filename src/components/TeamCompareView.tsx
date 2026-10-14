@@ -17,6 +17,7 @@ import { useCompareChartData, type CompareSide } from '../hooks/useCompareChartD
 import { readParams, writeParams } from '../utils/urlState';
 import { encodeGameSelection, decodeGameSelection } from '../utils/trendsUrl';
 import { generateTrendsEmbedCode } from '../utils/trendsEmbedGenerator';
+import { pinLoadedParams, snapshotParams } from '../utils/shareLink';
 import TeamPicker from './TeamPicker';
 import GameMultiSelect from './GameMultiSelect';
 import CompareBoxScore from './CompareBoxScore';
@@ -61,6 +62,26 @@ const loadTeamSeason = async (
 
 type PlayerFilter = 'both' | 'a' | 'b';
 type PlayerCount = number | 'all';
+
+// The player charts' settings live in the URL so a shared chart opens the way
+// it was shared: `compareRushers=a-3` is team A's top three rushers. Left out
+// at the default, both teams and every player.
+const PLAYER_VIEW_PARAMS = {
+  rushers: 'compareRushers',
+  passers: 'comparePassers',
+  receivers: 'compareReceivers',
+} as const;
+
+const readPlayerView = (key: string): { filter: PlayerFilter; count: PlayerCount } => {
+  const [filter, count] = (readParams().get(key) ?? '').split('-');
+  return {
+    filter: filter === 'a' || filter === 'b' ? filter : 'both',
+    count: /^[1-5]$/.test(count ?? '') ? Number(count) : 'all',
+  };
+};
+
+const encodePlayerView = (filter: PlayerFilter, count: PlayerCount): string | null =>
+  filter === 'both' && count === 'all' ? null : `${filter}-${count}`;
 
 interface CompareResult {
   a: CompareSide;
@@ -146,14 +167,34 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
   const [result, setResult] = useState<CompareResult | null>(null);
   const [boxScoresA, setBoxScoresA] = useState<BoxScoreGame[]>([]);
   const [boxScoresB, setBoxScoresB] = useState<BoxScoreGame[]>([]);
-  const [boxScoreMode, setBoxScoreMode] = useState<BoxScoreMode>('averages');
+  // In the URL so a shared box score opens on the mode it was shared in.
+  const [boxScoreMode, setBoxScoreMode] = useState<BoxScoreMode>(() =>
+    readParams().get('compareBoxMode') === 'totals' ? 'totals' : 'averages',
+  );
+  const handleBoxScoreModeChange = (mode: BoxScoreMode) => {
+    setBoxScoreMode(mode);
+    writeParams({ compareBoxMode: mode === 'totals' ? mode : null });
+  };
 
-  const [rushersFilter, setRushersFilter] = useState<PlayerFilter>('both');
-  const [passersFilter, setPassersFilter] = useState<PlayerFilter>('both');
-  const [receiversFilter, setReceiversFilter] = useState<PlayerFilter>('both');
-  const [rushersCount, setRushersCount] = useState<PlayerCount>('all');
-  const [passersCount, setPassersCount] = useState<PlayerCount>('all');
-  const [receiversCount, setReceiversCount] = useState<PlayerCount>('all');
+  const [initialPlayerViews] = useState(() => ({
+    rushers: readPlayerView(PLAYER_VIEW_PARAMS.rushers),
+    passers: readPlayerView(PLAYER_VIEW_PARAMS.passers),
+    receivers: readPlayerView(PLAYER_VIEW_PARAMS.receivers),
+  }));
+  const [rushersFilter, setRushersFilter] = useState<PlayerFilter>(initialPlayerViews.rushers.filter);
+  const [passersFilter, setPassersFilter] = useState<PlayerFilter>(initialPlayerViews.passers.filter);
+  const [receiversFilter, setReceiversFilter] = useState<PlayerFilter>(initialPlayerViews.receivers.filter);
+  const [rushersCount, setRushersCount] = useState<PlayerCount>(initialPlayerViews.rushers.count);
+  const [passersCount, setPassersCount] = useState<PlayerCount>(initialPlayerViews.passers.count);
+  const [receiversCount, setReceiversCount] = useState<PlayerCount>(initialPlayerViews.receivers.count);
+
+  useEffect(() => {
+    writeParams({
+      [PLAYER_VIEW_PARAMS.rushers]: encodePlayerView(rushersFilter, rushersCount),
+      [PLAYER_VIEW_PARAMS.passers]: encodePlayerView(passersFilter, passersCount),
+      [PLAYER_VIEW_PARAMS.receivers]: encodePlayerView(receiversFilter, receiversCount),
+    });
+  }, [rushersFilter, rushersCount, passersFilter, passersCount, receiversFilter, receiversCount]);
 
   // URL restore/persist plumbing. pendingGames* hold a game selection read from
   // the URL until that team's schedule loads and the indices can be resolved.
@@ -289,10 +330,14 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
     !loadingGamesB &&
     !loading;
 
-  const handleCompare = async () => {
+  // A comparison opened from a link keeps the link's player filters; one the
+  // reader starts afresh resets them.
+  const handleCompare = async (restoringFromUrl = false) => {
     if (!teamA || !teamB || teamA.school === teamB.school) return;
     setLoading(true);
     setError(null);
+    // What this fetch loads, for the charts' share links (see pinLoadedParams).
+    const loadedView = snapshotParams(['aTeam', 'bTeam', 'compareYear', 'aGames', 'bGames']);
     try {
       const selGamesA = gamesA.filter((g) => selectedA.includes(g.id));
       const selGamesB = gamesB.filter((g) => selectedB.includes(g.id));
@@ -309,12 +354,15 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
       setResult({ a, b, year });
       setBoxScoresA(boxA.boxScores);
       setBoxScoresB(boxB.boxScores);
-      setRushersFilter('both');
-      setPassersFilter('both');
-      setReceiversFilter('both');
-      setRushersCount('all');
-      setPassersCount('all');
-      setReceiversCount('all');
+      pinLoadedParams(loadedView);
+      if (!restoringFromUrl) {
+        setRushersFilter('both');
+        setPassersFilter('both');
+        setReceiversFilter('both');
+        setRushersCount('all');
+        setPassersCount('all');
+        setReceiversCount('all');
+      }
     } catch (err) {
       console.error(err);
       setError('Failed to load comparison data. Please try again.');
@@ -337,7 +385,7 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
     if (selectedA.length === 0 || selectedB.length === 0) return;
     autoCompareRef.current = false;
     urlReadyRef.current = true;
-    void handleCompare();
+    void handleCompare(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamA, teamB, gamesA, gamesB, selectedA, selectedB, loadingGamesA, loadingGamesB, pendingGamesA, pendingGamesB]);
 
@@ -488,7 +536,7 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
             </div>
             <div className="w-full sm:w-auto sm:flex-shrink-0">
               <button
-                onClick={handleCompare}
+                onClick={() => handleCompare()}
                 disabled={!canCompare}
                 className="btn-ink w-full sm:w-auto"
               >
@@ -549,7 +597,7 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
               colorB={colorB}
               year={result.year}
               mode={boxScoreMode}
-              onModeChange={setBoxScoreMode}
+              onModeChange={handleBoxScoreModeChange}
             />
           )}
 

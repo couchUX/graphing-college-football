@@ -241,6 +241,12 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
       custom_parameter_season_type: currentParams?.seasonType || '',
     });
 
+  /** The page URL only carries `playerTeam` while all three player charts
+   *  agree, so each player chart's link pins its own filter. */
+  const playerLinkParams = (filterValue: string) => ({
+    playerTeam: filterValue === 'both' ? null : filterValue,
+  });
+
   /**
    * A chart's embed. The generic generator serializes the exact data and
    * options the chart is rendered with, so embeds can't drift from the app the
@@ -427,6 +433,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
                   mobileHeight={chart.mobileHeight}
                   getEmbedCode={embedFor(chart)}
                   onEmbedCopied={trackEmbed(chart)}
+                  linkParams={playerLinkParams(chart.filterValue)}
                   headerControl={
                     <TeamFilterDropdown
                       value={chart.filterValue}
@@ -451,6 +458,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
                 mobileHeight={chart.mobileHeight}
                 getEmbedCode={embedFor(chart)}
                 onEmbedCopied={trackEmbed(chart)}
+                linkParams={playerLinkParams(chart.filterValue)}
                 headerControl={
                   <TeamFilterDropdown
                     value={chart.filterValue}

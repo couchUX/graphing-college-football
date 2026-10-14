@@ -26,6 +26,7 @@ import SubTabs from './SubTabs';
 import ShareMenu from './ShareMenu';
 import { readParams, writeParams } from '../utils/urlState';
 import { useCanonical } from '../hooks/useCanonical';
+import { pinLoadedParams, snapshotParams } from '../utils/shareLink';
 
 type TrendsView = 'season' | 'spTrends' | 'compare';
 
@@ -50,7 +51,14 @@ const TeamTrendsPage: React.FC = () => {
   const [allSeasonPlays, setAllSeasonPlays] = useState<PlayData[]>([]);
   const [perGamePlays, setPerGamePlays] = useState<Map<number, PlayData[]>>(new Map());
   const [boxScores, setBoxScores] = useState<BoxScoreGame[]>([]);
-  const [boxScoreMode, setBoxScoreMode] = useState<BoxScoreMode>('averages');
+  // In the URL so a shared box score opens on the mode it was shared in.
+  const [boxScoreMode, setBoxScoreMode] = useState<BoxScoreMode>(() =>
+    readParams().get('boxMode') === 'totals' ? 'totals' : 'averages'
+  );
+  const handleBoxScoreModeChange = (mode: BoxScoreMode) => {
+    setBoxScoreMode(mode);
+    writeParams({ boxMode: mode === 'totals' ? mode : null });
+  };
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [loadingBoxScores, setLoadingBoxScores] = useState<boolean>(false);
@@ -74,6 +82,8 @@ const TeamTrendsPage: React.FC = () => {
     setLoadingProgress({ current: 0, total: 0 });
     setBoxScoreProgress({ current: 0, total: 0 });
     setCurrentParams(params);
+    // What this fetch loads, for the charts' share links (see pinLoadedParams).
+    const loadedView = snapshotParams(['year', 'team', 'games']);
 
     try {
       // Fetch season data with progress tracking
@@ -96,6 +106,7 @@ const TeamTrendsPage: React.FC = () => {
       setAllSeasonPlays(processedPlays);
       setPerGamePlays(processedPerGamePlays);
       setFailedGames(result.failedGames);
+      pinLoadedParams(loadedView);
 
       // Fetch box scores for all games
       setLoadingBoxScores(true);
@@ -319,7 +330,7 @@ const TeamTrendsPage: React.FC = () => {
               selectedTeamColor={selectedTeamColor}
               gamesCount={boxScores.length}
               mode={boxScoreMode}
-              onModeChange={setBoxScoreMode}
+              onModeChange={handleBoxScoreModeChange}
             />
           )}
 

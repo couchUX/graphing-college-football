@@ -126,6 +126,12 @@ walking up to that attribute, so a new card needs those two attributes and a
   scrolls to it, holds it in place while sections above it load, and flashes
   an accent outline. Any scroll or keypress from the reader cancels that.
   Code that rewrites the URL with `replaceState` must keep `location.hash`.
+- A link must reopen the chart as shown. Pickers write a pending choice into
+  the URL before anything reloads, so a page's fetch snapshots the params it
+  loads (`snapshotParams`) and pins them on success (`pinLoadedParams`); links
+  take those keys from the pin. Any setting that changes what a chart shows
+  (a filter, Totals vs. Averages, a hidden series) has to live in the URL too,
+  or its link can't reproduce it. A card-only setting goes in `linkParams`.
 
 ## Commands
 
