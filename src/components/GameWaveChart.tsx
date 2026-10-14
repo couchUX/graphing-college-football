@@ -1,13 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, Copy } from 'lucide-react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import type { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { extractFieldGoals, extractFumbles, extractScoreChanges, toWaveEvents, type RawPlayLike } from '../utils/gameWave';
 import { waveRuntime, type WaveShadeColors } from '../utils/gameWaveRuntime';
 import { buildGameWaveEmbedHtml } from '../utils/gameWaveEmbed';
+import ShareMenu from './ShareMenu';
 
 /** Card title, shared with the embed and the "copied" toast. */
 export const GAME_WAVE_TITLE = 'Game Wave';
+
+/** Deep-link anchor, and the chart id in the embed analytics event. */
+export const GAME_WAVE_ID = 'game-wave';
 
 interface GameWaveChartProps {
   plays: PlayData[];
@@ -20,9 +24,8 @@ interface GameWaveChartProps {
   subtitle?: string;
   /** Embed footer link target ("See all charts"). */
   sourceUrl?: string;
-  /** Omit to hide the embed button. Receives the ready-to-paste HTML. */
-  onCopyEmbed?: (embedCode: string) => void;
-  isCopied?: boolean;
+  /** Runs once the embed code is on the clipboard. */
+  onEmbedCopied?: () => void;
 }
 
 // Smallest the (centered) chart area can be dragged to.
@@ -61,8 +64,7 @@ const GameWaveChart = ({
   rawPlays = [],
   subtitle,
   sourceUrl = 'https://graphingcollegefootball.com',
-  onCopyEmbed,
-  isCopied = false,
+  onEmbedCopied,
 }: GameWaveChartProps) => {
   // Measure the available width so the wave can re-bin as it grows/shrinks.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -137,21 +139,18 @@ const GameWaveChart = ({
 
   // The embed carries the events, not a fixed picture: it re-bins itself to
   // whatever container it lands in, the way this chart re-bins as it's dragged.
-  const handleCopyEmbed = () => {
-    onCopyEmbed?.(
-      buildGameWaveEmbedHtml({
-        events,
-        segmentsPerQuarter,
-        team,
-        opponent,
-        topColors,
-        bottomColors,
-        title: GAME_WAVE_TITLE,
-        subtitle,
-        sourceUrl,
-      }),
-    );
-  };
+  const buildEmbed = () =>
+    buildGameWaveEmbedHtml({
+      events,
+      segmentsPerQuarter,
+      team,
+      opponent,
+      topColors,
+      bottomColors,
+      title: GAME_WAVE_TITLE,
+      subtitle,
+      sourceUrl,
+    });
 
   // Resize handles: dragging either side adjusts the symmetric margin so the
   // chart grows/shrinks about its center. Pointer capture keeps the drag alive
@@ -188,24 +187,11 @@ const GameWaveChart = ({
 
 
   return (
-    <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+    <div id={GAME_WAVE_ID} data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
       <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-neutral-200">
         <h3 className="headline relative top-px text-[17px] font-bold text-ink">{GAME_WAVE_TITLE}</h3>
 
-        {onCopyEmbed && (
-          <button
-            onClick={handleCopyEmbed}
-            className={`flex h-8 w-8 flex-none items-center justify-center rounded-lg border transition-colors ${
-              isCopied
-                ? 'border-accent text-accent'
-                : 'border-neutral-300 text-byline hover:border-neutral-400 hover:text-ink'
-            }`}
-            title={isCopied ? 'Copied' : 'Copy embed code'}
-            aria-label={isCopied ? 'Embed code copied' : `Copy embed code for ${GAME_WAVE_TITLE}`}
-          >
-            {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          </button>
-        )}
+        <ShareMenu title={GAME_WAVE_TITLE} getEmbedCode={buildEmbed} onEmbedCopied={onEmbedCopied} />
       </div>
 
       <div className="pt-4 px-4 pb-4 sm:pt-5 sm:px-6 sm:pb-6">
@@ -329,10 +315,12 @@ const GameWaveChart = ({
           <div ref={tooltipRef} />
         </div>
 
-        {/* Drag handles, centered on each edge of the chart area. */}
+        {/* Drag handles, centered on each edge of the chart area. Page
+            furniture, so they stay out of a shared image. */}
         {containerWidth > 0 && (
           <>
             <div
+              data-share-exclude
               role="separator"
               aria-orientation="vertical"
               aria-label="Resize chart from the left"
@@ -351,6 +339,7 @@ const GameWaveChart = ({
               <Grip />
             </div>
             <div
+              data-share-exclude
               role="separator"
               aria-orientation="vertical"
               aria-label="Resize chart from the right"

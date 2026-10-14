@@ -16,6 +16,24 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ## Shipped
 
+- **Share menu on every chart** — done. The copy-embed button on each card is
+  now a share menu: copy embed code, copy image, download image, copy link.
+  Images are the card on paper with an even 32px margin, at up to 3× (a
+  half-width Games card comes out ~2,000px wide; full-width cards ease toward
+  2× and cap at 3,200px). Links carry the page's state plus a `#card-id`
+  fragment and land on that card once it has loaded. The old button had been
+  hand-rolled in eleven components, in three different styles; it's one
+  component now.
+
+  Worth knowing: the Ratings and Discover pages called `useToast()` from
+  *outside* their own `AppShell`, so their old "copied" toasts never showed.
+  The share menu lives inside the shell, so its toasts do. Dashboard's
+  "Page link copied" toast has the same problem and still doesn't show.
+
+  Also fixed in passing: the embed tester's preview gave the embed 24px of
+  clear paper above it; it's 40px now (24px on phones), so a screenshot can
+  take even margins without catching the Preview heading.
+
 - **Postseason labels understand the 12-team bracket** — done. The label logic
   lived twice, in `GameSelector` and `SeasonSelector`, and had already drifted:
   only one knew the conference championships, only the other could pull a bowl

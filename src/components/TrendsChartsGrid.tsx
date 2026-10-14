@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Check } from 'lucide-react';
 import { Bar, Line } from 'react-chartjs-2';
 import { createBaseOptions } from '../utils/chartOptions';
 import { percentCallback } from '../utils/chartConfig';
 import { generateTrendsEmbedCode, TrendsEmbedOptions } from '../utils/trendsEmbedGenerator';
 import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
+import ShareMenu from './ShareMenu';
 
 interface TrendsChartsGridProps {
   chartData: any; // Type from useSeasonChartData hook
@@ -140,8 +140,6 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
   hidePerGameLines = false,
   embedOptions
 }) => {
-  const [copiedChart, setCopiedChart] = useState<string | null>(null);
-
   // Play type filter for the per-game SR line chart, seeded from the URL so the
   // selection survives a reload and can be carried into an embed
   const getInitialPlayTypeFilter = (): PlayTypeFilter => {
@@ -165,7 +163,8 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
     } else {
       urlParams.set('playType', playTypeFilter);
     }
-    const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`;
+    // Keep the fragment: it may be a deep link to one of these charts.
+    const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}${window.location.hash}`;
     window.history.replaceState({}, '', newUrl);
   }, [playTypeFilter, hidePerGameLines]);
 
@@ -175,66 +174,52 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
   // makes the current play type selection the embed's default view too
   const rushPassByGameFiltered = filterDatasetsByPlayType(chartData.rushPassByGame, playTypeFilter);
 
-  const handleCopyEmbed = async (
+  /** A chart's embed code, for its share menu. */
+  const embedCode = (
     chartId: string,
     title: string,
     data: any,
     chartType: 'bar' | 'line',
     extraUrlParams?: Record<string, string>
-  ) => {
-    setCopiedChart(chartId);
-
-    try {
-      // One-game Team vs. Team renders Rush Rate as grouped percent columns
-      // (0-100 scale) — the trends embed template assumes 0-1 stacked bars, so
-      // serialize the chart exactly as rendered instead.
-      const embedCode =
-        chartId === 'rush-rate-by-game' && chartType === 'bar'
-          ? generateChartEmbed({
-              chartType: 'bar',
-              data,
-              options: lineChartOptionsWithRotatedLabels,
-              title,
-              subtitle: embedOptions?.subtitle ?? `${team} - ${year} Season (${gamesCount} games)`,
-              sourceUrl:
-                embedOptions?.url ??
-                `https://graphingcollegefootball.com/trends?year=${year}&team=${encodeURIComponent(team)}`,
-              height: CHART_HEIGHTS.DEFAULT_DESKTOP,
-              mobileHeight: CHART_HEIGHTS.DEFAULT_MOBILE,
-              definitions: [
-                '<strong>Rush Rate:</strong> Percentage of offensive plays that are rushing attempts',
-                'Based roughly on <a href="https://www.sbnation.com/college-football/2017/10/13/16457830/college-football-advanced-stats-analytics-rankings" target="_blank" style="color: #525252; text-decoration: underline;">the SP+ analytic system</a>'
-              ],
-            })
-          : generateTrendsEmbedCode(
-              chartId,
-              title,
-              data,
-              chartType,
-              team,
-              year,
-              gamesCount,
-              selectedTeamColor,
-              extraUrlParams ? { ...embedOptions, urlParams: extraUrlParams } : embedOptions
-            );
-
-      await navigator.clipboard.writeText(embedCode);
-
-      setTimeout(() => {
-        setCopiedChart(null);
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-      setCopiedChart(null);
-    }
-  };
+  ): string =>
+    // One-game Team vs. Team renders Rush Rate as grouped percent columns
+    // (0-100 scale) — the trends embed template assumes 0-1 stacked bars, so
+    // serialize the chart exactly as rendered instead.
+    chartId === 'rush-rate-by-game' && chartType === 'bar'
+      ? generateChartEmbed({
+          chartType: 'bar',
+          data,
+          options: lineChartOptionsWithRotatedLabels,
+          title,
+          subtitle: embedOptions?.subtitle ?? `${team} - ${year} Season (${gamesCount} games)`,
+          sourceUrl:
+            embedOptions?.url ??
+            `https://graphingcollegefootball.com/trends?year=${year}&team=${encodeURIComponent(team)}`,
+          height: CHART_HEIGHTS.DEFAULT_DESKTOP,
+          mobileHeight: CHART_HEIGHTS.DEFAULT_MOBILE,
+          definitions: [
+            '<strong>Rush Rate:</strong> Percentage of offensive plays that are rushing attempts',
+            'Based roughly on <a href="https://www.sbnation.com/college-football/2017/10/13/16457830/college-football-advanced-stats-analytics-rankings" target="_blank" style="color: #525252; text-decoration: underline;">the SP+ analytic system</a>'
+          ],
+        })
+      : generateTrendsEmbedCode(
+          chartId,
+          title,
+          data,
+          chartType,
+          team,
+          year,
+          gamesCount,
+          selectedTeamColor,
+          extraUrlParams ? { ...embedOptions, urlParams: extraUrlParams } : embedOptions
+        );
 
   return (
     <div className="space-y-8">
       {/* Top Row - 2 Columns on Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Overall Performance */}
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="overall-performance" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -244,21 +229,12 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Aggregate performance across {gamesCount} games
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('overall-performance', 'Overall Team Performance', chartData.overallPerformance, 'bar')}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'overall-performance'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'overall-performance' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'overall-performance' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu
+              title="Overall Team Performance"
+              getEmbedCode={() =>
+                embedCode('overall-performance', 'Overall Team Performance', chartData.overallPerformance, 'bar')
+              }
+            />
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
             <Bar data={chartData.overallPerformance} options={barChartOptions} />
@@ -266,7 +242,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         </div>
         {/* SR & XR by Game */}
         {!hidePerGameLines && (
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="sr-xr-by-game" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -276,21 +252,12 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Performance trends (vs = home, @ = away, * = postseason)
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('sr-xr-by-game', 'SR and XR by Team (each game)', chartData.srxrByGame, 'line')}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'sr-xr-by-game'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'sr-xr-by-game' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'sr-xr-by-game' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu
+              title="SR and XR by Team (each game)"
+              getEmbedCode={() =>
+                embedCode('sr-xr-by-game', 'SR and XR by Team (each game)', chartData.srxrByGame, 'line')
+              }
+            />
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
             <Line data={chartData.srxrByGame} options={lineChartOptionsWithRotatedLabels} />
@@ -303,7 +270,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Rush vs Pass by Game */}
         {!hidePerGameLines && (
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="rush-pass-by-game" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -315,27 +282,18 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <PlayTypeDropdown value={playTypeFilter} onChange={setPlayTypeFilter} />
-              <button
-                onClick={() => handleCopyEmbed(
-                  'rush-pass-by-game',
-                  'SR and XR by Play Type (each game)',
-                  rushPassByGameFiltered,
-                  'line',
-                  playTypeFilter !== 'all' ? { playType: playTypeFilter } : undefined
-                )}
-                className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                  copiedChart === 'rush-pass-by-game'
-                    ? 'border-green-300 bg-green-50'
-                    : 'border-neutral-300 hover:bg-neutral-50'
-                }`}
-                title={copiedChart === 'rush-pass-by-game' ? "Copied!" : "Copy embed code"}
-              >
-                {copiedChart === 'rush-pass-by-game' ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4 text-neutral-600" />
-                )}
-              </button>
+              <ShareMenu
+                title="SR and XR by Play Type (each game)"
+                getEmbedCode={() =>
+                  embedCode(
+                    'rush-pass-by-game',
+                    'SR and XR by Play Type (each game)',
+                    rushPassByGameFiltered,
+                    'line',
+                    playTypeFilter !== 'all' ? { playType: playTypeFilter } : undefined
+                  )
+                }
+              />
             </div>
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
@@ -345,7 +303,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         )}
 
         {/* Rush Rate by Game */}
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="rush-rate-by-game" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -355,21 +313,12 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Percentage of plays that are rushes vs passes
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('rush-rate-by-game', 'Rush Rate (each game)', chartData.rushRateByGame, perGameChartType)}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'rush-rate-by-game'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'rush-rate-by-game' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'rush-rate-by-game' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu
+              title="Rush Rate (each game)"
+              getEmbedCode={() =>
+                embedCode('rush-rate-by-game', 'Rush Rate (each game)', chartData.rushRateByGame, perGameChartType)
+              }
+            />
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
             {perGameChartType === 'bar' ? (
@@ -385,7 +334,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Performance by Quarter */}
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="performance-by-quarter" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -395,21 +344,12 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Season aggregate performance by quarter
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('performance-by-quarter', 'SR and XR by Quarter', chartData.performanceByQuarter, 'bar')}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'performance-by-quarter'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'performance-by-quarter' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'performance-by-quarter' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu
+              title="SR and XR by Quarter"
+              getEmbedCode={() =>
+                embedCode('performance-by-quarter', 'SR and XR by Quarter', chartData.performanceByQuarter, 'bar')
+              }
+            />
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
             <Bar data={chartData.performanceByQuarter} options={barChartOptions} />
@@ -417,7 +357,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         </div>
 
         {/* Performance by Play Type */}
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="performance-by-play-type" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -427,21 +367,12 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Season aggregate rush and pass success rates
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('performance-by-play-type', 'SR and XR by Play Type', chartData.performanceByPlayType, 'bar')}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'performance-by-play-type'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'performance-by-play-type' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'performance-by-play-type' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu
+              title="SR and XR by Play Type"
+              getEmbedCode={() =>
+                embedCode('performance-by-play-type', 'SR and XR by Play Type', chartData.performanceByPlayType, 'bar')
+              }
+            />
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
             <Bar data={chartData.performanceByPlayType} options={barChartOptions} />
@@ -449,7 +380,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         </div>
 
         {/* Performance by Down */}
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="performance-by-down" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -459,21 +390,12 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Season aggregate performance by down
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('performance-by-down', 'SR and XR by Down', chartData.performanceByDown, 'bar')}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'performance-by-down'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'performance-by-down' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'performance-by-down' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu
+              title="SR and XR by Down"
+              getEmbedCode={() =>
+                embedCode('performance-by-down', 'SR and XR by Down', chartData.performanceByDown, 'bar')
+              }
+            />
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
             <Bar data={chartData.performanceByDown} options={barChartOptions} />
@@ -481,7 +403,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         </div>
 
         {/* Performance by Field Position */}
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="performance-by-field-position" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -491,21 +413,12 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Red zone vs rest of field performance
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('performance-by-field-position', 'SR and XR by Red Zone', chartData.performanceByFieldPosition, 'bar')}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'performance-by-field-position'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'performance-by-field-position' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'performance-by-field-position' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu
+              title="SR and XR by Red Zone"
+              getEmbedCode={() =>
+                embedCode('performance-by-field-position', 'SR and XR by Red Zone', chartData.performanceByFieldPosition, 'bar')
+              }
+            />
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
             <Bar data={chartData.performanceByFieldPosition} options={barChartOptions} />
@@ -513,7 +426,7 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
         </div>
 
         {/* Performance by Distance */}
-        <div className="bg-white rounded-xl border border-neutral-200 shadow-sm">
+        <div id="performance-by-distance" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <div>
               <h3 className="headline relative top-px text-[17px] font-bold text-ink">
@@ -523,21 +436,12 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
                 Short, medium, and long yardage situations
               </p>
             </div>
-            <button
-              onClick={() => handleCopyEmbed('performance-by-distance', 'SR and XR by Distance to Go', chartData.performanceByDistance, 'bar')}
-              className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-                copiedChart === 'performance-by-distance'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-neutral-300 hover:bg-neutral-50'
-              }`}
-              title={copiedChart === 'performance-by-distance' ? "Copied!" : "Copy embed code"}
-            >
-              {copiedChart === 'performance-by-distance' ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-neutral-600" />
-              )}
-            </button>
+            <ShareMenu
+              title="SR and XR by Distance to Go"
+              getEmbedCode={() =>
+                embedCode('performance-by-distance', 'SR and XR by Distance to Go', chartData.performanceByDistance, 'bar')
+              }
+            />
           </div>
           <div className="px-6 pb-6 pt-4" style={{ height: '400px' }}>
             <Bar data={chartData.performanceByDistance} options={barChartOptions} />

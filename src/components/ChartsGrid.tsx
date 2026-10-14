@@ -3,9 +3,8 @@ import { AlertCircle } from 'lucide-react';
 import { Line, Bar } from 'react-chartjs-2';
 import { PlayData } from '../types';
 import { useChartData } from '../hooks/useChartData';
-import { useToast } from '../hooks/useToast';
 import { track } from '../utils/analytics';
-import GameWaveChart, { GAME_WAVE_TITLE } from './GameWaveChart';
+import GameWaveChart, { GAME_WAVE_ID, GAME_WAVE_TITLE } from './GameWaveChart';
 import ChartCard from './ChartCard';
 import {
   createLineOptionsPlayNumberSRXR,
@@ -54,10 +53,6 @@ interface ChartEntry {
   height?: number;
   mobileHeight?: number;
 }
-
-/** The Game Wave isn't a Chart.js chart, so it carries its own id for the
- *  copy-button state and the embed analytics event. */
-const GAME_WAVE_ID = 'game-wave';
 
 /** Chart-specific bullets for the embed's "Data definitions" accordion. */
 const definitionsFor = (chartId: string): string[] => {
@@ -133,9 +128,6 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   winProbabilityData = [],
   rawApiData = [],
 }) => {
-  const [copiedChart, setCopiedChart] = useState<string | null>(null);
-  const { showToast: notify } = useToast();
-
   // Player chart team filters, seeded from the URL so shared links keep them.
   const initialTeamFilter = () =>
     typeof window !== 'undefined'
@@ -158,7 +150,9 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
       urlParams.set('playerTeam', rushersTeamFilter);
     }
     const query = urlParams.toString();
-    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    // Keep the fragment: it may be a deep link to one of these charts.
+    const { pathname, hash } = window.location;
+    window.history.replaceState({}, '', `${pathname}${query ? `?${query}` : ''}${hash}`);
   }, [rushersTeamFilter, passersTeamFilter, receiversTeamFilter]);
 
   const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor, winProbabilityData, rawApiData);
@@ -232,55 +226,44 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     return `https://graphingcollegefootball.com/?${params}`;
   };
 
-  /** Put a finished embed on the clipboard and flash that chart's button. */
-  const copyEmbedCode = async (
-    chart: { id: string; title: string; chartType: string },
-    embedCode: string
-  ) => {
-    try {
-      await navigator.clipboard.writeText(embedCode);
-      setCopiedChart(chart.id);
-      notify(`Embed code copied for ${chart.title}`);
+  /** The Games page's embed event, with the game it came from. The share menu
+   *  logs every share action generically; this keeps the older, richer event. */
+  const trackEmbed = (chart: { id: string; title: string; chartType: string }) => () =>
+    track('copy_embed', {
+      event_category: 'user_interaction',
+      event_label: `${chart.id}_${chart.title}`,
+      custom_parameter_chart_id: chart.id,
+      custom_parameter_chart_title: chart.title,
+      custom_parameter_chart_type: chart.chartType,
+      custom_parameter_team: currentParams?.team || '',
+      custom_parameter_year: currentParams?.year || '',
+      custom_parameter_week: currentParams?.week || '',
+      custom_parameter_season_type: currentParams?.seasonType || '',
+    });
 
-      track('copy_embed', {
-        event_category: 'user_interaction',
-        event_label: `${chart.id}_${chart.title}`,
-        custom_parameter_chart_id: chart.id,
-        custom_parameter_chart_title: chart.title,
-        custom_parameter_chart_type: chart.chartType,
-        custom_parameter_team: currentParams?.team || '',
-        custom_parameter_year: currentParams?.year || '',
-        custom_parameter_week: currentParams?.week || '',
-        custom_parameter_season_type: currentParams?.seasonType || '',
-      });
-
-      setTimeout(() => setCopiedChart(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-      notify('Failed to copy embed code. Please try again.');
-    }
-  };
+  /** The page URL only carries `playerTeam` while all three player charts
+   *  agree, so each player chart's link pins its own filter. */
+  const playerLinkParams = (filterValue: string) => ({
+    playerTeam: filterValue === 'both' ? null : filterValue,
+  });
 
   /**
-   * Copy an embed for a chart. The generic generator serializes the exact data
-   * and options the chart is rendered with, so embeds can't drift from the app
-   * the way the old hand-maintained template did.
+   * A chart's embed. The generic generator serializes the exact data and
+   * options the chart is rendered with, so embeds can't drift from the app the
+   * way the old hand-maintained template did.
    */
-  const handleCopyEmbed = (chart: ChartEntry & { filterValue?: string }) =>
-    copyEmbedCode(
-      chart,
-      generateChartEmbed({
-        chartType: chart.chartType,
-        data: chart.data,
-        options: chart.options,
-        title: chart.title,
-        subtitle: gameSubtitle,
-        sourceUrl: gameUrlFor(chart.filterValue),
-        height: chart.height ?? CHART_HEIGHTS.DEFAULT_DESKTOP,
-        mobileHeight: chart.mobileHeight ?? chart.height ?? CHART_HEIGHTS.DEFAULT_MOBILE,
-        definitions: definitionsFor(chart.id),
-      })
-    );
+  const embedFor = (chart: ChartEntry & { filterValue?: string }) => () =>
+    generateChartEmbed({
+      chartType: chart.chartType,
+      data: chart.data,
+      options: chart.options,
+      title: chart.title,
+      subtitle: gameSubtitle,
+      sourceUrl: gameUrlFor(chart.filterValue),
+      height: chart.height ?? CHART_HEIGHTS.DEFAULT_DESKTOP,
+      mobileHeight: chart.mobileHeight ?? chart.height ?? CHART_HEIGHTS.DEFAULT_MOBILE,
+      definitions: definitionsFor(chart.id),
+    });
 
   const hasWinProbability = Boolean(winProbChartData?.datasets?.length);
 
@@ -392,18 +375,17 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
               rawPlays={rawApiData}
               subtitle={gameSubtitle}
               sourceUrl={gameUrlFor()}
-              isCopied={copiedChart === GAME_WAVE_ID}
-              onCopyEmbed={embedCode =>
-                copyEmbedCode({ id: GAME_WAVE_ID, title: GAME_WAVE_TITLE, chartType: 'svg' }, embedCode)
-              }
+              onEmbedCopied={trackEmbed({ id: GAME_WAVE_ID, title: GAME_WAVE_TITLE, chartType: 'svg' })}
             />
           </div>
 
           <ChartCard
+            id={winProbabilityChart.id}
             title={winProbabilityChart.title}
             mobileHeight={winProbabilityChart.mobileHeight}
-            onCopyEmbed={hasWinProbability ? () => handleCopyEmbed(winProbabilityChart) : undefined}
-            isCopied={copiedChart === winProbabilityChart.id}
+            getEmbedCode={embedFor(winProbabilityChart)}
+            onEmbedCopied={trackEmbed(winProbabilityChart)}
+            shareDisabled={!hasWinProbability}
           >
             {hasWinProbability ? (
               winProbabilityChart.node
@@ -425,10 +407,11 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
             {teamCharts.map(chart => (
               <ChartCard
                 key={chart.id}
+                id={chart.id}
                 title={chart.title}
                 mobileHeight={chart.mobileHeight}
-                onCopyEmbed={() => handleCopyEmbed(chart)}
-                isCopied={copiedChart === chart.id}
+                getEmbedCode={embedFor(chart)}
+                onEmbedCopied={trackEmbed(chart)}
               >
                 {chart.node}
               </ChartCard>
@@ -444,11 +427,13 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
               {playerCharts.slice(0, 2).map(chart => (
                 <ChartCard
                   key={chart.id}
+                  id={chart.id}
                   title={chart.title}
                   height={chart.height}
                   mobileHeight={chart.mobileHeight}
-                  onCopyEmbed={() => handleCopyEmbed(chart)}
-                  isCopied={copiedChart === chart.id}
+                  getEmbedCode={embedFor(chart)}
+                  onEmbedCopied={trackEmbed(chart)}
+                  linkParams={playerLinkParams(chart.filterValue)}
                   headerControl={
                     <TeamFilterDropdown
                       value={chart.filterValue}
@@ -467,11 +452,13 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
             {playerCharts.slice(2).map(chart => (
               <ChartCard
                 key={chart.id}
+                id={chart.id}
                 title={chart.title}
                 height={chart.height}
                 mobileHeight={chart.mobileHeight}
-                onCopyEmbed={() => handleCopyEmbed(chart)}
-                isCopied={copiedChart === chart.id}
+                getEmbedCode={embedFor(chart)}
+                onEmbedCopied={trackEmbed(chart)}
+                linkParams={playerLinkParams(chart.filterValue)}
                 headerControl={
                   <TeamFilterDropdown
                     value={chart.filterValue}

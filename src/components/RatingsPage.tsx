@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { fetchSPRatings, SPRating } from '../services/ratingsApi';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
-import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen, Copy, Check } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, BookOpen } from 'lucide-react';
 import { MetaTags } from './MetaTags';
 import AppShell from './AppShell';
-import { useToast } from '../hooks/useToast';
+import ShareMenu from './ShareMenu';
 import { CURRENT_SEASON, RATINGS_YEARS } from '../constants/seasons';
 import { SITE_URL } from '../constants/site';
 import { useCanonical } from '../hooks/useCanonical';
@@ -65,8 +65,6 @@ const RatingsPage: React.FC = () => {
   const [selectedConference, setSelectedConference] = useState<string>(readConferenceParam);
   const [showDataDefinitions, setShowDataDefinitions] = useState<boolean>(false);
   const [expandedTop25, setExpandedTop25] = useState<boolean>(false);
-  const [copiedEmbedKey, setCopiedEmbedKey] = useState<string | null>(null);
-  const { showToast: notify } = useToast();
 
   // Filters here are views of one page, so the route is what gets indexed.
   useCanonical('/ratings');
@@ -208,13 +206,6 @@ const RatingsPage: React.FC = () => {
           : `${sortField}-${sortDirection}`,
     });
   }, [year, selectedConference, sortField, sortDirection]);
-
-  useEffect(() => {
-    if (!copiedEmbedKey) return;
-
-    const timer = window.setTimeout(() => setCopiedEmbedKey(null), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copiedEmbedKey]);
 
   const escapeHtml = (value: string | number | null | undefined): string => {
     if (value === null || value === undefined) {
@@ -525,24 +516,6 @@ const RatingsPage: React.FC = () => {
 </html>`;
   };
 
-  const copyTop25EmbedToClipboard = async (embedKey: string, embedHTML: string, toastLabel: string) => {
-    if (!embedHTML) return;
-
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(embedHTML);
-        setCopiedEmbedKey(embedKey);
-        notify(`Embed code copied for ${toastLabel}`);
-      } else {
-        console.warn('Clipboard API not available in this browser.');
-        notify('Clipboard not available in this browser');
-      }
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-      notify('Failed to copy embed code. Please try again.');
-    }
-  };
-
   // Contact form handlers
   // Handle column sort
   const handleSort = (field: SortField) => {
@@ -683,15 +656,7 @@ const RatingsPage: React.FC = () => {
     onToggle: () => void,
     isConferenceFiltered: boolean
   ) => {
-    const embedKey = `${ratingType}-${selectedConference}-${year}`;
     const embedDisabled = data.length === 0;
-    const isEmbedCopied = copiedEmbedKey === embedKey;
-
-    const handleCopyEmbed = async () => {
-      if (embedDisabled) return;
-      const embedHTML = generateTop25EmbedCode(title, data, columnLabel, ratingType);
-      await copyTop25EmbedToClipboard(embedKey, embedHTML, title);
-    };
 
     const maxRating = 40;
     // If conference filtered, show all teams. Otherwise, show 12 or 25 based on expanded state
@@ -712,36 +677,18 @@ const RatingsPage: React.FC = () => {
     };
 
     return (
-      <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+      <div
+        id={`top-25-${ratingType}`}
+        data-share-card
+        className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden"
+      >
         <div className="flex items-center justify-between gap-3 border-b-2 border-[color:var(--rule)] px-4 py-3">
           <h3 className="headline text-[16px] font-bold text-ink">{title}</h3>
-          <button
-            type="button"
-            onClick={handleCopyEmbed}
+          <ShareMenu
+            title={title}
+            getEmbedCode={() => generateTop25EmbedCode(title, data, columnLabel, ratingType)}
             disabled={embedDisabled}
-            aria-label={
-              embedDisabled
-                ? 'Embed unavailable until data loads'
-                : isEmbedCopied
-                  ? 'Embed copied'
-                  : `Copy embed code for ${title}`
-            }
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-150 ${
-              embedDisabled
-                ? 'border-hairline text-neutral-400 cursor-not-allowed'
-                : isEmbedCopied
-                  ? 'border-ink bg-ink text-white'
-                  : 'border-neutral-300 text-neutral-700 hover:bg-neutral-100'
-            }`}
-            title={embedDisabled ? 'No data to embed yet' : isEmbedCopied ? 'Copied!' : 'Copy embed code'}
-          >
-            {isEmbedCopied ? (
-              <Check className="h-3.5 w-3.5" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
-            <span className="sr-only">{isEmbedCopied ? 'Copied!' : 'Copy embed'}</span>
-          </button>
+          />
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import React from 'react';
 import BoxScoreTable from './BoxScoreTable';
+import ShareMenu from './ShareMenu';
 import { BoxScoreStat } from '../hooks/useBoxScore';
 import { PlayData } from '../types';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
@@ -231,7 +231,6 @@ interface BoxScoreContainerProps {
   team2Name: string;
   selectedTeamColor: string;
   selectedOpponentColor: string;
-  onCopyEmbed?: (message: string) => void;
   currentParams?: any;
   plays?: PlayData[];
 }
@@ -243,15 +242,11 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
   team2Name,
   selectedTeamColor,
   selectedOpponentColor,
-  onCopyEmbed,
   currentParams,
   plays,
 }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyEmbed = async () => {
-    // Generate box score embed HTML
-    const embedHTML = generateBoxScoreEmbed(
+  const buildEmbed = () =>
+    generateBoxScoreEmbed(
       [...firstTableStats, ...secondTableStats],
       team1Name,
       team2Name,
@@ -261,19 +256,8 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
       plays
     );
 
-    try {
-      await navigator.clipboard.writeText(embedHTML);
-      setCopied(true);
-      onCopyEmbed?.('Embed code copied for Box Score');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-    }
-  };
-
-
   return (
-    <div className="mb-8">
+    <div id="box-score" data-share-card className="mb-8">
       {/* Mobile: Header card (white) separate from tables */}
       {/* Desktop: Full card with header and tables together */}
 
@@ -281,21 +265,7 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
       <div className="md:hidden bg-white rounded-t-2xl shadow-sm border border-neutral-200 border-b-0 pt-4 px-6 pb-5">
         <div className="flex items-center justify-between">
           <h2 className="headline text-[22px] font-bold text-ink">Box score</h2>
-          <button
-            onClick={handleCopyEmbed}
-            className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-              copied
-                ? 'border-green-300 bg-green-50'
-                : 'border-neutral-300 hover:bg-neutral-50'
-            }`}
-            title={copied ? "Copied!" : "Copy embed code"}
-          >
-            {copied ? (
-              <Check className="h-4 w-4 text-green-600" />
-            ) : (
-              <Copy className="h-4 w-4 text-neutral-600" />
-            )}
-          </button>
+          <ShareMenu title="Box score" getEmbedCode={buildEmbed} />
         </div>
       </div>
 
@@ -304,21 +274,7 @@ const BoxScoreContainer: React.FC<BoxScoreContainerProps> = ({
         {/* Desktop header */}
         <div className="hidden md:flex items-center justify-between mb-6">
           <h2 className="headline text-[22px] font-bold text-ink">Box score</h2>
-          <button
-            onClick={handleCopyEmbed}
-            className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-              copied
-                ? 'border-green-300 bg-green-50'
-                : 'border-neutral-300 hover:bg-neutral-50'
-            }`}
-            title={copied ? "Copied!" : "Copy embed code"}
-          >
-            {copied ? (
-              <Check className="h-4 w-4 text-green-600" />
-            ) : (
-              <Copy className="h-4 w-4 text-neutral-600" />
-            )}
-          </button>
+          <ShareMenu title="Box score" getEmbedCode={buildEmbed} />
         </div>
 
         {/* Tables */}

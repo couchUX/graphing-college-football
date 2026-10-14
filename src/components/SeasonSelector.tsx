@@ -317,9 +317,11 @@ const SeasonSelector: React.FC<SeasonSelectorProps> = ({
 			params.delete("teamColor");
 		}
 
+		// Keep the fragment: it may be a deep link to one of the season's charts.
+		const { pathname, hash } = window.location;
 		const newURL = params.toString()
-			? `${window.location.pathname}?${params.toString()}`
-			: window.location.pathname;
+			? `${pathname}?${params.toString()}${hash}`
+			: `${pathname}${hash}`;
 		window.history.replaceState({}, "", newURL);
 	};
 

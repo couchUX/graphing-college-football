@@ -31,7 +31,8 @@ src/
   App.tsx              pathname router; each page is React.lazy'd into its own chunk
   components/
     AppShell.tsx       masthead, nav, footer, About/Contact modals — every page wraps in this
-    ChartCard.tsx      the white plate a chart sits on (title, embed button, one responsive canvas)
+    ChartCard.tsx      the white plate a chart sits on (title, share menu, one responsive canvas)
+    ShareMenu.tsx      per-card share button: copy embed, copy/download image, copy link
     MetricCard.tsx     ruled stat columns + MetricRow
     SubTabs.tsx        within-page view switcher (Trends, Discover)
     Dashboard.tsx      /games
@@ -44,7 +45,8 @@ src/
   services/            api.ts (CFBD via the /api/cfbd proxy), boxScoreApi, ratingsApi, seasonApi
   detectors/           Discover storyline detectors + registry
   utils/               chart helpers, metrics, embed generators, accent, playType, analytics
-                       urlState (query-string state), sessionViewState (see below)
+                       urlState (query-string state), sessionViewState (see below),
+                       shareImage + shareLink (see Sharing)
 ```
 
 ### Design system
@@ -107,6 +109,29 @@ parking the URL on a `data-*` attribute. The datalabels UMD bundle reads
 and every chart on the page dies with "Chart library failed to load." Embeds
 still render in Gutenberg's sandboxed block preview when this is broken, so it
 only shows up once published.
+
+### Sharing
+
+Every chart card (and box score, top-25 table, Discover card) has one share
+button. The card's root carries an `id` (the deep-link fragment, e.g.
+`/games?…#win-probability`) and `data-share-card`; `ShareMenu` finds its card by
+walking up to that attribute, so a new card needs those two attributes and a
+`<ShareMenu>` in its header — nothing else.
+
+- **Images** (`shareImage.ts`) rasterize the live card with `modern-screenshot`
+  (lazy-loaded), onto paper with a 32px margin, at up to 3×. Chart.js canvases
+  are re-rendered at that density for the capture and put back after. Form
+  controls and anything marked `data-share-exclude` stay out of the image.
+- **Links** (`shareLink.ts`): `AppShell` watches for the linked card to render,
+  scrolls to it, holds it in place while sections above it load, and flashes
+  an accent outline. Any scroll or keypress from the reader cancels that.
+  Code that rewrites the URL with `replaceState` must keep `location.hash`.
+- A link must reopen the chart as shown. Pickers write a pending choice into
+  the URL before anything reloads, so a page's fetch snapshots the params it
+  loads (`snapshotParams`) and pins them on success (`pinLoadedParams`); links
+  take those keys from the pin. Any setting that changes what a chart shows
+  (a filter, Totals vs. Averages, a hidden series) has to live in the URL too,
+  or its link can't reproduce it. A card-only setting goes in `linkParams`.
 
 ## Commands
 

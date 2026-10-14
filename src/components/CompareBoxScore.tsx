@@ -1,10 +1,9 @@
 import type React from 'react';
-import { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
 import type { AveragedBoxScore, AveragedBoxScoreStat, BoxScoreMode } from '../utils/seasonBoxScoreMetrics';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { buildBoxScoreEmbedHtml } from '../utils/boxScoreEmbed';
 import { SeasonBoxScoreTable } from './SeasonAdvancedBoxScore';
+import ShareMenu from './ShareMenu';
 
 interface CompareBoxScoreProps {
   teamA: string;
@@ -35,7 +34,8 @@ const ModeToggle: React.FC<{ mode: BoxScoreMode; onModeChange: (m: BoxScoreMode)
   mode,
   onModeChange,
 }) => (
-  <div className="flex border border-neutral-300 rounded-lg overflow-hidden h-8">
+  // Left out of a shared image: the table title already says which mode it shows.
+  <div className="flex border border-neutral-300 rounded-lg overflow-hidden h-8" data-share-exclude>
     <button
       onClick={() => onModeChange('averages')}
       className={`px-3 text-sm font-medium transition-colors ${
@@ -59,18 +59,6 @@ const ModeToggle: React.FC<{ mode: BoxScoreMode; onModeChange: (m: BoxScoreMode)
   </div>
 );
 
-const CopyEmbedButton: React.FC<{ copied: boolean; onClick: () => void }> = ({ copied, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center justify-center w-8 h-8 border rounded-lg transition-all duration-200 ${
-      copied ? 'border-green-300 bg-green-50' : 'border-neutral-300 hover:bg-neutral-50'
-    }`}
-    title={copied ? 'Copied!' : 'Copy embed code'}
-  >
-    {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4 text-neutral-600" />}
-  </button>
-);
-
 const CompareBoxScore: React.FC<CompareBoxScoreProps> = ({
   teamA,
   teamB,
@@ -82,59 +70,46 @@ const CompareBoxScore: React.FC<CompareBoxScoreProps> = ({
   mode,
   onModeChange,
 }) => {
-  const [copied, setCopied] = useState(false);
   const teamAColor = getDisplayTeamColors(teamA, colorA).success;
   const oppColor = getDisplayTeamColors(teamB, colorB).success;
   const first = mergeStats(statsA.firstTableStats, statsB.firstTableStats);
   const second = mergeStats(statsA.secondTableStats, statsB.secondTableStats);
   const modeLabel = mode === 'totals' ? 'Total' : 'Avg';
 
-  const handleCopyEmbed = async () => {
-    if (!navigator.clipboard?.writeText) {
-      console.error('Clipboard not available in this browser');
-      return;
-    }
-    try {
-      // Link back to this exact comparison (same params TeamCompareView persists).
-      const params = new URLSearchParams();
-      params.set('view', 'compare');
-      params.set('aTeam', teamA);
-      params.set('bTeam', teamB);
-      params.set('compareYear', String(year));
-      if (colorA !== 'default') params.set('aColor', colorA);
-      if (colorB !== 'default') params.set('bColor', colorB);
+  const buildEmbed = () => {
+    // Link back to this exact comparison (same params TeamCompareView persists).
+    const params = new URLSearchParams();
+    params.set('view', 'compare');
+    params.set('aTeam', teamA);
+    params.set('bTeam', teamB);
+    params.set('compareYear', String(year));
+    if (colorA !== 'default') params.set('aColor', colorA);
+    if (colorB !== 'default') params.set('bColor', colorB);
 
-      const embedHTML = buildBoxScoreEmbedHtml({
-        // Reflect the calculation mode the table is currently showing.
-        title: `Box Score (${mode === 'totals' ? 'Totals' : 'Averages'})`,
-        subtitle: `${teamA} vs. ${teamB} - ${year} Season`,
-        sourceUrl: `https://graphingcollegefootball.com/trends?${params.toString()}`,
-        left: { label: teamA, color: teamAColor || '#6b7280' },
-        right: { label: teamB, color: oppColor || '#9CA3AF' },
-        rows: [...first, ...second].map(stat => ({
-          label: stat.label,
-          leftValue: String(stat.teamValue),
-          rightValue: String(stat.oppValue),
-        })),
-      });
-
-      await navigator.clipboard.writeText(embedHTML);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy embed code:', err);
-    }
+    return buildBoxScoreEmbedHtml({
+      // Reflect the calculation mode the table is currently showing.
+      title: `Box Score (${mode === 'totals' ? 'Totals' : 'Averages'})`,
+      subtitle: `${teamA} vs. ${teamB} - ${year} Season`,
+      sourceUrl: `https://graphingcollegefootball.com/trends?${params.toString()}`,
+      left: { label: teamA, color: teamAColor || '#6b7280' },
+      right: { label: teamB, color: oppColor || '#9CA3AF' },
+      rows: [...first, ...second].map(stat => ({
+        label: stat.label,
+        leftValue: String(stat.teamValue),
+        rightValue: String(stat.oppValue),
+      })),
+    });
   };
 
   return (
-    <div className="mb-8">
+    <div id="box-score" data-share-card className="mb-8">
       {/* Mobile-only header card (matches Season trends box score) */}
       <div className="md:hidden bg-white rounded-t-2xl shadow-sm border border-neutral-200 border-b-0 pt-4 px-6 pb-5">
         <div className="flex items-center justify-between">
           <h2 className="headline text-[22px] font-bold text-ink">Box score (season)</h2>
           <div className="flex items-center gap-2">
             <ModeToggle mode={mode} onModeChange={onModeChange} />
-            <CopyEmbedButton copied={copied} onClick={handleCopyEmbed} />
+            <ShareMenu title="Box score (season)" getEmbedCode={buildEmbed} />
           </div>
         </div>
       </div>
@@ -145,7 +120,7 @@ const CompareBoxScore: React.FC<CompareBoxScoreProps> = ({
           <h2 className="headline text-[22px] font-bold text-ink">Box score (season)</h2>
           <div className="flex items-center gap-2">
             <ModeToggle mode={mode} onModeChange={onModeChange} />
-            <CopyEmbedButton copied={copied} onClick={handleCopyEmbed} />
+            <ShareMenu title="Box score (season)" getEmbedCode={buildEmbed} />
           </div>
         </div>
 
