@@ -37,6 +37,63 @@ const inImage = (node: Node): boolean =>
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
+/** Set on the page for the length of a capture; read and removed in the clone. */
+const ONE_LINE_ATTR = 'data-share-one-line';
+
+/** Whether everything inside `el` sits on a single line on the page. */
+const onOneLine = (el: Element): boolean => {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const rects = Array.from(range.getClientRects()).filter(rect => rect.width > 0 && rect.height > 0);
+  if (rects.length === 0) return false;
+  const middle = (rect: DOMRect) => rect.top + rect.height / 2;
+  const [first] = rects;
+  return rects.every(rect => Math.abs(middle(rect) - middle(first)) < Math.min(rect.height, first.height) / 2);
+};
+
+/**
+ * Keep text that reads as one line on the page on one line in the image, then
+ * clean up.
+ *
+ * modern-screenshot pins every element of the clone to the width and height
+ * it has on the page, and a title's width is exactly the width of its text.
+ * The clone is set again inside an SVG image, and the browser doesn't always
+ * set that text to the same fraction of a pixel there. A hair wider and "Play
+ * map: Alabama" no longer fits its own box: it breaks at the last space, and
+ * with the header's height pinned too, the second line spills under the rule.
+ *
+ * So each element whose text sits on one line is flagged here and goes
+ * `nowrap` in the clone. Only `white-space: normal` text, so the change is to
+ * wrapping alone; text that wraps on the page is left to wrap.
+ */
+const withOneLineTextHeld = async <T>(root: HTMLElement, fn: () => Promise<T>): Promise<T> => {
+  const checked = new Set<Element>();
+  const held: Element[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const el = node.parentElement;
+    if (!(el instanceof HTMLElement) || checked.has(el) || !/\S/.test(node.nodeValue ?? '')) continue;
+    checked.add(el);
+    if (getComputedStyle(el).whiteSpace === 'normal' && onOneLine(el)) held.push(el);
+  }
+
+  held.forEach(el => el.setAttribute(ONE_LINE_ATTR, ''));
+  try {
+    return await fn();
+  } finally {
+    held.forEach(el => el.removeAttribute(ONE_LINE_ATTR));
+  }
+};
+
+/** The clone's half of `withOneLineTextHeld`. */
+const holdOneLineText = (clone: Node) => {
+  if (!(clone instanceof HTMLElement)) return;
+  clone.querySelectorAll<HTMLElement>(`[${ONE_LINE_ATTR}]`).forEach(el => {
+    el.style.whiteSpace = 'nowrap';
+    el.removeAttribute(ONE_LINE_ATTR);
+  });
+};
+
 /**
  * Re-render every Chart.js chart inside `root` at `ratio`, run `fn`, then put
  * them back.
@@ -85,15 +142,18 @@ export const renderCardImage = async (card: HTMLElement): Promise<Blob> => {
   const scale = clamp(MAX_OUTPUT_WIDTH / (width + 2 * MARGIN), MIN_SCALE, MAX_SCALE);
 
   const plate = await withChartsAtRatio(card, scale, () =>
-    domToCanvas(card, {
-      scale,
-      // Transparent, so the plate's rounded corners show the paper below.
-      backgroundColor: null,
-      filter: inImage,
-      // Applied to the clone only. Margins belong to the page's layout, and
-      // the outline is the deep-link highlight — neither is part of the card.
-      style: { margin: '0', outline: 'none', animation: 'none' },
-    })
+    withOneLineTextHeld(card, () =>
+      domToCanvas(card, {
+        scale,
+        // Transparent, so the plate's rounded corners show the paper below.
+        backgroundColor: null,
+        filter: inImage,
+        // Applied to the clone only. Margins belong to the page's layout, and
+        // the outline is the deep-link highlight — neither is part of the card.
+        style: { margin: '0', outline: 'none', animation: 'none' },
+        onCloneNode: holdOneLineText,
+      })
+    )
   );
 
   const pad = Math.round(MARGIN * scale);
