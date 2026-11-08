@@ -255,17 +255,24 @@ console.log(offlineFailures ? `Offline cases: ${offlineFailures} failed` : 'Offl
 // 2. The reference table
 
 /**
- * [season, opponent, Alabama points, opponent points, garbage plays excluded,
+ * [season, opponent, Alabama points, opponent points,
+ *  rush/pass plays excluded, every feed row tagged (as the original spec counted),
  *  Alabama SR raw, filtered, opponent SR raw, filtered]
+ *
+ * The SR columns and the row counts come from the spec. The rush/pass count is
+ * what the app shows beside the toggle and is what's asserted: the row count
+ * includes timeouts and End of Game rows, which CFBD can add after a game. The
+ * 2026 LSU feed carries an End of Game row the spec's 21 predates, so it now
+ * tags 22 rows; every rate still matches.
  */
 const TABLE = [
-  [2022, 'Mississippi State', 30, 6, 98, 33.9, 35.7, 34.5, 29.2],
-  [2020, 'Missouri', 38, 19, 82, 42.6, 50.0, 43.7, 35.3],
-  [2026, 'LSU', 31, 13, 21, 40.4, 45.5, 46.3, 45.8],
-  [2021, 'Georgia', 41, 24, 19, 47.1, 47.8, 48.7, 47.6],
-  [2017, 'Florida State', 24, 7, 16, 28.8, 27.8, 38.3, 37.0],
-  [2022, 'Ole Miss', 30, 24, 0, 41.8, 41.8, 46.8, 46.8],
-  [2024, 'Vanderbilt', 35, 40, 0, 55.6, 55.6, 41.9, 41.9],
+  [2022, 'Mississippi State', 30, 6, 73, 98, 33.9, 35.7, 34.5, 29.2],
+  [2020, 'Missouri', 38, 19, 65, 82, 42.6, 50.0, 43.7, 35.3],
+  [2026, 'LSU', 31, 13, 16, 21, 40.4, 45.5, 46.3, 45.8],
+  [2021, 'Georgia', 41, 24, 16, 19, 47.1, 47.8, 48.7, 47.6],
+  [2017, 'Florida State', 24, 7, 11, 16, 28.8, 27.8, 38.3, 37.0],
+  [2022, 'Ole Miss', 30, 24, 0, 0, 41.8, 41.8, 46.8, 46.8],
+  [2024, 'Vanderbilt', 35, 40, 0, 0, 55.6, 55.6, 41.9, 41.9],
 ];
 const TEAM = 'Alabama';
 
@@ -327,7 +334,7 @@ const pct = plays => (plays.length ? (plays.filter(p => p.success).length / play
 const round1 = n => Math.round(n * 10) / 10;
 
 console.log(`\nReference table (${base}):`);
-for (const [season, opponent, teamPts, oppPts, expectedCount, bamaRaw, bamaFiltered, oppRaw, oppFiltered] of TABLE) {
+for (const [season, opponent, teamPts, oppPts, expectedCount, specRows, bamaRaw, bamaFiltered, oppRaw, oppFiltered] of TABLE) {
   const label = `${season} ${opponent} (${teamPts}-${oppPts})`;
   let g;
   try {
@@ -358,9 +365,8 @@ for (const [season, opponent, teamPts, oppPts, expectedCount, bamaRaw, bamaFilte
     oppFiltered: round1(pct(opp.filter(counted))),
   };
 
-  const countMatches = got.rushPassExcluded === expectedCount || got.allExcluded === expectedCount;
   const ok =
-    countMatches &&
+    got.rushPassExcluded === expectedCount &&
     got.bamaRaw === bamaRaw &&
     got.bamaFiltered === bamaFiltered &&
     got.oppRaw === oppRaw &&
@@ -369,7 +375,7 @@ for (const [season, opponent, teamPts, oppPts, expectedCount, bamaRaw, bamaFilte
 
   console.log(
     `  ${ok ? '✓' : '✗'} ${label}: excluded ${got.rushPassExcluded} rush/pass of ${processed.length}` +
-      ` (${got.allExcluded} counting special teams; table says ${expectedCount}) · ` +
+      ` (expected ${expectedCount}; ${got.allExcluded} feed rows tagged, spec counted ${specRows}) · ` +
       `${TEAM} SR ${got.bamaRaw}% → ${got.bamaFiltered}% (table ${bamaRaw} → ${bamaFiltered}) · ` +
       `opp SR ${got.oppRaw}% → ${got.oppFiltered}% (table ${oppRaw} → ${oppFiltered})`
   );

@@ -16,13 +16,6 @@ sessions (not just in a chat). Also mirrored in the PR description.
 
 ### Garbage-time follow-ups
 
-- **Run the live reference table.** `npm run check:garbage` replays the spec's
-  seven Alabama games (2022 Mississippi State through 2024 Vanderbilt) against
-  real CFBD data when it has a `CFB_API_KEY` in `.env`, or `CFBD_BASE` pointed
-  at a proxy that adds one. The close games (2022 Ole Miss, 2024 Vanderbilt)
-  must exclude nothing; if either moves, the margin is being read from the
-  wrong side of a play. The table's "plays removed" column didn't say whether
-  it counts special teams, so the script accepts either count and prints both.
 - **Box score still counts garbage time.** It's CFBD's advanced box score,
   not computed from our plays. CFBD's game-level advanced stats take an
   `excludeGarbageTime` flag, but its definition may not match SP+'s; worth
@@ -47,6 +40,15 @@ sessions (not just in a chat). Also mirrored in the PR description.
   The tagging walks a running score from the raw feed, because CFBD's
   per-play score already includes points scored on that play. That needs the
   kickoffs and extra points `processPlayData` throws away, so it runs first.
+
+  Verified against live CFBD data for the spec's seven Alabama games: all 28
+  success rates (raw and filtered, both teams) match to the tenth, and the
+  close games exclude nothing. The spec's "plays removed" column counts every
+  feed row, timeouts and End of Game included; the app shows rush/pass plays
+  only, so its numbers are smaller (73, not 98, for 2022 Mississippi State).
+  The 2026 LSU feed now carries an End of Game row the spec's 21 predates, so
+  it tags 22 rows there; no rate moves. `npm run check:garbage` asserts the
+  rush/pass counts and the rates, and prints the row counts for reference.
 
 - **Share menu on every chart** — done. The copy-embed button on each card is
   now a share menu: copy embed code, copy image, download image, copy link.
