@@ -142,7 +142,18 @@ score **going into** the play — CFBD stamps the score *after* it, so a
 touchdown's own row already holds the six — which means tagging has to see the
 whole raw feed, kickoffs and extra points included. `processPlayData` does it
 first, before it filters down to rush/pass, and every `PlayData` carries
-`garbageTime`. Tags are keyed on the play objects, not ids.
+`garbageTime` plus the score at the snap. Tags are keyed on the play objects,
+not ids.
+
+CFBD's stamps glitch in both directions (kickoff rows carrying a touchdown
+that never happened, a scoring row sorted a play out of place), so a team's
+score after a row is the **median of three consecutive stamps**, not a running
+max: max() locks in every overstatement. Don't "simplify" it back; the check
+script has the two real games that broke it.
+
+It is deliberately **not** hindsight-based. A comeback makes later plays count
+again, but never re-labels the stretch before it; see the decision in
+TODO.md's Shipped notes before changing that.
 
 Whether a tag counts is a page setting (`useGarbageTimeSetting`, URL param
 `garbageTime`, written only as `include` since excluding is the default).

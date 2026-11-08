@@ -14,10 +14,21 @@
 // The margin has to be read from the score as it stood going INTO the play.
 // CFBD stamps each play with the score after it, so on a touchdown the
 // offenseScore already includes the six. Reading that would flag a play by
-// the result it produced, so the walk below keeps its own running score and
-// only folds a play's score in after judging it. That walk needs every play
-// of the game — kickoffs, field goals, extra points — which is why tagging
-// runs on the raw feed, before processPlayData throws all of that away.
+// the result it produced, so each play is judged on the score the plays
+// before it left. That needs every play of the game — kickoffs, field goals,
+// extra points — which is why tagging runs on the raw feed, before
+// processPlayData throws all of that away.
+//
+// Those stamps are noisy. Across a 2024 SEC/Big Ten sample, a kickoff row
+// would now and then carry a touchdown that never happened, sometimes for one
+// row and sometimes for a run of them before CFBD corrected it, and a scoring
+// play sorted a row out of place would briefly read the old score. A running
+// max() locks in every overstatement (Michigan led Minnesota 21-0, not 28-0,
+// and max() kept the phantom seven all game); trusting the latest stamp trips
+// on every one-row dip. So a team's score after a row is the median of its
+// stamps on that row and its neighbors: a value counts once two of three
+// consecutive rows agree. A play's own stamp only ever breaks a tie between
+// the two before it, so a touchdown still can't count its own points.
 
 /** The fields tagging reads. ApiPlayData and the wave's raw play type both fit. */
 export interface ScoreboardPlay {
@@ -68,19 +79,64 @@ export const compareGameOrder = (a: ScoreboardPlay, b: ScoreboardPlay): number =
 const scoreOf = (value: number | null | undefined): number | null =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 
-/** Walk one game's plays in order and collect the ones snapped in garbage time. */
-const tagGame = <T extends ScoreboardPlay>(plays: T[], thresholds: readonly number[], sticky: boolean, into: Set<T>) => {
-  const ordered = [...plays].sort(compareGameOrder);
-  const score = new Map<string, number>();
-  let settled = false;
+/** The score going into a snap, from that play's offense's side. */
+export interface ScoreAtSnap {
+  offense: number;
+  defense: number;
+}
 
+export interface Scoreboard<T> {
+  /** Plays snapped in garbage time. */
+  garbage: Set<T>;
+  /** Every play's score going into the snap. */
+  atSnap: Map<T, ScoreAtSnap>;
+}
+
+/** Walk one game's plays in order, recording each snap's score and whether it was garbage time. */
+const tagGame = <T extends ScoreboardPlay>(
+  plays: T[],
+  thresholds: readonly number[],
+  sticky: boolean,
+  into: Scoreboard<T>
+) => {
+  const ordered = [...plays].sort(compareGameOrder);
+
+  // Each team's stamped score after every row, carried past rows that don't
+  // give one (a missing or null field never moves a score).
+  const teams = new Set<string>();
+  ordered.forEach(play => {
+    if (play.offense) teams.add(play.offense);
+    if (play.defense) teams.add(play.defense);
+  });
+  const stamps = new Map<string, number[]>([...teams].map(team => [team, []]));
+  const latest = new Map<string, number>();
   for (const play of ordered) {
+    const offenseScore = scoreOf(play.offenseScore ?? play.offense_score);
+    const defenseScore = scoreOf(play.defenseScore ?? play.defense_score);
+    if (play.offense && offenseScore !== null) latest.set(play.offense, offenseScore);
+    if (play.defense && defenseScore !== null) latest.set(play.defense, defenseScore);
+    teams.forEach(team => stamps.get(team)?.push(latest.get(team) ?? 0));
+  }
+
+  /** A team's score after row `i`: the median of its stamps on rows i-1, i and i+1. */
+  const scoreAfter = (team: string, i: number): number => {
+    const series = stamps.get(team);
+    if (!series || i < 0) return 0;
+    const window = [series[Math.max(0, i - 1)], series[i], series[Math.min(series.length - 1, i + 1)]];
+    return window.sort((a, b) => a - b)[1];
+  };
+
+  let settled = false;
+  ordered.forEach((play, i) => {
     const offense = play.offense || '';
     const defense = play.defense || '';
     const period = play.period || play.quarter || 0;
 
-    // Judge the play on the score before it was run.
-    const margin = Math.abs((score.get(offense) ?? 0) - (score.get(defense) ?? 0));
+    // Judge the play on the score the rows before it left.
+    const offenseBefore = scoreAfter(offense, i - 1);
+    const defenseBefore = scoreAfter(defense, i - 1);
+    into.atSnap.set(play, { offense: offenseBefore, defense: defenseBefore });
+    const margin = Math.abs(offenseBefore - defenseBefore);
     const threshold = period >= 1 && period <= 4 ? thresholds[period - 1] : undefined;
     let garbage = threshold !== undefined && margin > threshold;
 
@@ -88,27 +144,20 @@ const tagGame = <T extends ScoreboardPlay>(plays: T[], thresholds: readonly numb
       if (garbage) settled = true;
       else if (settled) garbage = true;
     }
-    if (garbage) into.add(play);
-
-    // Then fold in the score it left behind. max() so a missing, null or
-    // momentarily stale field can never run a score backwards.
-    const offenseScore = scoreOf(play.offenseScore ?? play.offense_score);
-    const defenseScore = scoreOf(play.defenseScore ?? play.defense_score);
-    if (offense && offenseScore !== null) score.set(offense, Math.max(score.get(offense) ?? 0, offenseScore));
-    if (defense && defenseScore !== null) score.set(defense, Math.max(score.get(defense) ?? 0, defenseScore));
-  }
+    if (garbage) into.garbage.add(play);
+  });
 };
 
 /**
- * Every play snapped in garbage time, as the same objects passed in.
+ * Each play's score at the snap, and which plays were snapped in garbage time.
  *
  * Takes the raw feed — every play, special teams included — for one game or
  * many (a season's worth is fine: plays are grouped by game first, so each
- * game keeps its own scoreboard). The set holds the plays themselves rather
- * than their ids, so a duplicated id, or one JSON.parse rounded past 2^53,
- * can never tag the wrong play.
+ * game keeps its own scoreboard). Both are keyed on the plays themselves
+ * rather than their ids, so a duplicated id, or one JSON.parse rounded past
+ * 2^53, can never tag the wrong play.
  */
-export const findGarbageTimePlays = <T extends ScoreboardPlay>(rawPlays: T[], options: GarbageTimeOptions = {}): Set<T> => {
+export const readScoreboard = <T extends ScoreboardPlay>(rawPlays: T[], options: GarbageTimeOptions = {}): Scoreboard<T> => {
   const thresholds = options.thresholds ?? GARBAGE_TIME_THRESHOLDS;
   const sticky = options.sticky ?? false;
 
@@ -120,10 +169,14 @@ export const findGarbageTimePlays = <T extends ScoreboardPlay>(rawPlays: T[], op
     else byGame.set(key, [play]);
   }
 
-  const garbage = new Set<T>();
-  byGame.forEach(plays => tagGame(plays, thresholds, sticky, garbage));
-  return garbage;
+  const scoreboard: Scoreboard<T> = { garbage: new Set<T>(), atSnap: new Map<T, ScoreAtSnap>() };
+  byGame.forEach(plays => tagGame(plays, thresholds, sticky, scoreboard));
+  return scoreboard;
 };
+
+/** Every play snapped in garbage time, as the same objects passed in. See readScoreboard. */
+export const findGarbageTimePlays = <T extends ScoreboardPlay>(rawPlays: T[], options: GarbageTimeOptions = {}): Set<T> =>
+  readScoreboard(rawPlays, options).garbage;
 
 /** The plays that count once garbage time is out, or every play when the filter is off. */
 export const countedPlays = <T extends { garbageTime: boolean }>(plays: T[], excludeGarbageTime: boolean): T[] =>

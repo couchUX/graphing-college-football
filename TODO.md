@@ -50,6 +50,35 @@ sessions (not just in a chat). Also mirrored in the PR description.
   it tags 22 rows there; no rate moves. `npm run check:garbage` asserts the
   rush/pass counts and the rates, and prints the row counts for reference.
 
+- **All-plays table shows garbage time** — done. Garbage-time rows stay in the
+  table, grayed while the filter is on, with Score (at the snap, offense
+  first) and Garbage time columns next to Quarter, so a comeback reads as the
+  gray rows ending when the score comes back inside the margin.
+
+- **Score walk is a median of three stamps, not max()** — done. Across 259
+  SEC/Big Ten games from 2024, CFBD's per-play scores glitched both ways:
+  223 one-row dips and 24 overstatements that were later corrected (20
+  games). max() locked the overstatements in, which mis-tagged four games,
+  33 plays in Michigan-Minnesota alone (it read Michigan's 21-0 halftime lead
+  as 28-0). The spec asked for max(); the median still reproduces its
+  reference table exactly.
+
+- **Decision: comebacks don't re-label earlier garbage time.** The question
+  was whether a team getting back in the game means the stretch before it
+  wasn't garbage time after all ("hindsight"). Same 2024 sample, 258 games:
+  155 had garbage time, 36 came back inside the margin, none of those 36
+  leaders lost, and only 6 ever got within one score. Hindsight would put back
+  521 plays, but just 103 of them come from those 6 real comebacks; 172 come
+  from comebacks that started with under five minutes left (Arkansas State's
+  touchdown with 0:08 left at Michigan would put back the whole fourth
+  quarter, 34 plays). The SP+ rule already counts a comeback once it's back in
+  reach. What it gives up is the start of the rare real one (Georgia's 33
+  plays from 30-7 to 30-15 at Alabama). It also keeps a play's label fixed
+  once snapped, which matters for games charted live. Season success rates
+  barely move either way (median 0.19 pts across 34 teams). If the fixed
+  per-quarter thresholds ever feel too blunt, the better fix is time-aware
+  (CFBD win probability), not hindsight.
+
 - **Share menu on every chart** — done. The copy-embed button on each card is
   now a share menu: copy embed code, copy image, download image, copy link.
   Images are the card on paper with an even 32px margin, at up to 3× (a

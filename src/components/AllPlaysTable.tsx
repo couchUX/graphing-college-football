@@ -38,6 +38,10 @@ const COLUMNS: Column[] = [
   { key: 'driveNumber', label: 'Drive', filter: 'number', value: p => p.driveNumber },
   { key: 'playInDrive', label: 'Play in drive', filter: 'number', value: p => p.playInDrive },
   { key: 'quarter', label: 'Quarter', filter: 'select', value: p => p.quarter },
+  // Offense first, like the Offense column: "31-13" is the offense up 18. A
+  // plain hyphen, so typing the score into the filter finds it.
+  { key: 'score', label: 'Score', filter: 'text', value: p => `${p.offenseScoreAtSnap}-${p.defenseScoreAtSnap}` },
+  { key: 'garbageTime', label: 'Garbage time', filter: 'select', value: p => (p.garbageTime ? 'Yes' : 'No') },
   { key: 'down', label: 'Down', filter: 'select', value: p => p.down },
   { key: 'distance', label: 'Distance', filter: 'number', value: p => p.distance },
   { key: 'offense', label: 'Offense', filter: 'select', value: p => p.offense, filterClass: 'min-w-[120px]' },
@@ -59,7 +63,6 @@ const COLUMNS: Column[] = [
   { key: 'yardsGained', label: 'Yards', filter: 'number', value: p => p.yardsGained },
   { key: 'success', label: 'Success', filter: 'select', value: p => (p.success ? 'Yes' : 'No') },
   { key: 'explosiveness', label: 'Explosive', filter: 'select', value: p => (p.explosiveness ? 'Yes' : 'No') },
-  { key: 'garbageTime', label: 'Garbage time', filter: 'select', value: p => (p.garbageTime ? 'Yes' : 'No') },
   { key: 'teamSR', label: 'Team SR', filter: 'number', value: p => pct(p.teamCumulativeSR), render: p => `${pct(p.teamCumulativeSR).toFixed(1)}%` },
   { key: 'teamXR', label: 'Team XR', filter: 'number', value: p => pct(p.teamCumulativeXR), render: p => `${pct(p.teamCumulativeXR).toFixed(1)}%` },
   { key: 'rushRate', label: 'Rush rate', filter: 'number', value: p => pct(p.teamCumulativeRushRate), render: p => `${pct(p.teamCumulativeRushRate).toFixed(1)}%` },
@@ -82,9 +85,11 @@ const FILTER_CLASS =
 
 interface AllPlaysTableProps {
   plays: PlayData[];
+  /** Gray the garbage-time rows: they're listed but left out of the numbers. */
+  excludeGarbageTime?: boolean;
 }
 
-const AllPlaysTable: React.FC<AllPlaysTableProps> = ({ plays }) => {
+const AllPlaysTable: React.FC<AllPlaysTableProps> = ({ plays, excludeGarbageTime = false }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
 
   const setFilter = (key: string, value: string) =>
@@ -113,13 +118,22 @@ const AllPlaysTable: React.FC<AllPlaysTableProps> = ({ plays }) => {
   );
 
   const activeCount = COLUMNS.filter(c => filters[c.key]).length;
+  const grayRows = excludeGarbageTime && plays.some(play => play.garbageTime);
 
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
-        <h3 className="text-[15px] font-semibold text-ink">
-          Processed plays — rush and pass only, with player names ({plays.length} total)
-        </h3>
+        <div>
+          <h3 className="text-[15px] font-semibold text-ink">
+            Processed plays — rush and pass only, with player names ({plays.length} total)
+          </h3>
+          {grayRows && (
+            <p className="mt-0.5 text-sm text-byline">
+              Gray rows are garbage time: listed, but left out of every number above. Score is at the snap,
+              offense first.
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-3 text-sm text-byline">
           <span>
             {activeCount > 0
@@ -193,7 +207,12 @@ const AllPlaysTable: React.FC<AllPlaysTableProps> = ({ plays }) => {
             </thead>
             <tbody className="divide-y divide-hairline">
               {visiblePlays.map((play, index) => (
-                <tr key={play.id} className={index % 2 === 0 ? 'bg-surface' : 'bg-neutral-50'}>
+                <tr
+                  key={play.id}
+                  className={`${index % 2 === 0 ? 'bg-surface' : 'bg-neutral-50'} ${
+                    excludeGarbageTime && play.garbageTime ? 'opacity-50' : ''
+                  }`}
+                >
                   {COLUMNS.map(column => (
                     <td
                       key={column.key}

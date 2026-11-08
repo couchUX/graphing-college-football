@@ -637,7 +637,7 @@ const Dashboard: React.FC = () => {
                     )}
                   </div>
 
-                  <AllPlaysTable plays={tablePlays} />
+                  <AllPlaysTable plays={tablePlays} excludeGarbageTime={excludeGarbageTime} />
                 </div>
               )}
             </section>

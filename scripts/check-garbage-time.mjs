@@ -51,6 +51,7 @@ await build({
 const load = name => import(pathToFileURL(resolve(cache, `${name}.js`)).href);
 const {
   findGarbageTimePlays,
+  readScoreboard,
   countedPlays,
   readExcludeGarbageTime,
   garbageTimeParamValue,
@@ -131,6 +132,16 @@ check('no score yet, no garbage', lastTagged(game([['A', 4, [0, 0]]])), false);
   check('PAT judged on the TD it follows (16)', tagged.has(plays[2]), false);
   check('kickoff after the PAT (17) is garbage', tagged.has(plays[3]), true);
   check('trailing team snaps in garbage time too', tagged.has(plays[4]), true);
+
+  // The score at the snap, from each play's own offense (the table's Score column).
+  const { atSnap } = readScoreboard(plays);
+  const at = play => `${atSnap.get(play).offense}-${atSnap.get(play).defense}`;
+  check('score at the TD snap', at(plays[1]), '10-0');
+  check('score at the PAT snap', at(plays[2]), '16-0');
+  check('score at B\'s snap, B on offense', at(plays[4]), '0-17');
+  const processed = processPlayData(plays);
+  const lastRush = processed[processed.length - 1];
+  check('processPlayData stamps the score at the snap', `${lastRush.offenseScoreAtSnap}-${lastRush.defenseScoreAtSnap}`, '0-17');
 }
 
 // Not sticky: a comeback brings plays back.
@@ -164,6 +175,35 @@ const comeback = game([
   const tagged = findGarbageTimePlays(plays);
   check('null scores keep the board', tagged.has(plays[2]), true);
   check('a stale lower score keeps the board', tagged.has(plays[3]), true);
+}
+
+// CFBD's stamps glitch both ways; a value counts once two of three rows agree.
+// Michigan-Minnesota 2024: kickoffs stamped Michigan 28 when it led 21-0, then
+// CFBD corrected back to 21 after halftime. A running max() kept the phantom
+// seven, so Q3 read 28-3 (garbage) instead of 21-3.
+{
+  const plays = game([
+    ['A', 2, [21, 0], 'Rush'],
+    ['A', 2, [28, 0], 'Kickoff'], // overstated...
+    ['B', 2, [28, 0]],
+    ['B', 2, [28, 0]], // ...for a run of rows
+    ['B', 3, [21, 3], 'Kickoff'], // corrected
+    ['A', 3, [21, 3]],
+    ['A', 3, [21, 3]], // 18 going in: counts
+  ]);
+  check('a corrected overstatement does not stick', lastTagged(plays), false);
+}
+// Iowa-Northwestern 2024: one kickoff row gave Northwestern 14 while it had 7.
+// max() kept it all game, so Iowa's 33-7 lead read 33-14 and garbage time was missed.
+{
+  const plays = game([
+    ['A', 3, [33, 7], 'Rush'],
+    ['B', 3, [33, 14], 'Kickoff'], // one-row spike
+    ['B', 3, [33, 7]],
+    ['A', 3, [33, 7]],
+    ['A', 3, [33, 7]], // 26 going in: garbage
+  ]);
+  check('a one-row spike is ignored', lastTagged(plays), true);
 }
 
 // snake_case score fields read the same.

@@ -1,6 +1,6 @@
 import { PlayData, PlayerStats } from '../types';
 import type { ApiPlayData } from '../services/api';
-import { compareGameOrder, findGarbageTimePlays } from './garbageTime';
+import { compareGameOrder, readScoreboard } from './garbageTime';
 
 const calculateSuccess = (down: number, distance: number, yardsGained: number, playType: string = '', playText: string = ''): boolean => {
   // Special handling for two-point conversions
@@ -285,7 +285,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
   // Garbage time first, while every play is still here: the running score it
   // keeps needs the kickoffs, field goals and extra points the filter below
   // throws away. Tagging only marks plays; the pages decide whether they count.
-  const garbageTimePlays = findGarbageTimePlays(apiPlays);
+  const scoreboard = readScoreboard(apiPlays);
 
   // Sort plays by drive number, play in drive, then ID as fallback
   // This ensures proper chronological order based on game flow
@@ -385,7 +385,9 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
         const seconds = clock.seconds ?? 0;
         return (4 - q) * 900 + minutes * 60 + seconds;
       })(),
-      garbageTime: garbageTimePlays.has(play),
+      garbageTime: scoreboard.garbage.has(play),
+      offenseScoreAtSnap: scoreboard.atSnap.get(play)?.offense ?? 0,
+      defenseScoreAtSnap: scoreboard.atSnap.get(play)?.defense ?? 0,
       // Player names
       rusher: playerNames.rusher,
       passer: playerNames.passer,
