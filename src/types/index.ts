@@ -26,6 +26,9 @@ export interface PlayData {
   };
   wallclock: string;
   timeRemaining: number;
+  // Snapped with the game out of reach (src/utils/garbageTime.ts). Always
+  // tagged; whether it counts is the page's garbage-time setting.
+  garbageTime: boolean;
   // Player name fields
   rusher?: string;
   passer?: string;

@@ -43,7 +43,11 @@ const COLORS = { explosive: '#800000', success: '#BF5700', light: '#F5D6C6' };
 const TEAM = 'Texas';
 const OPPONENT = 'Ohio State';
 
-/** A small game: four quarters of alternating possessions, plus an OT snap. */
+/**
+ * A small game: four quarters of alternating possessions, plus an OT snap.
+ * The back half of the fourth is garbage time, as the Games page sends it with
+ * the filter on, so the gray dot and its dark label are drawn by both copies.
+ */
 const makeEvents = () => {
   const events = [];
   for (let quarter = 1; quarter <= 5; quarter += 1) {
@@ -60,6 +64,7 @@ const makeEvents = () => {
         yardsGained: i - 3,
         down: (i % 4) + 1,
         distance: 10,
+        ...(quarter === 4 && i >= 10 ? { garbage: true } : {}),
       });
     }
   }
@@ -228,6 +233,11 @@ for (const minify of [true, false]) {
       fail(`${label} ${where}: the SVG has no sized viewBox, so it can't scale to its container`);
     }
     if (!drawn.svg.includes('>OT<')) fail(`${label} ${where}: the overtime column is missing`);
+    const gray = (drawn.svg.match(new RegExp(`fill="${runtime.palette.garbage}"`, 'g')) ?? []).length;
+    const garbageEvents = events.filter(e => e.garbage).length;
+    if (gray !== garbageEvents) {
+      fail(`${label} ${where}: drew ${gray} garbage-time dots gray for ${garbageEvents} garbage-time events`);
+    }
     if (drawn.svg.includes('<angles>')) {
       fail(`${label} ${where}: play text reached the markup unescaped — an injection risk in the host page`);
     }

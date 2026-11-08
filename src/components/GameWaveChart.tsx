@@ -5,6 +5,7 @@ import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { extractFieldGoals, extractFumbles, extractScoreChanges, toWaveEvents, type RawPlayLike } from '../utils/gameWave';
 import { waveRuntime, type WaveShadeColors } from '../utils/gameWaveRuntime';
 import { buildGameWaveEmbedHtml } from '../utils/gameWaveEmbed';
+import { GARBAGE_TIME_FILL, findGarbageTimePlays } from '../utils/garbageTime';
 import ShareMenu from './ShareMenu';
 
 /** Card title, shared with the embed and the "copied" toast. */
@@ -26,6 +27,8 @@ interface GameWaveChartProps {
   sourceUrl?: string;
   /** Runs once the embed code is on the clipboard. */
   onEmbedCopied?: () => void;
+  /** Gray out garbage-time plays (they stay in the stacks). */
+  excludeGarbageTime?: boolean;
 }
 
 // Smallest the (centered) chart area can be dragged to.
@@ -35,9 +38,9 @@ const RESIZE_STEP = 24;
 
 const { palette, DOT_R, LABEL_BAND, REGULATION_QUARTERS } = waveRuntime;
 
-const LegendSwatch = ({ dotClass, label }: { dotClass: string; label: string }) => (
+const LegendSwatch = ({ dotClass, label, color }: { dotClass: string; label: string; color?: string }) => (
   <span className="inline-flex items-center gap-1.5">
-    <span className={`inline-block h-2.5 w-2.5 rounded-full ${dotClass}`} />
+    <span className={`inline-block h-2.5 w-2.5 rounded-full ${dotClass}`} style={color ? { backgroundColor: color } : undefined} />
     {label}
   </span>
 );
@@ -65,6 +68,7 @@ const GameWaveChart = ({
   subtitle,
   sourceUrl = 'https://graphingcollegefootball.com',
   onEmbedCopied,
+  excludeGarbageTime = false,
 }: GameWaveChartProps) => {
   // Measure the available width so the wave can re-bin as it grows/shrinks.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,15 +92,19 @@ const GameWaveChart = ({
   const clampedInset = Math.min(inset, maxInset);
   const chartWidth = containerWidth > 0 ? containerWidth - 2 * clampedInset : 0;
 
-  const fieldGoals = useMemo(() => extractFieldGoals(rawPlays), [rawPlays]);
-  const fumbles = useMemo(() => extractFumbles(rawPlays), [rawPlays]);
+  // Field goals and lost fumbles come from the raw feed, so they're tagged
+  // from it too; the rush/pass plays arrive tagged.
+  const garbageTimePlays = useMemo(() => findGarbageTimePlays(rawPlays), [rawPlays]);
+  const fieldGoals = useMemo(() => extractFieldGoals(rawPlays, garbageTimePlays), [rawPlays, garbageTimePlays]);
+  const fumbles = useMemo(() => extractFumbles(rawPlays, garbageTimePlays), [rawPlays, garbageTimePlays]);
   const scoreChanges = useMemo(() => extractScoreChanges(rawPlays), [rawPlays]);
 
   // Plays classified once; binning is what changes as the chart is resized.
   const events = useMemo(
-    () => toWaveEvents(plays, team, fieldGoals, fumbles, scoreChanges),
-    [plays, team, fieldGoals, fumbles, scoreChanges],
+    () => toWaveEvents(plays, team, fieldGoals, fumbles, scoreChanges, excludeGarbageTime),
+    [plays, team, fieldGoals, fumbles, scoreChanges, excludeGarbageTime],
   );
+  const showsGarbageTime = useMemo(() => events.some((e) => e.garbage), [events]);
 
   const hasOvertime = useMemo(() => events.some((e) => e.quarter > REGULATION_QUARTERS), [events]);
 
@@ -211,6 +219,7 @@ const GameWaveChart = ({
         <LegendSwatch dotClass="bg-neutral-700" label="Explosive" />
         <LegendSwatch dotClass="bg-neutral-400" label="Successful" />
         <LegendSwatch dotClass="bg-neutral-200 ring-1 ring-inset ring-neutral-300" label="Unsuccessful" />
+        {showsGarbageTime && <LegendSwatch dotClass="" color={GARBAGE_TIME_FILL} label="Garbage time, not counted" />}
       </div>
 
       {/* Resizable chart area: drag either handle to size the wave. It stays
@@ -270,7 +279,7 @@ const GameWaveChart = ({
                       dy="0.35em"
                       fontSize={0.5}
                       fontWeight="bold"
-                      fill={point.isScore ? palette.scoreLabel : palette.dotLabel}
+                      fill={waveRuntime.labelColor(point)}
                       textAnchor="middle"
                       pointerEvents="none"
                     >

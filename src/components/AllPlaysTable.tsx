@@ -59,6 +59,7 @@ const COLUMNS: Column[] = [
   { key: 'yardsGained', label: 'Yards', filter: 'number', value: p => p.yardsGained },
   { key: 'success', label: 'Success', filter: 'select', value: p => (p.success ? 'Yes' : 'No') },
   { key: 'explosiveness', label: 'Explosive', filter: 'select', value: p => (p.explosiveness ? 'Yes' : 'No') },
+  { key: 'garbageTime', label: 'Garbage time', filter: 'select', value: p => (p.garbageTime ? 'Yes' : 'No') },
   { key: 'teamSR', label: 'Team SR', filter: 'number', value: p => pct(p.teamCumulativeSR), render: p => `${pct(p.teamCumulativeSR).toFixed(1)}%` },
   { key: 'teamXR', label: 'Team XR', filter: 'number', value: p => pct(p.teamCumulativeXR), render: p => `${pct(p.teamCumulativeXR).toFixed(1)}%` },
   { key: 'rushRate', label: 'Rush rate', filter: 'number', value: p => pct(p.teamCumulativeRushRate), render: p => `${pct(p.teamCumulativeRushRate).toFixed(1)}%` },

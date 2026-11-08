@@ -27,6 +27,17 @@ import ShareMenu from './ShareMenu';
 import { readParams, writeParams } from '../utils/urlState';
 import { useCanonical } from '../hooks/useCanonical';
 import { pinLoadedParams, snapshotParams } from '../utils/shareLink';
+import GarbageTimeToggle from './GarbageTimeToggle';
+import { useGarbageTimeSetting } from '../hooks/useGarbageTimeSetting';
+import {
+  GARBAGE_TIME_PARAM,
+  countGarbageTime,
+  countedPerGame,
+  countedPlays,
+  garbageTimeNote,
+  garbageTimeParamValue,
+} from '../utils/garbageTime';
+import type { TrendsEmbedOptions } from '../utils/trendsEmbedGenerator';
 
 type TrendsView = 'season' | 'spTrends' | 'compare';
 
@@ -66,6 +77,8 @@ const TeamTrendsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [failedGames, setFailedGames] = useState<number[]>([]);
   const [selectedTeamColor, setSelectedTeamColor] = useState<string>('default');
+  // Shared by Season trends and Team vs. Team: one param, one page.
+  const [excludeGarbageTime, setExcludeGarbageTime] = useGarbageTimeSetting();
   const [currentParams, setCurrentParams] = useState<{
     year: number;
     team: string;
@@ -138,6 +151,32 @@ const TeamTrendsPage: React.FC = () => {
     }
   };
 
+  // The season as it counts: every play is tagged, the setting picks.
+  const countedSeasonPlays = useMemo(
+    () => countedPlays(allSeasonPlays, excludeGarbageTime),
+    [allSeasonPlays, excludeGarbageTime]
+  );
+  const countedPerGamePlays = useMemo(
+    () => countedPerGame(perGamePlays, excludeGarbageTime),
+    [perGamePlays, excludeGarbageTime]
+  );
+  // Both offenses: the season charts carry the opponents' numbers too.
+  const garbagePlays = useMemo(() => countGarbageTime(allSeasonPlays), [allSeasonPlays]);
+
+  // A copied chart says what it leaves out, and its link keeps the setting.
+  const embedOptions = useMemo((): TrendsEmbedOptions | undefined => {
+    if (!currentParams) return undefined;
+    const note = garbageTimeNote(excludeGarbageTime, garbagePlays);
+    const param = garbageTimeParamValue(excludeGarbageTime);
+    if (!note && !param) return undefined;
+    return {
+      subtitle: note
+        ? `${currentParams.team} - ${currentParams.year} Season (${seasonGames.length} games) • ${note}`
+        : undefined,
+      urlParams: param ? { [GARBAGE_TIME_PARAM]: param } : undefined,
+    };
+  }, [currentParams, excludeGarbageTime, garbagePlays, seasonGames.length]);
+
   // Handle copy embed for player charts
   /** A player chart's embed code, for its share menu. */
   const playerEmbed = (chartId: string, title: string, players: any[], kind: 'rush' | 'pass' | 'receive') =>
@@ -151,7 +190,8 @@ const TeamTrendsPage: React.FC = () => {
             currentParams.team,
             currentParams.year,
             seasonGames.length,
-            selectedTeamColor
+            selectedTeamColor,
+            embedOptions
           )
       : undefined;
 
@@ -163,8 +203,8 @@ const TeamTrendsPage: React.FC = () => {
 
   // Get chart data (hooks must be called unconditionally)
   const chartData = useSeasonChartData(
-    allSeasonPlays,
-    perGamePlays,
+    countedSeasonPlays,
+    countedPerGamePlays,
     seasonGames,
     currentParams?.team || '',
     selectedTeamColor
@@ -269,6 +309,13 @@ const TeamTrendsPage: React.FC = () => {
                 <p className="text-neutral-600">
                   Showing {currentParams.selectedGameIds.length} of {seasonGames.length} games
                 </p>
+                <GarbageTimeToggle
+                  className="mt-3"
+                  exclude={excludeGarbageTime}
+                  onChange={setExcludeGarbageTime}
+                  garbagePlays={garbagePlays}
+                  scope="these games"
+                />
               </div>
               {allSeasonPlays.length > 0 && (
                 <button
@@ -351,6 +398,7 @@ const TeamTrendsPage: React.FC = () => {
               year={currentParams.year}
               gamesCount={seasonGames.length}
               selectedTeamColor={selectedTeamColor}
+              embedOptions={embedOptions}
             />
           )}
 
@@ -449,7 +497,13 @@ const TeamTrendsPage: React.FC = () => {
 
           {trendsView === 'spTrends' && <MultiYearSpTrends />}
 
-          {trendsView === 'compare' && <TeamCompareView defaultTeam={currentParams?.team ?? null} />}
+          {trendsView === 'compare' && (
+            <TeamCompareView
+              defaultTeam={currentParams?.team ?? null}
+              excludeGarbageTime={excludeGarbageTime}
+              onExcludeGarbageTimeChange={setExcludeGarbageTime}
+            />
+          )}
         </div>
       </AppShell>
     </>

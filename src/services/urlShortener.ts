@@ -1,11 +1,15 @@
 // Simple URL sharing utilities
 
+import { GARBAGE_TIME_PARAM } from '../utils/garbageTime';
+
 export interface ShareUrlParams {
   year: number;
   team: string;
   gameId?: string;
   teamColor?: string;
   opponentColor?: string;
+  /** The garbage-time param's value, null at the default (see utils/garbageTime). */
+  garbageTime?: string | null;
 }
 
 // Create shareable URL with minimal parameters
@@ -25,6 +29,9 @@ export const createShareableUrl = (params: ShareUrlParams): string => {
   }
   if (params.opponentColor && params.opponentColor !== 'default') {
     urlParams.set('opponentColor', params.opponentColor);
+  }
+  if (params.garbageTime) {
+    urlParams.set(GARBAGE_TIME_PARAM, params.garbageTime);
   }
 
   return `${window.location.origin}/?${urlParams.toString()}`;

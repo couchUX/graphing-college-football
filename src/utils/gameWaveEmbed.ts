@@ -94,6 +94,10 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
   const uniqueId = `cfb-wave-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   const fnSuffix = uniqueId.replace(/-/g, '_');
   const hasOvertime = events.some(event => event.quarter > waveRuntime.REGULATION_QUARTERS);
+  // Gray dots only arrive when the page was excluding garbage time; say what they are.
+  const garbageKey = events.some(event => event.garbage)
+    ? keySwatch(waveRuntime.palette.garbage, null, 'Garbage time, not counted')
+    : '';
 
   // The drawer carries the "plays are binned by game clock" idea the legend
   // used to spend a line on, so it leads: how to read the chart first, what
@@ -306,7 +310,7 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
                   SWATCH_OTHER,
                   SWATCH_OTHER_RING,
                   'Unsuccessful',
-                )}</span>
+                )}${garbageKey}</span>
             </div>
             <div class="wave-plot" id="wavePlot_${uniqueId}">
                 <div class="wave-frame" id="waveFrame_${uniqueId}"></div>

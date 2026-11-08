@@ -17,16 +17,59 @@ import {
 } from '../utils/chartHelpers';
 import { NCAA_AVERAGE_SR, RUSH_PASS_SPLIT } from '../utils/chartConfig';
 import { formatDownDistance } from '../utils/downDistance';
+import { withGarbageTimeHeld } from '../utils/metrics';
+import { GARBAGE_TIME_FILL, GARBAGE_TIME_STROKE, countedPlays } from '../utils/garbageTime';
 
-export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default', realWinProbabilityData: any[] = [], rawApiData: any[] = []) => {
+/**
+ * Line segments leading to a garbage-time play, drawn gray (Chart.js falls
+ * back to the dataset's own color on undefined). Closure-free on purpose: the
+ * embed generator ships this function's source, so the color is written out
+ * rather than read from GARBAGE_TIME_STROKE — keep the two in step.
+ */
+function garbageTimeSegmentColor(ctx: { p1?: { raw?: { garbage?: boolean } } }) {
+  const point = ctx && ctx.p1 && ctx.p1.raw;
+  return point && point.garbage ? '#B5AFA7' : undefined;
+}
+
+const GARBAGE_TIME_SEGMENT = { borderColor: garbageTimeSegmentColor };
+
+/** Drive connectors for garbage-time plays on the play maps. */
+const GARBAGE_TIME_DRIVE_COLORS = { success: GARBAGE_TIME_STROKE };
+
+export const useChartData = (plays: PlayData[], team: string, selectedTeamColor: string = 'default', selectedOpponentColor: string = 'default', realWinProbabilityData: any[] = [], rawApiData: any[] = [], excludeGarbageTime: boolean = false) => {
   return useMemo(() => {
     // Get opponent team
-    const opponentTeam = plays.find(p => p.offense !== team && p.defense !== team)?.offense || 
+    const opponentTeam = plays.find(p => p.offense !== team && p.defense !== team)?.offense ||
                         plays.find(p => p.defense !== team)?.defense || 'Opponent';
 
-    // Filter plays by team
+    // Filter plays by team. Every play, for anything that places plays along
+    // the game (axes, play-map points, quarter lines)...
     const teamPlays = plays.filter(p => p.offense === team);
     const opponentPlays = plays.filter(p => p.offense === opponentTeam);
+
+    // ...the plays that count, for anything that adds them up...
+    const teamCounted = countedPlays(teamPlays, excludeGarbageTime);
+    const opponentCounted = countedPlays(opponentPlays, excludeGarbageTime);
+
+    // ...and every play again, with running totals over the counted ones, for
+    // the cumulative lines. Garbage time stays on screen (grayed) so the game
+    // keeps its shape; the lines hold level through it.
+    const linePlays = excludeGarbageTime ? withGarbageTimeHeld(plays) : plays;
+    const teamLinePlays = linePlays.filter(p => p.offense === team);
+    const opponentLinePlays = linePlays.filter(p => p.offense === opponentTeam);
+
+    // With the filter off, nothing below changes: no gray, no extra fields.
+    const grayed = (play: PlayData) => excludeGarbageTime && play.garbageTime;
+    const point = (play: PlayData, x: number, y: number) => {
+      const dd = formatDownDistance(play.down, play.distance, play.yardsToGoal);
+      return grayed(play)
+        ? { x, y, dd: `${dd} · garbage time, not counted`, text: play.playText, garbage: true }
+        : { x, y, dd, text: play.playText };
+    };
+    const fillFor = (play: PlayData, color: string) => (grayed(play) ? GARBAGE_TIME_FILL : color);
+    const borderFor = (sidePlays: PlayData[], color: string) =>
+      excludeGarbageTime ? sidePlays.map(play => (play.garbageTime ? GARBAGE_TIME_STROKE : color)) : color;
+    const segment = excludeGarbageTime ? { segment: GARBAGE_TIME_SEGMENT } : {};
 
     // Get team colors with override support
     const teamColors = getDisplayTeamColors(team, selectedTeamColor);
@@ -37,10 +80,10 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     const opponentPlayerColors = getDisplayTeamColorsForPlayerChart(opponentTeam, selectedOpponentColor);
 
     // Calculate basic stats
-    const teamSuccessfulPlays = teamPlays.filter(p => p.success).length;
-    const teamExplosivePlays = teamPlays.filter(p => p.explosiveness).length;
-    const opponentSuccessfulPlays = opponentPlays.filter(p => p.success).length;
-    const opponentExplosivePlays = opponentPlays.filter(p => p.explosiveness).length;
+    const teamSuccessfulPlays = teamCounted.filter(p => p.success).length;
+    const teamExplosivePlays = teamCounted.filter(p => p.explosiveness).length;
+    const opponentSuccessfulPlays = opponentCounted.filter(p => p.success).length;
+    const opponentExplosivePlays = opponentCounted.filter(p => p.explosiveness).length;
 
     // Play number bounds
     const maxPlayNumber = Math.max(...plays.map(p => p.playNumber));
@@ -54,8 +97,8 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         {
           label: 'Explosiveness Rate (XR)',
           data: [
-            teamPlays.length > 0 ? teamExplosivePlays / teamPlays.length : 0,
-            opponentPlays.length > 0 ? opponentExplosivePlays / opponentPlays.length : 0
+            teamCounted.length > 0 ? teamExplosivePlays / teamCounted.length : 0,
+            opponentCounted.length > 0 ? opponentExplosivePlays / opponentCounted.length : 0
           ],
           backgroundColor: [teamColors.explosive, opponentColors.explosive],
           stack: 'SRXR',
@@ -66,15 +109,15 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         {
           label: 'Success Rate (SR)',
           data: [
-            teamPlays.length > 0 ? teamSuccessfulPlays / teamPlays.length : 0,
-            opponentPlays.length > 0 ? opponentSuccessfulPlays / opponentPlays.length : 0
+            teamCounted.length > 0 ? teamSuccessfulPlays / teamCounted.length : 0,
+            opponentCounted.length > 0 ? opponentSuccessfulPlays / opponentCounted.length : 0
           ],
           backgroundColor: [teamColors.success, opponentColors.success],
           stack: 'SRXR',
           datalabels: {
             display: true,
             formatter: (_value: number, context: any) => {
-              return context.dataIndex === 0 ? teamPlays.length : opponentPlays.length;
+              return context.dataIndex === 0 ? teamCounted.length : opponentCounted.length;
             }
           }
         },
@@ -115,54 +158,38 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         // Reference area first (drawn behind other elements)
         createReferenceArea(maxPlayNumber, NCAA_AVERAGE_SR, "NCAA Avg SR"),
         {
-          data: teamPlays.map(play => ({ 
-            x: play.playNumber, 
-            y: play.teamCumulativeXR, 
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText
-          })),
+          data: teamLinePlays.map(play => point(play, play.playNumber, play.teamCumulativeXR)),
           label: `${team} XR`,
           borderColor: teamColors.explosive,
           borderWidth: 2.2,
           fill: false,
+          ...segment,
         },
         {
-          data: teamPlays.map(play => ({ 
-            x: play.playNumber, 
-            y: play.teamCumulativeSR, 
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText
-          })),
+          data: teamLinePlays.map(play => point(play, play.playNumber, play.teamCumulativeSR)),
           label: `${team} SR`,
           borderColor: teamColors.success,
           borderWidth: 2.2,
           fill: false,
+          ...segment,
         },
         {
-          data: opponentPlays.map(play => ({ 
-            x: play.playNumber, 
-            y: play.teamCumulativeXR, 
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText
-          })),
+          data: opponentLinePlays.map(play => point(play, play.playNumber, play.teamCumulativeXR)),
           label: `${opponentTeam} XR`,
           borderColor: opponentColors.explosive,
           borderWidth: 2.2,
           borderDash: [4, 4],
           fill: false,
+          ...segment,
         },
         {
-          data: opponentPlays.map(play => ({ 
-            x: play.playNumber, 
-            y: play.teamCumulativeSR, 
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText
-          })),
+          data: opponentLinePlays.map(play => point(play, play.playNumber, play.teamCumulativeSR)),
           label: `${opponentTeam} SR`,
           borderColor: opponentColors.success,
           borderWidth: 2.2,
           borderDash: [4, 4],
           fill: false,
+          ...segment,
         },
         // Quarter gridlines
         createQuarterGridlines(plays, maxPlayNumber, 0, 1)
@@ -175,53 +202,45 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         // Reference area first
         createReferenceArea(maxTeamPlayNumber, NCAA_AVERAGE_SR, "NCAA Avg SR"),
         {
-          data: teamPlays.map(play => ({
-            x: play.teamPlayNumber,
-            y: play.teamRushCumulativeSR,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
+          data: teamLinePlays.map(play => point(play, play.teamPlayNumber, play.teamRushCumulativeSR)),
           label: `${team} Rush SR`,
           borderColor: teamColors.explosive,
-          backgroundColor: teamPlays.map(play => {
+          backgroundColor: teamLinePlays.map(play => {
             const isRush = isRushPlayType(play.playType);
             if (!isRush) return 'rgba(255,255,255,0.9)';
-            return getPointColors([play], teamColors)[0];
+            return fillFor(play, getPointColors([play], teamColors)[0]);
           }),
           borderWidth: 2,
           pointStyle: 'circle',
-          pointRadius: teamPlays.map(play => {
+          pointRadius: teamLinePlays.map(play => {
             const isRush = isRushPlayType(play.playType);
             return isRush ? 4 : 0;
           }),
           pointBorderWidth: 1,
-          pointBorderColor: teamColors.explosive,
+          pointBorderColor: borderFor(teamLinePlays, teamColors.explosive),
           showLine: true,
+          ...segment,
         },
         {
-          data: teamPlays.map(play => ({
-            x: play.teamPlayNumber,
-            y: play.teamPassCumulativeSR,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
+          data: teamLinePlays.map(play => point(play, play.teamPlayNumber, play.teamPassCumulativeSR)),
           label: `${team} Pass SR`,
           borderColor: teamColors.explosive,
-          backgroundColor: teamPlays.map(play => {
+          backgroundColor: teamLinePlays.map(play => {
             const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
             if (!isPass) return 'rgba(255,255,255,0.9)';
-            return getPointColors([play], teamColors)[0];
+            return fillFor(play, getPointColors([play], teamColors)[0]);
           }),
           borderWidth: 2,
           pointStyle: 'triangle',
-          pointRadius: teamPlays.map(play => {
+          pointRadius: teamLinePlays.map(play => {
             const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
             return isPass ? 6 : 0;
           }),
           pointBorderWidth: 1,
-          pointBorderColor: teamColors.explosive,
+          pointBorderColor: borderFor(teamLinePlays, teamColors.explosive),
           borderDash: [4, 4],
           showLine: true,
+          ...segment,
         },
         // Quarter gridlines
         createTeamQuarterGridlines(teamPlays, maxTeamPlayNumber, 0, 1)
@@ -234,53 +253,45 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         // Reference area first
         createReferenceArea(maxOpponentPlayNumber, NCAA_AVERAGE_SR, "NCAA Avg SR"),
         {
-          data: opponentPlays.map(play => ({
-            x: play.teamPlayNumber,
-            y: play.teamRushCumulativeSR,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
+          data: opponentLinePlays.map(play => point(play, play.teamPlayNumber, play.teamRushCumulativeSR)),
           label: `${opponentTeam} Rush SR`,
           borderColor: opponentColors.explosive,
-          backgroundColor: opponentPlays.map(play => {
+          backgroundColor: opponentLinePlays.map(play => {
             const isRush = isRushPlayType(play.playType);
             if (!isRush) return 'rgba(255,255,255,0.9)';
-            return getPointColors([play], opponentColors)[0];
+            return fillFor(play, getPointColors([play], opponentColors)[0]);
           }),
           borderWidth: 2,
           pointStyle: 'circle',
-          pointRadius: opponentPlays.map(play => {
+          pointRadius: opponentLinePlays.map(play => {
             const isRush = isRushPlayType(play.playType);
             return isRush ? 4 : 0;
           }),
           pointBorderWidth: 1,
-          pointBorderColor: opponentColors.explosive,
+          pointBorderColor: borderFor(opponentLinePlays, opponentColors.explosive),
           showLine: true,
+          ...segment,
         },
         {
-          data: opponentPlays.map(play => ({
-            x: play.teamPlayNumber,
-            y: play.teamPassCumulativeSR,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
+          data: opponentLinePlays.map(play => point(play, play.teamPlayNumber, play.teamPassCumulativeSR)),
           label: `${opponentTeam} Pass SR`,
           borderColor: opponentColors.explosive,
-          backgroundColor: opponentPlays.map(play => {
+          backgroundColor: opponentLinePlays.map(play => {
             const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
             if (!isPass) return 'rgba(255,255,255,0.9)';
-            return getPointColors([play], opponentColors)[0];
+            return fillFor(play, getPointColors([play], opponentColors)[0]);
           }),
           borderWidth: 2,
           pointStyle: 'triangle',
-          pointRadius: opponentPlays.map(play => {
+          pointRadius: opponentLinePlays.map(play => {
             const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
             return isPass ? 6 : 0;
           }),
           pointBorderWidth: 1,
-          pointBorderColor: opponentColors.explosive,
+          pointBorderColor: borderFor(opponentLinePlays, opponentColors.explosive),
           borderDash: [4, 4],
           showLine: true,
+          ...segment,
         },
         // Quarter gridlines
         createTeamQuarterGridlines(opponentPlays, maxOpponentPlayNumber, 0, 1)
@@ -293,30 +304,26 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         // 50/50 reference area first
         createReferenceArea(maxTeamPlayNumber, RUSH_PASS_SPLIT, "50/50"),
         {
-          data: teamPlays.map(play => ({
-            x: play.teamPlayNumber,
-            y: play.teamCumulativeRushRate,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
+          data: teamLinePlays.map(play => point(play, play.teamPlayNumber, play.teamCumulativeRushRate)),
           label: `${team} Rush Rate`,
           borderColor: teamColors.explosive,
           backgroundColor: teamColors.light,
           borderWidth: 2,
-          pointBackgroundColor: teamPlays.map(play => {
-            return getPointColors([play], teamColors)[0];
+          pointBackgroundColor: teamLinePlays.map(play => {
+            return fillFor(play, getPointColors([play], teamColors)[0]);
           }),
-          pointStyle: teamPlays.map(play => {
+          pointStyle: teamLinePlays.map(play => {
             const isRush = isRushPlayType(play.playType);
             return isRush ? 'circle' : 'triangle';
           }),
-          pointRadius: teamPlays.map(play => {
+          pointRadius: teamLinePlays.map(play => {
             const isRush = isRushPlayType(play.playType);
             return isRush ? 4 : 5.5;
           }),
           pointBorderWidth: 1,
-          pointBorderColor: teamColors.explosive,
+          pointBorderColor: borderFor(teamLinePlays, teamColors.explosive),
           fill: true,
+          ...segment,
         },
         // Quarter gridlines
         createTeamQuarterGridlines(teamPlays, maxTeamPlayNumber, 0, 1)
@@ -329,30 +336,26 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         // 50/50 reference area first
         createReferenceArea(maxOpponentPlayNumber, RUSH_PASS_SPLIT, "50/50"),
         {
-          data: opponentPlays.map(play => ({
-            x: play.teamPlayNumber,
-            y: play.teamCumulativeRushRate,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
+          data: opponentLinePlays.map(play => point(play, play.teamPlayNumber, play.teamCumulativeRushRate)),
           label: `${opponentTeam} Rush Rate`,
           borderColor: opponentColors.explosive,
           backgroundColor: opponentColors.light,
           borderWidth: 2,
-          pointBackgroundColor: opponentPlays.map(play => {
-            return getPointColors([play], opponentColors)[0];
+          pointBackgroundColor: opponentLinePlays.map(play => {
+            return fillFor(play, getPointColors([play], opponentColors)[0]);
           }),
-          pointStyle: opponentPlays.map(play => {
+          pointStyle: opponentLinePlays.map(play => {
             const isRush = isRushPlayType(play.playType);
             return isRush ? 'circle' : 'triangle';
           }),
-          pointRadius: opponentPlays.map(play => {
+          pointRadius: opponentLinePlays.map(play => {
             const isRush = isRushPlayType(play.playType);
             return isRush ? 4 : 5.5;
           }),
           pointBorderWidth: 1,
-          pointBorderColor: opponentColors.explosive,
+          pointBorderColor: borderFor(opponentLinePlays, opponentColors.explosive),
           fill: true,
+          ...segment,
         },
         // Quarter gridlines
         createTeamQuarterGridlines(opponentPlays, maxOpponentPlayNumber, 0, 1)
@@ -374,43 +377,43 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     const oppMinY = Math.min(...oppYardsGained, -15);
     const oppMaxY = Math.max(...oppYardsGained, 75);
 
+    // Drive connectors in team colors through the plays that count, and in
+    // gray through garbage time, so a blowout's late drives still read as drives.
+    const driveLines = (sidePlays: PlayData[], colors: ReturnType<typeof getDisplayTeamColors>) =>
+      excludeGarbageTime
+        ? [
+            ...createDriveLines(sidePlays.filter(p => !p.garbageTime), colors),
+            ...createDriveLines(sidePlays.filter(p => p.garbageTime), GARBAGE_TIME_DRIVE_COLORS),
+          ]
+        : createDriveLines(sidePlays, colors);
+
     const teamPlayMapData = {
       datasets: [
         createBelowZeroArea(maxPlayNumber, teamMinY),
-        ...createDriveLines(teamPlays, teamColors),
+        ...driveLines(teamPlays, teamColors),
         {
           label: `${team} Rush Yards`,
-          data: teamRushPlays.map((play) => ({
-            x: play.playNumber,
-            y: play.yardsGained,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
-          backgroundColor: getPointColors(teamRushPlays, teamColors),
+          data: teamRushPlays.map(play => point(play, play.playNumber, play.yardsGained)),
+          backgroundColor: getPointColors(teamRushPlays, teamColors).map((color, i) => fillFor(teamRushPlays[i], color)),
           pointStyle: 'circle',
           pointRadius: 4,
           pointBorderWidth: 1,
-          pointBorderColor: teamColors.explosive,
+          pointBorderColor: borderFor(teamRushPlays, teamColors.explosive),
           showLine: false,
           order: 2, // Ensure points are drawn above lines
         },
         {
           label: `${team} Pass Yards`,
-          data: teamPassPlays.map((play) => ({
-            x: play.playNumber,
-            y: play.yardsGained,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
-          backgroundColor: getPointColors(teamPassPlays, teamColors),
+          data: teamPassPlays.map(play => point(play, play.playNumber, play.yardsGained)),
+          backgroundColor: getPointColors(teamPassPlays, teamColors).map((color, i) => fillFor(teamPassPlays[i], color)),
           pointStyle: 'triangle',
           pointRadius: 5.5,
           pointBorderWidth: 1,
-          pointBorderColor: teamColors.explosive,
+          pointBorderColor: borderFor(teamPassPlays, teamColors.explosive),
           showLine: false,
           order: 2, // Ensure points are drawn above lines
         },
-        createAvgExtraYardsLine(teamPlays, teamColors),
+        createAvgExtraYardsLine(teamCounted, teamColors),
         createQuarterGridlines(plays, maxPlayNumber, teamMinY, teamMaxY)
       ],
     };
@@ -418,46 +421,36 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     const opponentPlayMapData = {
       datasets: [
         createBelowZeroArea(maxPlayNumber, oppMinY),
-        ...createDriveLines(opponentPlays, opponentColors),
+        ...driveLines(opponentPlays, opponentColors),
         {
           label: `${opponentTeam} Rush Yards`,
-          data: oppRushPlays.map((play) => ({
-            x: play.playNumber,
-            y: play.yardsGained,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
-          backgroundColor: getPointColors(oppRushPlays, opponentColors),
+          data: oppRushPlays.map(play => point(play, play.playNumber, play.yardsGained)),
+          backgroundColor: getPointColors(oppRushPlays, opponentColors).map((color, i) => fillFor(oppRushPlays[i], color)),
           pointStyle: 'circle',
           pointRadius: 4,
           pointBorderWidth: 1,
-          pointBorderColor: opponentColors.explosive,
+          pointBorderColor: borderFor(oppRushPlays, opponentColors.explosive),
           showLine: false,
           order: 2, // Ensure points are drawn above lines
         },
         {
           label: `${opponentTeam} Pass Yards`,
-          data: oppPassPlays.map((play) => ({
-            x: play.playNumber,
-            y: play.yardsGained,
-            dd: formatDownDistance(play.down, play.distance, play.yardsToGoal),
-            text: play.playText,
-          })),
-          backgroundColor: getPointColors(oppPassPlays, opponentColors),
+          data: oppPassPlays.map(play => point(play, play.playNumber, play.yardsGained)),
+          backgroundColor: getPointColors(oppPassPlays, opponentColors).map((color, i) => fillFor(oppPassPlays[i], color)),
           pointStyle: 'triangle',
           pointRadius: 5.5,
           pointBorderWidth: 1,
-          pointBorderColor: opponentColors.explosive,
+          pointBorderColor: borderFor(oppPassPlays, opponentColors.explosive),
           showLine: false,
           order: 2, // Ensure points are drawn above lines
         },
-        createAvgExtraYardsLine(opponentPlays, opponentColors),
+        createAvgExtraYardsLine(opponentCounted, opponentColors),
         createQuarterGridlines(plays, maxPlayNumber, oppMinY, oppMaxY)
       ],
     };
 
     // 9 & 10. Drive Metrics
-    const teamDriveGroups = teamPlays.reduce((acc, play) => {
+    const teamDriveGroups = teamCounted.reduce((acc, play) => {
       if (!acc[play.driveNumber]) acc[play.driveNumber] = [];
       acc[play.driveNumber].push(play);
       return acc;
@@ -470,7 +463,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
       xr: drivePlays.filter(p => p.explosiveness).length / drivePlays.length
     }));
 
-    const opponentDriveGroups = opponentPlays.reduce((acc, play) => {
+    const opponentDriveGroups = opponentCounted.reduce((acc, play) => {
       if (!acc[play.driveNumber]) acc[play.driveNumber] = [];
       acc[play.driveNumber].push(play);
       return acc;
@@ -556,13 +549,13 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
     };
 
     // Enhanced Player stats with improved categorization
-    const teamRushers = calculatePlayerStats(teamPlays, 'rush');
-    const teamPassers = calculatePlayerStats(teamPlays, 'pass');
-    const teamReceivers = calculatePlayerStats(teamPlays, 'receive');
+    const teamRushers = calculatePlayerStats(teamCounted, 'rush');
+    const teamPassers = calculatePlayerStats(teamCounted, 'pass');
+    const teamReceivers = calculatePlayerStats(teamCounted, 'receive');
     
-    const opponentRushers = calculatePlayerStats(opponentPlays, 'rush');
-    const opponentPassers = calculatePlayerStats(opponentPlays, 'pass');
-    const opponentReceivers = calculatePlayerStats(opponentPlays, 'receive');
+    const opponentRushers = calculatePlayerStats(opponentCounted, 'rush');
+    const opponentPassers = calculatePlayerStats(opponentCounted, 'pass');
+    const opponentReceivers = calculatePlayerStats(opponentCounted, 'receive');
 
     // Combine and sort players by team, then by total plays
     const allRushers = [
@@ -629,7 +622,7 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
       
       // Helper function for bar charts
       createTeamVsOpponentBarData: (category: 'quarter' | 'down' | 'playType' | 'redZone' | 'distance') =>
-        createTeamVsOpponentBarData(category, teamPlays, opponentPlays, team, opponentTeam, teamColors, opponentColors),
+        createTeamVsOpponentBarData(category, teamCounted, opponentCounted, team, opponentTeam, teamColors, opponentColors),
       
       // Enhanced player data creator
       createPlayerData,
@@ -644,5 +637,5 @@ export const useChartData = (plays: PlayData[], team: string, selectedTeamColor:
         rawApiData // Pass raw API data with playId and quarter info for quarter gridlines
       )
     };
-  }, [plays, team, selectedTeamColor, selectedOpponentColor, realWinProbabilityData, rawApiData]);
+  }, [plays, team, selectedTeamColor, selectedOpponentColor, realWinProbabilityData, rawApiData, excludeGarbageTime]);
 };

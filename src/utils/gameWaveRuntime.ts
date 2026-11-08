@@ -14,6 +14,8 @@ export interface WaveEvent {
   yardsGained: number;
   down: number;
   distance: number;
+  /** Snapped in garbage time while the page is excluding it: drawn gray, stacked as usual. */
+  garbage?: boolean;
 }
 
 /** An event once it has a column and a place in that column's stack. */
@@ -133,6 +135,9 @@ export const createWaveRuntime = () => {
     dotLabel: '#374151',
     scoreLabel: '#ffffff',
     dotStroke: '#ffffff',
+    // Plays left out of the numbers (garbage time). GARBAGE_TIME_FILL in
+    // utils/garbageTime.ts; written out because nothing here may be imported.
+    garbage: '#DDD8D1',
   };
 
   // Dot tooltips wear Chart.js 4's default tooltip look, so hovering the wave
@@ -334,17 +339,23 @@ export const createWaveRuntime = () => {
   // A touchdown is shaded by how the play went — a 3-yard score is successful,
   // not explosive — and its label carries the points.
   const dotColor = (point: WavePoint, topColors: WaveShadeColors, bottomColors: WaveShadeColors): string => {
+    if (point.garbage) return palette.garbage;
     const colors = point.side === 'top' ? topColors : bottomColors;
     if (point.outcome === 'explosive' || point.outcome === 'fieldGoal') return colors.explosive;
     if (point.outcome === 'success') return colors.success;
     return colors.light;
   };
 
+  /** The marker inside a dot: white on a team-colored score, dark on anything pale. */
+  const labelColor = (point: WavePoint): string =>
+    point.isScore && !point.garbage ? palette.scoreLabel : palette.dotLabel;
+
   /** Hover text for a dot: who, what happened, and the play description. */
   const dotTooltip = (point: WavePoint, team: string, opponent: string): string => {
     const who = point.side === 'top' ? team : opponent;
     const situation = point.down ? ' (' + point.yardsGained + ' yds on ' + point.down + ' & ' + point.distance + ')' : '';
-    return who + ' — ' + OUTCOME_LABELS[point.outcome] + situation + '\n' + point.playText;
+    const excluded = point.garbage ? ' · garbage time' : '';
+    return who + ' — ' + OUTCOME_LABELS[point.outcome] + situation + excluded + '\n' + point.playText;
   };
 
   /** A dot's hover text split for display: its first line is the title, the play text the body. */
@@ -538,7 +549,7 @@ export const createWaveRuntime = () => {
           '" stroke-width="0.05"/>' +
           (point.label
             ? '<text x="' + cx + '" y="' + cy + '" dy="0.35em" font-size="0.5" font-weight="bold" fill="' +
-              (point.isScore ? palette.scoreLabel : palette.dotLabel) +
+              labelColor(point) +
               '" text-anchor="middle" pointer-events="none">' + escapeXml(point.label) + '</text>'
             : '') +
           '</g>',
@@ -583,6 +594,7 @@ export const createWaveRuntime = () => {
     buildGeometry,
     chooseSegments,
     dotColor,
+    labelColor,
     dotTooltip,
     tooltipParts,
     placeTooltip,

@@ -58,12 +58,18 @@ const HEADERS = [
   'explosiveness',
   'extra_yards',
   'ppa',
+  'garbage_time',
   'rusher',
   'passer',
   'receiver',
   'play_text',
 ] as const;
 
+/**
+ * Every play, whatever the page's garbage-time setting: the export is the raw
+ * material, so garbage time is a column to filter on (`garbage_time`) rather
+ * than rows quietly missing.
+ */
 export const playsToCsv = (plays: PlayData[], games: PlaysCsvGame[] = []): string => {
   const gameById = new Map<number, PlaysCsvGame>();
   games.forEach((game) => gameById.set(game.id, game));
@@ -100,6 +106,7 @@ export const playsToCsv = (plays: PlayData[], games: PlaysCsvGame[] = []): strin
       play.explosiveness,
       play.extraYards,
       play.ppa,
+      play.garbageTime,
       play.rusher ?? '',
       play.passer ?? '',
       play.receiver ?? '',

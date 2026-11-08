@@ -23,8 +23,27 @@ import GameMultiSelect from './GameMultiSelect';
 import CompareBoxScore from './CompareBoxScore';
 import TrendsChartsGrid from './TrendsChartsGrid';
 import ShareMenu from './ShareMenu';
+import GarbageTimeToggle from './GarbageTimeToggle';
+import {
+  GARBAGE_TIME_PARAM,
+  countGarbageTime,
+  countedPerGame,
+  countedPlays,
+  garbageTimeNote,
+  garbageTimeParamValue,
+} from '../utils/garbageTime';
 
 initializeChartDefaults();
+
+/** One side of the comparison as it counts: garbage time out, when it's excluded. */
+const countedSide = (side: CompareSide | null, excludeGarbageTime: boolean): CompareSide | null =>
+  side && excludeGarbageTime
+    ? {
+        ...side,
+        allPlays: countedPlays(side.allPlays, true),
+        perGamePlays: countedPerGame(side.perGamePlays, true),
+      }
+    : side;
 
 const sortGames = (a: TeamGame, b: TeamGame) => {
   if (a.seasonType !== b.seasonType) return a.seasonType === 'regular' ? -1 : 1;
@@ -145,9 +164,16 @@ interface TeamCompareViewProps {
    * that team against someone.
    */
   defaultTeam?: string | null;
+  /** The page's garbage-time setting, shared with Season trends (one URL param). */
+  excludeGarbageTime: boolean;
+  onExcludeGarbageTimeChange: (exclude: boolean) => void;
 }
 
-const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null }) => {
+const TeamCompareView: React.FC<TeamCompareViewProps> = ({
+  defaultTeam = null,
+  excludeGarbageTime,
+  onExcludeGarbageTimeChange,
+}) => {
   const { teams, loading: loadingTeams, error: teamsError } = useTeams();
   const [teamA, setTeamA] = useState<Team | null>(null);
   const [teamB, setTeamB] = useState<Team | null>(null);
@@ -387,7 +413,16 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
     }
   };
 
-  const chartData = useCompareChartData(result?.a ?? null, result?.b ?? null, colorA, colorB);
+  const sideA = useMemo(() => countedSide(result?.a ?? null, excludeGarbageTime), [result, excludeGarbageTime]);
+  const sideB = useMemo(() => countedSide(result?.b ?? null, excludeGarbageTime), [result, excludeGarbageTime]);
+  const chartData = useCompareChartData(sideA, sideB, colorA, colorB);
+
+  // Each team's own offense: the only plays a comparison counts.
+  const garbagePlays = useMemo(() => {
+    if (!result) return 0;
+    const own = (side: CompareSide) => countGarbageTime(side.allPlays.filter((p) => p.offense === side.team));
+    return own(result.a) + own(result.b);
+  }, [result]);
 
   // Auto-run the comparison after a URL restore, once both teams' games have
   // loaded and any pending game selection has been applied.
@@ -445,12 +480,15 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
     if (aGames) params.set('aGames', aGames);
     const bGames = encodeGameSelection(result.b.games.map((g) => g.id), gamesB);
     if (bGames) params.set('bGames', bGames);
+    const garbageTime = garbageTimeParamValue(excludeGarbageTime);
+    if (garbageTime) params.set(GARBAGE_TIME_PARAM, garbageTime);
+    const note = garbageTimeNote(excludeGarbageTime, garbagePlays);
     return {
       url: `https://graphingcollegefootball.com/trends?${params.toString()}`,
-      subtitle: `${result.a.team} vs. ${result.b.team} - ${result.year} Season`,
+      subtitle: `${result.a.team} vs. ${result.b.team} - ${result.year} Season${note ? ` • ${note}` : ''}`,
       mode: 'compare' as const,
     };
-  }, [result, colorA, colorB, gamesA, gamesB]);
+  }, [result, colorA, colorB, gamesA, gamesB, excludeGarbageTime, garbagePlays]);
 
   /** A player chart's embed code, for its share menu. */
   const playerEmbed = (chartId: string, title: string, data: unknown) =>
@@ -599,6 +637,13 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({ defaultTeam = null })
               {result.a.team} vs. {result.b.team}
             </h2>
             <p className="text-neutral-600">{result.year} season</p>
+            <GarbageTimeToggle
+              className="mt-3"
+              exclude={excludeGarbageTime}
+              onChange={onExcludeGarbageTimeChange}
+              garbagePlays={garbagePlays}
+              scope="these games"
+            />
           </div>
 
           {/* Consolidated box score: the two teams compared directly */}

@@ -8,6 +8,8 @@ export interface ScoringEvent {
   quarter: number;
   minutes: number;
   seconds: number;
+  /** Kicked or lost in garbage time (see findGarbageTimePlays). */
+  garbageTime?: boolean;
 }
 
 const outcomeOf = (play: PlayData): WaveOutcome =>
@@ -107,6 +109,10 @@ const playMarker = (
  *
  * Classification lives here rather than in the runtime because it only has to
  * happen once: an embed bakes these events and re-bins them as it resizes.
+ *
+ * With `excludeGarbageTime`, garbage-time events are flagged so the runtime
+ * draws them gray. They stay in the stacks: the wave is the game's shape, and
+ * a blowout's second half is part of it.
  */
 export const toWaveEvents = (
   plays: PlayData[],
@@ -114,12 +120,18 @@ export const toWaveEvents = (
   fieldGoals: ScoringEvent[] = [],
   fumbles: ScoringEvent[] = [],
   scoreChanges: Map<string, number> = new Map(),
+  excludeGarbageTime = false,
 ): WaveEvent[] => {
   const events: WaveEvent[] = [];
+  // Only set when true, so an embed with the filter off carries no extra field.
+  const flag = (event: WaveEvent, garbage: boolean | undefined): WaveEvent => {
+    if (excludeGarbageTime && garbage) event.garbage = true;
+    return event;
+  };
 
   for (const play of plays) {
     const marker = playMarker(play.playText, play.playType, scoreChanges.get(String(play.id)));
-    events.push({
+    events.push(flag({
       side: play.offense === topTeam ? 'top' : 'bottom',
       quarter: play.quarter,
       minutes: play.clock?.minutes ?? 0,
@@ -131,11 +143,11 @@ export const toWaveEvents = (
       yardsGained: play.yardsGained,
       down: play.down,
       distance: play.distance,
-    });
+    }, play.garbageTime));
   }
 
   for (const fg of fieldGoals) {
-    events.push({
+    events.push(flag({
       side: fg.team === topTeam ? 'top' : 'bottom',
       quarter: fg.quarter,
       minutes: fg.minutes,
@@ -147,11 +159,11 @@ export const toWaveEvents = (
       yardsGained: 0,
       down: 0,
       distance: 0,
-    });
+    }, fg.garbageTime));
   }
 
   for (const fumble of fumbles) {
-    events.push({
+    events.push(flag({
       side: fumble.team === topTeam ? 'top' : 'bottom',
       quarter: fumble.quarter,
       minutes: fumble.minutes,
@@ -163,7 +175,7 @@ export const toWaveEvents = (
       yardsGained: 0,
       down: 0,
       distance: 0,
-    });
+    }, fumble.garbageTime));
   }
 
   return events;
@@ -187,7 +199,7 @@ export interface RawPlayLike {
   clock?: { minutes?: number; seconds?: number };
 }
 
-export const extractFieldGoals = (rawPlays: RawPlayLike[] = []): ScoringEvent[] => {
+export const extractFieldGoals = (rawPlays: RawPlayLike[] = [], garbageTimePlays?: Set<RawPlayLike>): ScoringEvent[] => {
   const events: ScoringEvent[] = [];
   for (const play of rawPlays) {
     const type = (play.play_type ?? play.playType ?? '').toLowerCase();
@@ -201,6 +213,7 @@ export const extractFieldGoals = (rawPlays: RawPlayLike[] = []): ScoringEvent[] 
       quarter: play.quarter ?? play.period ?? 1,
       minutes: play.clock?.minutes ?? 0,
       seconds: play.clock?.seconds ?? 0,
+      garbageTime: garbageTimePlays?.has(play) ?? false,
     });
   }
   return events;
@@ -211,7 +224,7 @@ export const extractFieldGoals = (rawPlays: RawPlayLike[] = []): ScoringEvent[] 
 // Touchdown" — so they're filtered out of the rush/pass plays and, like field
 // goals, are pulled from the raw feed instead. A "Fumble Recovery (Own)" is not
 // a turnover and is intentionally excluded.
-export const extractFumbles = (rawPlays: RawPlayLike[] = []): ScoringEvent[] => {
+export const extractFumbles = (rawPlays: RawPlayLike[] = [], garbageTimePlays?: Set<RawPlayLike>): ScoringEvent[] => {
   const events: ScoringEvent[] = [];
   for (const play of rawPlays) {
     const type = (play.play_type ?? play.playType ?? '').toLowerCase();
@@ -222,6 +235,7 @@ export const extractFumbles = (rawPlays: RawPlayLike[] = []): ScoringEvent[] => 
       quarter: play.quarter ?? play.period ?? 1,
       minutes: play.clock?.minutes ?? 0,
       seconds: play.clock?.seconds ?? 0,
+      garbageTime: garbageTimePlays?.has(play) ?? false,
     });
   }
   return events;

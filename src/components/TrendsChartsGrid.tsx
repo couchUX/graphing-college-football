@@ -211,7 +211,9 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
           year,
           gamesCount,
           selectedTeamColor,
-          extraUrlParams ? { ...embedOptions, urlParams: extraUrlParams } : embedOptions
+          extraUrlParams
+            ? { ...embedOptions, urlParams: { ...embedOptions?.urlParams, ...extraUrlParams } }
+            : embedOptions
         );
 
   return (

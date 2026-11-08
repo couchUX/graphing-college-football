@@ -5,13 +5,16 @@ import ChartsGrid from './ChartsGrid';
 import BoxScoreContainer from './BoxScoreContainer';
 import AllPlaysTable from './AllPlaysTable';
 import AppShell from './AppShell';
+import GarbageTimeToggle, { GARBAGE_TIME_RULE } from './GarbageTimeToggle';
 import { SITE_URL } from '../constants/site';
 import { useCanonical } from '../hooks/useCanonical';
 import { MetricRow, Metric } from './MetricCard';
 import { MetaTags } from './MetaTags';
 import { PlayData } from '../types';
 import { fetchPlayByPlayData, fetchWinProbabilityData } from '../services/api';
-import { processPlayData } from '../utils/metrics';
+import { processPlayData, withGarbageTimeHeld } from '../utils/metrics';
+import { countGarbageTime, countedPlays, garbageTimeParamValue } from '../utils/garbageTime';
+import { useGarbageTimeSetting } from '../hooks/useGarbageTimeSetting';
 import { getDisplayTeamColors } from '../utils/displayTeamColors';
 import { applyAccent } from '../utils/accent';
 import { track } from '../utils/analytics';
@@ -45,6 +48,7 @@ const Dashboard: React.FC = () => {
   const [selectedTeamColor, setSelectedTeamColor] = useState<string>('default');
   const [selectedOpponentColor, setSelectedOpponentColor] = useState<string>('default');
   const [currentParams, setCurrentParams] = useState<GameParams | null>(null);
+  const [excludeGarbageTime, setExcludeGarbageTime] = useGarbageTimeSetting();
 
   const { showToast: notify } = useToast();
 
@@ -92,6 +96,7 @@ const Dashboard: React.FC = () => {
       gameId: currentParams.gameId,
       teamColor: selectedTeamColor !== 'default' ? selectedTeamColor : undefined,
       opponentColor: selectedOpponentColor !== 'default' ? selectedOpponentColor : undefined,
+      garbageTime: garbageTimeParamValue(excludeGarbageTime),
     });
 
     notify((await copyToClipboard(shareableUrl)) ? 'Page link copied to clipboard' : 'Failed to copy link');
@@ -202,8 +207,17 @@ const Dashboard: React.FC = () => {
     [rawApiData]
   );
 
-  const teamPlays = plays.filter(p => p.offense === currentParams?.team);
-  const opponentPlays = plays.filter(p => p.offense === opponentTeam);
+  // Every play is tagged; the setting decides which ones the numbers count.
+  const garbagePlays = useMemo(() => countGarbageTime(plays), [plays]);
+  const counted = useMemo(() => countedPlays(plays, excludeGarbageTime), [plays, excludeGarbageTime]);
+  const teamPlays = counted.filter(p => p.offense === currentParams?.team);
+  const opponentPlays = counted.filter(p => p.offense === opponentTeam);
+
+  // The table lists every play, with running rates on the same footing as the charts.
+  const tablePlays = useMemo(
+    () => (excludeGarbageTime ? withGarbageTimeHeld(plays) : plays),
+    [plays, excludeGarbageTime]
+  );
 
   const buildMetrics = (
     sidePlays: PlayData[],
@@ -305,9 +319,16 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
+            <GarbageTimeToggle
+              className="mt-5"
+              exclude={excludeGarbageTime}
+              onChange={setExcludeGarbageTime}
+              garbagePlays={garbagePlays}
+            />
+
             {/* Headline stats, both teams */}
             {teamColors && (
-              <div className="mt-7 space-y-6">
+              <div className="mt-6 space-y-6">
                 <MetricRow
                   title={currentParams.team}
                   // Team names are set as text, so they take the darker variant.
@@ -366,6 +387,7 @@ const Dashboard: React.FC = () => {
             currentParams={currentParams}
             winProbabilityData={winProbabilityData}
             rawApiData={rawApiData}
+            excludeGarbageTime={excludeGarbageTime}
           />
         )}
 
@@ -452,6 +474,14 @@ const Dashboard: React.FC = () => {
                         </dd>
                       </div>
                       <div>
+                        <dt className="font-semibold text-ink">Garbage time</dt>
+                        <dd className="text-neutral-700">
+                          {GARBAGE_TIME_RULE} With &ldquo;Exclude garbage time&rdquo; on (the default), those plays
+                          are left out of every rate, count and player total. Charts that plot plays one by one keep
+                          them on screen in gray, so the shape of the game stays visible.
+                        </dd>
+                      </div>
+                      <div>
                         <dt className="font-semibold text-ink">Excluded plays</dt>
                         <dd className="text-neutral-700">
                           Penalties that result in no play are excluded, as are all special teams plays (punts,
@@ -464,6 +494,13 @@ const Dashboard: React.FC = () => {
                   <div>
                     <h3 className="headline text-[18px] font-bold text-ink">Notes</h3>
                     <dl className="mt-4 space-y-4 text-[15px] leading-relaxed">
+                      <div>
+                        <dt className="font-semibold text-ink">Box score and win probability</dt>
+                        <dd className="text-neutral-700">
+                          Both come straight from CollegeFootballData.com, so they count every play whether or not
+                          garbage time is excluded.
+                        </dd>
+                      </div>
                       <div>
                         <dt className="font-semibold text-ink">Data accuracy</dt>
                         <dd className="text-neutral-700">
@@ -600,7 +637,7 @@ const Dashboard: React.FC = () => {
                     )}
                   </div>
 
-                  <AllPlaysTable plays={plays} />
+                  <AllPlaysTable plays={tablePlays} />
                 </div>
               )}
             </section>

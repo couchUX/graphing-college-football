@@ -46,7 +46,7 @@ src/
   detectors/           Discover storyline detectors + registry
   utils/               chart helpers, metrics, embed generators, accent, playType, analytics
                        urlState (query-string state), sessionViewState (see below),
-                       shareImage + shareLink (see Sharing)
+                       shareImage + shareLink (see Sharing), garbageTime (see below)
 ```
 
 ### Design system
@@ -133,6 +133,33 @@ walking up to that attribute, so a new card needs those two attributes and a
   (a filter, Totals vs. Averages, a hidden series) has to live in the URL too,
   or its link can't reproduce it. A card-only setting goes in `linkParams`.
 
+### Garbage time
+
+`src/utils/garbageTime.ts` tags every play snapped with the game out of reach:
+a margin **strictly greater** than 38/28/22/16 points in Q1–Q4 (the SP+
+definition), never in overtime, not sticky. The margin is read from a running
+score **going into** the play — CFBD stamps the score *after* it, so a
+touchdown's own row already holds the six — which means tagging has to see the
+whole raw feed, kickoffs and extra points included. `processPlayData` does it
+first, before it filters down to rush/pass, and every `PlayData` carries
+`garbageTime`. Tags are keyed on the play objects, not ids.
+
+Whether a tag counts is a page setting (`useGarbageTimeSetting`, URL param
+`garbageTime`, written only as `include` since excluding is the default).
+With it on, anything that adds plays up uses `countedPlays`; charts that place
+plays along the game (Game Wave, play maps, cumulative lines) keep every play
+on its x position and draw garbage time gray, with running totals held level
+through it (`withGarbageTimeHeld`). With it off, every dataset is exactly what
+it was before the feature. The box score and win probability come from CFBD
+and ignore the setting. The CSV always exports every play, with a
+`garbage_time` column.
+
+The cumulative lines' gray comes from a Chart.js `segment` callback stored on
+the dataset, so it follows the embed rule above: closure-free, color written
+out. `npm run check:garbage` covers the margin rules; with a `CFB_API_KEY` (or
+`CFBD_BASE` pointed at a proxy) it also replays a seven-game Alabama reference
+table, where close games must exclude nothing.
+
 ## Commands
 
 ```bash
@@ -142,6 +169,7 @@ npm run lint     # eslint
 npx tsc --noEmit -p tsconfig.app.json   # typecheck (build does not typecheck)
 npm run check:embed   # prove the Game Wave embed's serialized runtime stands alone
 npm run check:filters # exercise the all-plays column-filter grammar
+npm run check:garbage # garbage-time margin rules (+ live reference table with a key)
 npm run check:postseason # label a postseason game from CFBD's free-text notes
 npm run check:wp <gameId>   # is a win probability row a before-play or after-play snapshot?
 ```

@@ -14,7 +14,39 @@ sessions (not just in a chat). Also mirrored in the PR description.
   the way NC State was — the names resolve, the values are just placeholders —
   so they wait for a deliberate pass on the palette rather than a drive-by.
 
+### Garbage-time follow-ups
+
+- **Run the live reference table.** `npm run check:garbage` replays the spec's
+  seven Alabama games (2022 Mississippi State through 2024 Vanderbilt) against
+  real CFBD data when it has a `CFB_API_KEY` in `.env`, or `CFBD_BASE` pointed
+  at a proxy that adds one. The close games (2022 Ole Miss, 2024 Vanderbilt)
+  must exclude nothing; if either moves, the margin is being read from the
+  wrong side of a play. The table's "plays removed" column didn't say whether
+  it counts special teams, so the script accepts either count and prints both.
+- **Box score still counts garbage time.** It's CFBD's advanced box score,
+  not computed from our plays. CFBD's game-level advanced stats take an
+  `excludeGarbageTime` flag, but its definition may not match SP+'s; worth
+  checking before wiring the box score to the toggle.
+- **Thresholds and sticky mode have no UI.** `findGarbageTimePlays` takes
+  `{ thresholds, sticky }`; the pages always use the SP+ defaults. The spec
+  listed both as optional.
+
 ## Shipped
+
+- **Garbage-time filter** — done. A play snapped with a margin over 38/28/22/16
+  (Q1–Q4) is garbage time; overtime never is, and plays count again after a
+  comeback. "Exclude garbage time" is on by default on Games, Season trends
+  and Team vs. Team, with the number of plays it takes out beside it. Totals,
+  rates, drive and player charts drop those plays; the Game Wave, play maps
+  and cumulative lines keep them in gray so the game's shape stays put, and
+  the cumulative lines hold level through them. The setting lives in the URL
+  (`garbageTime=include` when off), so links and card links reopen it, and
+  embeds copied with it on say how many plays they exclude. The CSV keeps
+  every play and adds a `garbage_time` column.
+
+  The tagging walks a running score from the raw feed, because CFBD's
+  per-play score already includes points scored on that play. That needs the
+  kickoffs and extra points `processPlayData` throws away, so it runs first.
 
 - **Share menu on every chart** — done. The copy-embed button on each card is
   now a share menu: copy embed code, copy image, download image, copy link.

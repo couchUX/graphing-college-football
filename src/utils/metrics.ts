@@ -1,5 +1,6 @@
 import { PlayData, PlayerStats } from '../types';
 import type { ApiPlayData } from '../services/api';
+import { compareGameOrder, findGarbageTimePlays } from './garbageTime';
 
 const calculateSuccess = (down: number, distance: number, yardsGained: number, playType: string = '', playText: string = ''): boolean => {
   // Special handling for two-point conversions
@@ -281,27 +282,14 @@ const extractPlayerNames = (playText: string, playType: string): { rusher?: stri
 };
 
 export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
+  // Garbage time first, while every play is still here: the running score it
+  // keeps needs the kickoffs, field goals and extra points the filter below
+  // throws away. Tagging only marks plays; the pages decide whether they count.
+  const garbageTimePlays = findGarbageTimePlays(apiPlays);
+
   // Sort plays by drive number, play in drive, then ID as fallback
   // This ensures proper chronological order based on game flow
-  const sortedPlays = [...apiPlays].sort((a, b) => {
-    const aDriveNumber = a.drive_number || a.driveNumber || 0;
-    const bDriveNumber = b.drive_number || b.driveNumber || 0;
-    const aPlayInDrive = a.play_number || a.playNumber || 0;
-    const bPlayInDrive = b.play_number || b.playNumber || 0;
-    
-    // First sort by drive number
-    if (aDriveNumber !== bDriveNumber) {
-      return aDriveNumber - bDriveNumber;
-    }
-    
-    // Then sort by play within drive
-    if (aPlayInDrive !== bPlayInDrive) {
-      return aPlayInDrive - bPlayInDrive;
-    }
-    
-    // Finally sort by ID as fallback
-    return a.id.localeCompare(b.id);
-  });
+  const sortedPlays = [...apiPlays].sort(compareGameOrder);
 
   // Filter to only rush, pass, and two-point conversion plays (including sacks and interceptions) AFTER sorting
   const rushPassPlays = sortedPlays.filter(play => {
@@ -397,6 +385,7 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
         const seconds = clock.seconds ?? 0;
         return (4 - q) * 900 + minutes * 60 + seconds;
       })(),
+      garbageTime: garbageTimePlays.has(play),
       // Player names
       rusher: playerNames.rusher,
       passer: playerNames.passer,
@@ -411,11 +400,24 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
     };
   });
 
-  // Calculate cumulative metrics for each team
-  const teams = Array.from(new Set(processedPlays.map(p => p.offense)));
-  
+  fillCumulativeMetrics(processedPlays);
+
+  return processedPlays;
+};
+
+/**
+ * Each team's running SR, XR, rush rate and rush/pass SR, written onto its
+ * plays in order. `counts` decides which plays enter the running totals; a
+ * play it rejects keeps its place (teamPlayNumber) but carries the totals
+ * forward unchanged, so a chart drawn from it holds level through the stretch
+ * rather than closing the gap. Mutates `plays`.
+ */
+const fillCumulativeMetrics = (plays: PlayData[], counts: (play: PlayData) => boolean = () => true): void => {
+  const teams = Array.from(new Set(plays.map(p => p.offense)));
+
   teams.forEach(team => {
-    const teamPlays = processedPlays.filter(p => p.offense === team);
+    const teamPlays = plays.filter(p => p.offense === team);
+    let countedCount = 0;
     let successCount = 0;
     let explosiveCount = 0;
     let rushCount = 0;
@@ -425,41 +427,44 @@ export const processPlayData = (apiPlays: ApiPlayData[]): PlayData[] => {
     let passPlayCount = 0;
 
     teamPlays.forEach((play, teamIndex) => {
-      // Update counters
-      if (play.success) successCount++;
-      if (play.explosiveness) explosiveCount++;
-      
-      const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
-      const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
+      if (counts(play)) {
+        countedCount++;
+        if (play.success) successCount++;
+        if (play.explosiveness) explosiveCount++;
 
-      if (isRush) {
-        rushCount++;
-        rushPlayCount++;
-        if (play.success) rushSuccessCount++;
-      } else if (isPass) {
-        passPlayCount++;
-        if (play.success) passSuccessCount++;
+        const isRush = play.playType?.toLowerCase().includes('rush') || play.playType?.toLowerCase().includes('run');
+        const isPass = play.playType?.toLowerCase().includes('pass') || play.playType?.toLowerCase().includes('sack') || play.playType?.toLowerCase().includes('interception');
+
+        if (isRush) {
+          rushCount++;
+          rushPlayCount++;
+          if (play.success) rushSuccessCount++;
+        } else if (isPass) {
+          passPlayCount++;
+          if (play.success) passSuccessCount++;
+        }
       }
 
-      // Calculate cumulative rates
-      const teamPlayNumber = teamIndex + 1;
-      const cumulativeSR = successCount / teamPlayNumber;
-      const cumulativeXR = explosiveCount / teamPlayNumber;
-      const cumulativeRushRate = rushCount / teamPlayNumber;
-      const rushCumulativeSR = rushPlayCount > 0 ? rushSuccessCount / rushPlayCount : 0;
-      const passCumulativeSR = passPlayCount > 0 ? passSuccessCount / passPlayCount : 0;
-
-      // Update the play object
-      play.teamPlayNumber = teamPlayNumber;
-      play.teamCumulativeSR = cumulativeSR;
-      play.teamCumulativeXR = cumulativeXR;
-      play.teamCumulativeRushRate = cumulativeRushRate;
-      play.teamRushCumulativeSR = rushCumulativeSR;
-      play.teamPassCumulativeSR = passCumulativeSR;
+      play.teamPlayNumber = teamIndex + 1;
+      play.teamCumulativeSR = countedCount > 0 ? successCount / countedCount : 0;
+      play.teamCumulativeXR = countedCount > 0 ? explosiveCount / countedCount : 0;
+      play.teamCumulativeRushRate = countedCount > 0 ? rushCount / countedCount : 0;
+      play.teamRushCumulativeSR = rushPlayCount > 0 ? rushSuccessCount / rushPlayCount : 0;
+      play.teamPassCumulativeSR = passPlayCount > 0 ? passSuccessCount / passPlayCount : 0;
     });
   });
+};
 
-  return processedPlays;
+/**
+ * The same plays with their running totals recomputed over the plays that
+ * count, for the charts that keep garbage-time plays on screen (grayed) so the
+ * game keeps its shape. Positions are untouched; through garbage time the
+ * totals hold level. Returns copies — the processed plays are shared state.
+ */
+export const withGarbageTimeHeld = (plays: PlayData[]): PlayData[] => {
+  const copies = plays.map(play => ({ ...play }));
+  fillCumulativeMetrics(copies, play => !play.garbageTime);
+  return copies;
 };
 
 
