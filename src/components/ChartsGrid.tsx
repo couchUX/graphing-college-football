@@ -23,8 +23,8 @@ import { CHART_HEIGHTS } from '../constants/chartDimensions';
 import { formatMatchup } from '../utils/matchup';
 import {
   GARBAGE_TIME_PARAM,
-  GARBAGE_TIME_THRESHOLDS,
   countGarbageTime,
+  garbageTimeDefinition,
   garbageTimeNote,
   garbageTimeParamValue,
 } from '../utils/garbageTime';
@@ -110,12 +110,8 @@ const definitionsFor = (chartId: string): string[] => {
   return [...BASE_DEFINITIONS, '<strong>Gray area:</strong> Represents 42% (roughly NCAA average) success rate'];
 };
 
-const [GT_Q1, GT_Q2, GT_Q3, GT_Q4] = GARBAGE_TIME_THRESHOLDS;
-
 /** The embed's note on garbage time, for charts copied while it's excluded. */
-const GARBAGE_TIME_DEFINITION =
-  `<strong>Garbage time:</strong> Plays snapped with a lead of more than ${GT_Q1}, ${GT_Q2}, ${GT_Q3} or ` +
-  `${GT_Q4} points (Q1–Q4) are left out of the numbers; where plays are drawn, they are gray`;
+const GARBAGE_TIME_DEFINITION = garbageTimeDefinition(true);
 
 /** Team filter for the player charts. Module scope so it isn't remounted (and
  *  doesn't lose focus) on every parent render. */

@@ -12,6 +12,8 @@ export interface TrendsEmbedOptions {
   mode?: 'season' | 'compare';
   /** Extra query params for the default footer link, e.g. an active chart filter. */
   urlParams?: Record<string, string>;
+  /** Extra "Data definitions" bullets, e.g. what garbage time means when it's excluded. */
+  definitions?: string[];
 }
 
 export const generateTrendsEmbedCode = (
@@ -126,7 +128,7 @@ export const generateTrendsEmbedCode = (
     }
   };
 
-  const dataDefinitions = getDataDefinitions();
+  const dataDefinitions = [...getDataDefinitions(), ...(embedOptions.definitions ?? [])];
 
   // Determine chart height based on chart ID
   // Line charts plot every opponent in the season, so their rotated x-axis

@@ -225,6 +225,19 @@ export const garbageTimeParamValue = (exclude: boolean): string | null =>
 export const garbageTimeNote = (exclude: boolean, garbagePlays: number): string | null =>
   exclude && garbagePlays > 0 ? 'Excludes garbage time' : null;
 
+/**
+ * The "Data definitions" bullet for a copied chart that leaves garbage time
+ * out. Charts that draw plays one by one (Games) also say what the gray means.
+ */
+export const garbageTimeDefinition = (drawsPlays: boolean): string => {
+  const [q1, q2, q3, q4] = GARBAGE_TIME_THRESHOLDS;
+  return (
+    `<strong>Garbage time:</strong> Plays snapped with a lead of more than ${q1}, ${q2}, ${q3} or ${q4} ` +
+    `points (Q1–Q4) are left out of the numbers` +
+    (drawsPlays ? '; where plays are drawn, they are gray' : '')
+  );
+};
+
 // Colors for plays drawn but not counted, used only while the filter is on.
 // A warm gray off the paper palette, light enough to recede behind the team
 // colors and dark enough to read on the white canvas.

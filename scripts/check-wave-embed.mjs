@@ -252,6 +252,11 @@ for (const minify of [true, false]) {
     );
   }
 
+  // Gray dots in the legend need their definition in the drawer.
+  if (!html.includes('Garbage time, not counted') || !html.includes('<strong>Garbage time:</strong>')) {
+    fail(`${label}: the embed draws garbage-time dots without a legend key and definition for them`);
+  }
+
   if (!html.includes('runtime.bindTooltip(') || !html.includes('waveTip_')) {
     fail(`${label}: the embed HTML doesn't wire up the dot tooltips`);
   }

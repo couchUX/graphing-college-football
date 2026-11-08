@@ -29,6 +29,7 @@ import {
   countGarbageTime,
   countedPerGame,
   countedPlays,
+  garbageTimeDefinition,
   garbageTimeNote,
   garbageTimeParamValue,
 } from '../utils/garbageTime';
@@ -487,6 +488,7 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({
       url: `https://graphingcollegefootball.com/trends?${params.toString()}`,
       subtitle: `${result.a.team} vs. ${result.b.team} - ${result.year} Season${note ? ` • ${note}` : ''}`,
       mode: 'compare' as const,
+      definitions: note ? [garbageTimeDefinition(false)] : undefined,
     };
   }, [result, colorA, colorB, gamesA, gamesB, excludeGarbageTime, garbagePlays]);
 

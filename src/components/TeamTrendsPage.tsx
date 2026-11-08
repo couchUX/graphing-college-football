@@ -34,6 +34,7 @@ import {
   countGarbageTime,
   countedPerGame,
   countedPlays,
+  garbageTimeDefinition,
   garbageTimeNote,
   garbageTimeParamValue,
 } from '../utils/garbageTime';
@@ -174,6 +175,8 @@ const TeamTrendsPage: React.FC = () => {
         ? `${currentParams.team} - ${currentParams.year} Season (${seasonGames.length} games) • ${note}`
         : undefined,
       urlParams: param ? { [GARBAGE_TIME_PARAM]: param } : undefined,
+      // The subtitle says garbage time is out; the drawer says what that means.
+      definitions: note ? [garbageTimeDefinition(false)] : undefined,
     };
   }, [currentParams, excludeGarbageTime, garbagePlays, seasonGames.length]);
 
