@@ -199,7 +199,8 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
           mobileHeight: CHART_HEIGHTS.DEFAULT_MOBILE,
           definitions: [
             '<strong>Rush Rate:</strong> Percentage of offensive plays that are rushing attempts',
-            'Based roughly on <a href="https://www.sbnation.com/college-football/2017/10/13/16457830/college-football-advanced-stats-analytics-rankings" target="_blank" style="color: #525252; text-decoration: underline;">the SP+ analytic system</a>'
+            'Based roughly on <a href="https://www.sbnation.com/college-football/2017/10/13/16457830/college-football-advanced-stats-analytics-rankings" target="_blank" style="color: #525252; text-decoration: underline;">the SP+ analytic system</a>',
+            ...(embedOptions?.definitions ?? []),
           ],
         })
       : generateTrendsEmbedCode(
@@ -211,7 +212,9 @@ const TrendsChartsGrid: React.FC<TrendsChartsGridProps> = ({
           year,
           gamesCount,
           selectedTeamColor,
-          extraUrlParams ? { ...embedOptions, urlParams: extraUrlParams } : embedOptions
+          extraUrlParams
+            ? { ...embedOptions, urlParams: { ...embedOptions?.urlParams, ...extraUrlParams } }
+            : embedOptions
         );
 
   return (

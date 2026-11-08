@@ -1,5 +1,6 @@
 import { createWaveRuntime, waveRuntime, type WaveEvent, type WaveShadeColors } from './gameWaveRuntime';
 import { SP_LINK, SUCCESSFUL_PLAY_DEF } from './embedDefinitions';
+import { garbageTimeDefinition } from './garbageTime';
 
 /**
  * "Copy embed code" for the Game Wave.
@@ -94,6 +95,11 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
   const uniqueId = `cfb-wave-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   const fnSuffix = uniqueId.replace(/-/g, '_');
   const hasOvertime = events.some(event => event.quarter > waveRuntime.REGULATION_QUARTERS);
+  // Gray dots only arrive when the page was excluding garbage time; say what they are.
+  const showsGarbageTime = events.some(event => event.garbage);
+  const garbageKey = showsGarbageTime
+    ? keySwatch(waveRuntime.palette.garbage, null, 'Garbage time, not counted')
+    : '';
 
   // The drawer carries the "plays are binned by game clock" idea the legend
   // used to spend a line on, so it leads: how to read the chart first, what
@@ -113,6 +119,7 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
     '<strong>Dot labels:</strong> points scored — 7 for a touchdown and extra point, 8 with a two-point conversion, 6 when the try failed, 3 for a field goal; i = interception, f = fumble lost',
     SUCCESSFUL_PLAY_DEF,
     '<strong>Explosive play:</strong> Gains 15+ yards',
+    ...(showsGarbageTime ? [garbageTimeDefinition(true)] : []),
     `Based roughly on ${SP_LINK}`,
   ];
 
@@ -306,7 +313,7 @@ export const buildGameWaveEmbedHtml = (spec: GameWaveEmbedSpec): string => {
                   SWATCH_OTHER,
                   SWATCH_OTHER_RING,
                   'Unsuccessful',
-                )}</span>
+                )}${garbageKey}</span>
             </div>
             <div class="wave-plot" id="wavePlot_${uniqueId}">
                 <div class="wave-frame" id="waveFrame_${uniqueId}"></div>

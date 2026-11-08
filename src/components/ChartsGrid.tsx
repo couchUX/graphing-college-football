@@ -6,6 +6,7 @@ import { useChartData } from '../hooks/useChartData';
 import { track } from '../utils/analytics';
 import GameWaveChart, { GAME_WAVE_ID, GAME_WAVE_TITLE } from './GameWaveChart';
 import ChartCard from './ChartCard';
+import GarbageTimeToggle from './GarbageTimeToggle';
 import {
   createLineOptionsPlayNumberSRXR,
   createLineOptionsTeamPlay,
@@ -20,6 +21,13 @@ import { generateChartEmbed } from '../utils/chartEmbedGenerator';
 import { BASE_DEFINITIONS } from '../utils/embedDefinitions';
 import { CHART_HEIGHTS } from '../constants/chartDimensions';
 import { formatMatchup } from '../utils/matchup';
+import {
+  GARBAGE_TIME_PARAM,
+  countGarbageTime,
+  garbageTimeDefinition,
+  garbageTimeNote,
+  garbageTimeParamValue,
+} from '../utils/garbageTime';
 
 // Initialize Chart.js defaults
 initializeChartDefaults();
@@ -40,6 +48,10 @@ interface ChartsGridProps {
   } | null;
   winProbabilityData?: Record<string, any>[];
   rawApiData?: Record<string, any>[];
+  /** Leave garbage-time plays out of the numbers (and gray them where they're drawn). */
+  excludeGarbageTime?: boolean;
+  /** Flips the page's garbage-time setting; given, each section header carries the switch. */
+  onExcludeGarbageTimeChange?: (exclude: boolean) => void;
 }
 
 /** A chart as both a rendered node and everything its embed needs. */
@@ -98,6 +110,9 @@ const definitionsFor = (chartId: string): string[] => {
   return [...BASE_DEFINITIONS, '<strong>Gray area:</strong> Represents 42% (roughly NCAA average) success rate'];
 };
 
+/** The embed's note on garbage time, for charts copied while it's excluded. */
+const GARBAGE_TIME_DEFINITION = garbageTimeDefinition(true);
+
 /** Team filter for the player charts. Module scope so it isn't remounted (and
  *  doesn't lose focus) on every parent render. */
 const TeamFilterDropdown: React.FC<{
@@ -127,6 +142,8 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   currentParams = null,
   winProbabilityData = [],
   rawApiData = [],
+  excludeGarbageTime = false,
+  onExcludeGarbageTimeChange,
 }) => {
   // Player chart team filters, seeded from the URL so shared links keep them.
   const initialTeamFilter = () =>
@@ -155,7 +172,19 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     window.history.replaceState({}, '', `${pathname}${query ? `?${query}` : ''}${hash}`);
   }, [rushersTeamFilter, passersTeamFilter, receiversTeamFilter]);
 
-  const chartData = useChartData(plays, team, selectedTeamColor, selectedOpponentColor, winProbabilityData, rawApiData);
+  const chartData = useChartData(
+    plays,
+    team,
+    selectedTeamColor,
+    selectedOpponentColor,
+    winProbabilityData,
+    rawApiData,
+    excludeGarbageTime
+  );
+
+  // What a copied chart says about the plays it leaves out.
+  const garbagePlays = useMemo(() => countGarbageTime(plays), [plays]);
+  const garbageNote = garbageTimeNote(excludeGarbageTime, garbagePlays);
 
   const {
     team: selectedTeam,
@@ -201,7 +230,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   const filteredPlayers = (players: any[], teamFilter: string) =>
     teamFilter === 'both' ? players : players.filter(p => p.team === teamFilter);
 
-  const gameSubtitle = (() => {
+  const matchupSubtitle = (() => {
     if (!currentParams) return undefined;
     const teams = formatMatchup(selectedTeam, opponentTeam, currentParams);
     const wallclock = plays[0]?.wallclock;
@@ -213,6 +242,10 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     }
     return `${teams} • ${currentParams.year}`;
   })();
+  // Charts built from the plays say what they leave out. Win probability is
+  // CFBD's model, so it keeps the plain line.
+  const gameSubtitle = matchupSubtitle && garbageNote ? `${matchupSubtitle} • ${garbageNote}` : matchupSubtitle;
+  const subtitleFor = (chartId: string) => (chartId === 'win-probability' ? matchupSubtitle : gameSubtitle);
 
   /** "See all charts" target. Player charts pass their own filter so the link
    *  restores the view the embed shows, not whatever the rushers chart is on. */
@@ -223,6 +256,8 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     if (selectedTeamColor !== 'default') params.set('teamColor', selectedTeamColor);
     if (selectedOpponentColor !== 'default') params.set('opponentColor', selectedOpponentColor);
     if (teamFilter && teamFilter !== 'both') params.set('playerTeam', teamFilter);
+    const garbageTime = garbageTimeParamValue(excludeGarbageTime);
+    if (garbageTime) params.set(GARBAGE_TIME_PARAM, garbageTime);
     return `https://graphingcollegefootball.com/?${params}`;
   };
 
@@ -258,11 +293,15 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
       data: chart.data,
       options: chart.options,
       title: chart.title,
-      subtitle: gameSubtitle,
+      subtitle: subtitleFor(chart.id),
       sourceUrl: gameUrlFor(chart.filterValue),
       height: chart.height ?? CHART_HEIGHTS.DEFAULT_DESKTOP,
       mobileHeight: chart.mobileHeight ?? chart.height ?? CHART_HEIGHTS.DEFAULT_MOBILE,
-      definitions: definitionsFor(chart.id),
+      // Win probability is CFBD's model, untouched by the filter.
+      definitions:
+        garbageNote && chart.id !== 'win-probability'
+          ? [...definitionsFor(chart.id), GARBAGE_TIME_DEFINITION]
+          : definitionsFor(chart.id),
     });
 
   const hasWinProbability = Boolean(winProbChartData?.datasets?.length);
@@ -352,10 +391,22 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     node: <Bar data={chart.data as any} options={playerOptions} />,
   }));
 
+  // Each section carries the page's garbage-time switch, beside the charts it
+  // changes. One setting: flipping any copy flips them all.
   const sectionHeading = (text: string) => (
-    <h2 className="rule-section headline mb-6 text-[22px] text-ink">
-      {text}
-    </h2>
+    <>
+      <h2 className={`rule-section headline text-[22px] text-ink ${onExcludeGarbageTimeChange ? 'mb-3' : 'mb-6'}`}>
+        {text}
+      </h2>
+      {onExcludeGarbageTimeChange && (
+        <GarbageTimeToggle
+          className="mb-6"
+          exclude={excludeGarbageTime}
+          onChange={onExcludeGarbageTimeChange}
+          garbagePlays={garbagePlays}
+        />
+      )}
+    </>
   );
 
   return (
@@ -376,6 +427,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
               subtitle={gameSubtitle}
               sourceUrl={gameUrlFor()}
               onEmbedCopied={trackEmbed({ id: GAME_WAVE_ID, title: GAME_WAVE_TITLE, chartType: 'svg' })}
+              excludeGarbageTime={excludeGarbageTime}
             />
           </div>
 

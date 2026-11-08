@@ -43,6 +43,13 @@ export interface ApiPlayData {
   offenseConference?: string;
   defenseConference?: string;
   timeRemaining?: number;
+
+  // The score after the play, from each side's view. Garbage-time tagging
+  // walks these (src/utils/garbageTime.ts); CFBD has served both spellings.
+  offenseScore?: number | null;
+  defenseScore?: number | null;
+  offense_score?: number | null;
+  defense_score?: number | null;
 }
 
 export interface Team {

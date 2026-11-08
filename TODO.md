@@ -14,7 +14,70 @@ sessions (not just in a chat). Also mirrored in the PR description.
   the way NC State was — the names resolve, the values are just placeholders —
   so they wait for a deliberate pass on the palette rather than a drive-by.
 
+### Garbage-time follow-ups
+
+- **Box score still counts garbage time.** It's CFBD's advanced box score,
+  not computed from our plays. CFBD's game-level advanced stats take an
+  `excludeGarbageTime` flag, but its definition may not match SP+'s; worth
+  checking before wiring the box score to the toggle.
+- **Thresholds and sticky mode have no UI.** `findGarbageTimePlays` takes
+  `{ thresholds, sticky }`; the pages always use the SP+ defaults. The spec
+  listed both as optional.
+
 ## Shipped
+
+- **Garbage-time filter** — done. A play snapped with a margin over 38/28/22/16
+  (Q1–Q4) is garbage time; overtime never is, and plays count again after a
+  comeback. "Exclude garbage time" is on by default on Games, Season trends
+  and Team vs. Team, with the number of plays it takes out beside it. Totals,
+  rates, drive and player charts drop those plays; the Game Wave, play maps
+  and cumulative lines keep them in gray so the game's shape stays put, and
+  the cumulative lines hold level through them. The setting lives in the URL
+  (`garbageTime=include` when off), so links and card links reopen it, and
+  embeds copied with it on say "Excludes garbage time" in their subtitle. The CSV keeps
+  every play and adds a `garbage_time` column.
+
+  The tagging walks a running score from the raw feed, because CFBD's
+  per-play score already includes points scored on that play. That needs the
+  kickoffs and extra points `processPlayData` throws away, so it runs first.
+
+  Verified against live CFBD data for the spec's seven Alabama games: all 28
+  success rates (raw and filtered, both teams) match to the tenth, and the
+  close games exclude nothing. The spec's "plays removed" column counts every
+  feed row, timeouts and End of Game included; the app shows rush/pass plays
+  only, so its numbers are smaller (73, not 98, for 2022 Mississippi State).
+  The 2026 LSU feed now carries an End of Game row the spec's 21 predates, so
+  it tags 22 rows there; no rate moves. `npm run check:garbage` asserts the
+  rush/pass counts and the rates, and prints the row counts for reference.
+
+- **All-plays table shows garbage time** — done. Garbage-time rows stay in the
+  table, grayed while the filter is on, with Score (at the snap, offense
+  first) and Garbage time columns next to Quarter, so a comeback reads as the
+  gray rows ending when the score comes back inside the margin.
+
+- **Score walk is a median of three stamps, not max()** — done. Across 259
+  SEC/Big Ten games from 2024, CFBD's per-play scores glitched both ways:
+  223 one-row dips and 24 overstatements that were later corrected (20
+  games). max() locked the overstatements in, which mis-tagged four games,
+  33 plays in Michigan-Minnesota alone (it read Michigan's 21-0 halftime lead
+  as 28-0). The spec asked for max(); the median still reproduces its
+  reference table exactly.
+
+- **Decision: comebacks don't re-label earlier garbage time.** The question
+  was whether a team getting back in the game means the stretch before it
+  wasn't garbage time after all ("hindsight"). Same 2024 sample, 258 games:
+  155 had garbage time, 36 came back inside the margin, none of those 36
+  leaders lost, and only 6 ever got within one score. Hindsight would put back
+  521 plays, but just 103 of them come from those 6 real comebacks; 172 come
+  from comebacks that started with under five minutes left (Arkansas State's
+  touchdown with 0:08 left at Michigan would put back the whole fourth
+  quarter, 34 plays). The SP+ rule already counts a comeback once it's back in
+  reach. What it gives up is the start of the rare real one (Georgia's 33
+  plays from 30-7 to 30-15 at Alabama). It also keeps a play's label fixed
+  once snapped, which matters for games charted live. Season success rates
+  barely move either way (median 0.19 pts across 34 teams). If the fixed
+  per-quarter thresholds ever feel too blunt, the better fix is time-aware
+  (CFBD win probability), not hindsight.
 
 - **Share menu on every chart** — done. The copy-embed button on each card is
   now a share menu: copy embed code, copy image, download image, copy link.

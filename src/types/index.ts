@@ -26,6 +26,13 @@ export interface PlayData {
   };
   wallclock: string;
   timeRemaining: number;
+  // Snapped with the game out of reach (src/utils/garbageTime.ts). Always
+  // tagged; whether it counts is the page's garbage-time setting.
+  garbageTime: boolean;
+  // The score going into the snap, from this play's offense's side. CFBD's own
+  // per-play score is the one after the play.
+  offenseScoreAtSnap: number;
+  defenseScoreAtSnap: number;
   // Player name fields
   rusher?: string;
   passer?: string;

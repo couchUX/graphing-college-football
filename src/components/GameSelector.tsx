@@ -5,6 +5,7 @@ import { fetchTeams, fetchGamesForTeam, hasKickedOff, Team, TeamGame } from '../
 import { getTeamColors } from '../utils/teamColors';
 import { colorPalette } from '../utils/colorPalette';
 import { getPostseasonLabel } from '../utils/postseasonLabel';
+import { GARBAGE_TIME_PARAM } from '../utils/garbageTime';
 import { CURRENT_SEASON, SEASON_YEARS } from '../constants/seasons';
 
 interface GameSelectorProps {
@@ -308,6 +309,10 @@ const GameSelector: React.FC<GameSelectorProps> = ({
       params.delete('opponentColor'); // Remove parameter when color is default
     }
     
+    // Page-wide settings outlive a change of game.
+    const garbageTime = new URLSearchParams(window.location.search).get(GARBAGE_TIME_PARAM);
+    if (garbageTime) params.set(GARBAGE_TIME_PARAM, garbageTime);
+
     // Keep the fragment: it may be a deep link to one of the game's charts.
     const { pathname, hash } = window.location;
     const newURL = params.toString() ? `${pathname}?${params.toString()}${hash}` : `${pathname}${hash}`;
