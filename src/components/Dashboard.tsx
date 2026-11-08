@@ -388,6 +388,7 @@ const Dashboard: React.FC = () => {
             winProbabilityData={winProbabilityData}
             rawApiData={rawApiData}
             excludeGarbageTime={excludeGarbageTime}
+            onExcludeGarbageTimeChange={setExcludeGarbageTime}
           />
         )}
 

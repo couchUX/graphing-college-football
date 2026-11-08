@@ -675,7 +675,14 @@ const TeamCompareView: React.FC<TeamCompareViewProps> = ({
 
           {/* Player charts (both teams; per-team filter + top-N per chart) */}
           <div className="mt-8">
-            <h2 className="headline text-[26px] text-ink mb-6">Player charts</h2>
+            <h2 className="headline text-[26px] text-ink mb-3">Player charts</h2>
+            <GarbageTimeToggle
+              className="mb-6"
+              exclude={excludeGarbageTime}
+              onChange={onExcludeGarbageTimeChange}
+              garbagePlays={garbagePlays}
+              scope="these games"
+            />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <div id="top-rushers" data-share-card className="bg-white rounded-xl border border-neutral-200 shadow-sm">

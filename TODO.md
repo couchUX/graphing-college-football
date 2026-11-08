@@ -34,7 +34,7 @@ sessions (not just in a chat). Also mirrored in the PR description.
   and cumulative lines keep them in gray so the game's shape stays put, and
   the cumulative lines hold level through them. The setting lives in the URL
   (`garbageTime=include` when off), so links and card links reopen it, and
-  embeds copied with it on say how many plays they exclude. The CSV keeps
+  embeds copied with it on say "Excludes garbage time" in their subtitle. The CSV keeps
   every play and adds a `garbage_time` column.
 
   The tagging walks a running score from the raw feed, because CFBD's

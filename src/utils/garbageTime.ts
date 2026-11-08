@@ -218,11 +218,12 @@ export const readExcludeGarbageTime = (params: URLSearchParams): boolean => {
 export const garbageTimeParamValue = (exclude: boolean): string | null =>
   exclude === EXCLUDE_GARBAGE_TIME_BY_DEFAULT ? null : exclude ? 'exclude' : 'include';
 
-/** One line for a chart's subtitle or an embed, saying what the numbers leave out. */
-export const garbageTimeNote = (exclude: boolean, garbagePlays: number): string | null => {
-  if (!exclude || garbagePlays === 0) return null;
-  return `Excludes ${garbagePlays} garbage-time ${garbagePlays === 1 ? 'play' : 'plays'}`;
-};
+/**
+ * The subtitle note for a copied chart, when it leaves anything out. No count:
+ * subtitles already run long, and on a phone every word wraps.
+ */
+export const garbageTimeNote = (exclude: boolean, garbagePlays: number): string | null =>
+  exclude && garbagePlays > 0 ? 'Excludes garbage time' : null;
 
 // Colors for plays drawn but not counted, used only while the filter is on.
 // A warm gray off the paper palette, light enough to recede behind the team

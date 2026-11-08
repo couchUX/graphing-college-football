@@ -405,7 +405,14 @@ const TeamTrendsPage: React.FC = () => {
           {/* Player Charts Section */}
           {chartData && chartData.topRushers && chartData.topPassers && chartData.topReceivers && (
             <div>
-              <h2 className="rule-section headline mb-6 text-[22px] text-ink">Player charts</h2>
+              <h2 className="rule-section headline mb-3 text-[22px] text-ink">Player charts</h2>
+              <GarbageTimeToggle
+                className="mb-6"
+                exclude={excludeGarbageTime}
+                onChange={setExcludeGarbageTime}
+                garbagePlays={garbagePlays}
+                scope="these games"
+              />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left column - Rushers and Passers stacked */}
                 <div className="space-y-6">

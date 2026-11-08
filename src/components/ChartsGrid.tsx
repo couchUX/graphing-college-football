@@ -6,6 +6,7 @@ import { useChartData } from '../hooks/useChartData';
 import { track } from '../utils/analytics';
 import GameWaveChart, { GAME_WAVE_ID, GAME_WAVE_TITLE } from './GameWaveChart';
 import ChartCard from './ChartCard';
+import GarbageTimeToggle from './GarbageTimeToggle';
 import {
   createLineOptionsPlayNumberSRXR,
   createLineOptionsTeamPlay,
@@ -49,6 +50,8 @@ interface ChartsGridProps {
   rawApiData?: Record<string, any>[];
   /** Leave garbage-time plays out of the numbers (and gray them where they're drawn). */
   excludeGarbageTime?: boolean;
+  /** Flips the page's garbage-time setting; given, each section header carries the switch. */
+  onExcludeGarbageTimeChange?: (exclude: boolean) => void;
 }
 
 /** A chart as both a rendered node and everything its embed needs. */
@@ -144,6 +147,7 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
   winProbabilityData = [],
   rawApiData = [],
   excludeGarbageTime = false,
+  onExcludeGarbageTimeChange,
 }) => {
   // Player chart team filters, seeded from the URL so shared links keep them.
   const initialTeamFilter = () =>
@@ -391,10 +395,22 @@ const ChartsGrid: React.FC<ChartsGridProps> = ({
     node: <Bar data={chart.data as any} options={playerOptions} />,
   }));
 
+  // Each section carries the page's garbage-time switch, beside the charts it
+  // changes. One setting: flipping any copy flips them all.
   const sectionHeading = (text: string) => (
-    <h2 className="rule-section headline mb-6 text-[22px] text-ink">
-      {text}
-    </h2>
+    <>
+      <h2 className={`rule-section headline text-[22px] text-ink ${onExcludeGarbageTimeChange ? 'mb-3' : 'mb-6'}`}>
+        {text}
+      </h2>
+      {onExcludeGarbageTimeChange && (
+        <GarbageTimeToggle
+          className="mb-6"
+          exclude={excludeGarbageTime}
+          onChange={onExcludeGarbageTimeChange}
+          garbagePlays={garbagePlays}
+        />
+      )}
+    </>
   );
 
   return (

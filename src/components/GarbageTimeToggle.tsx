@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { GARBAGE_TIME_THRESHOLDS } from '../utils/garbageTime';
 
 interface GarbageTimeToggleProps {
@@ -22,6 +22,11 @@ export const GARBAGE_TIME_RULE =
 /**
  * "Exclude garbage time", with how many plays that takes out. A switch rather
  * than a checkbox: it changes the numbers on screen the moment it's flipped.
+ *
+ * Pages repeat it under each section header so it sits next to the charts it
+ * changes. Every copy drives the one page setting, so they flip together. The
+ * count is tied to its own switch rather than announced, or a screen reader
+ * would read it once per copy.
  */
 const GarbageTimeToggle: React.FC<GarbageTimeToggleProps> = ({
   exclude,
@@ -30,6 +35,7 @@ const GarbageTimeToggle: React.FC<GarbageTimeToggleProps> = ({
   scope = 'this game',
   className = '',
 }) => {
+  const noteId = useId();
   const plays = `${garbagePlays} garbage-time ${garbagePlays === 1 ? 'play' : 'plays'}`;
   const note =
     garbagePlays === 0 ? `No garbage time in ${scope}` : exclude ? `${plays} excluded` : `Counting ${plays}`;
@@ -40,6 +46,7 @@ const GarbageTimeToggle: React.FC<GarbageTimeToggleProps> = ({
         type="button"
         role="switch"
         aria-checked={exclude}
+        aria-describedby={noteId}
         onClick={() => onChange(!exclude)}
         className="inline-flex items-center gap-2.5 rounded-lg text-[15px] font-medium text-ink"
       >
@@ -57,7 +64,7 @@ const GarbageTimeToggle: React.FC<GarbageTimeToggleProps> = ({
         </span>
         Exclude garbage time
       </button>
-      <span className="text-sm text-byline" aria-live="polite">
+      <span id={noteId} className="text-sm text-byline">
         {note}
       </span>
     </div>
